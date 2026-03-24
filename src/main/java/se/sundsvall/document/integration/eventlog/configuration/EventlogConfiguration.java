@@ -1,6 +1,7 @@
 package se.sundsvall.document.integration.eventlog.configuration;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.cloud.openfeign.FeignBuilderCustomizer;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
@@ -11,6 +12,7 @@ import se.sundsvall.dept44.configuration.feign.decoder.ProblemErrorDecoder;
 
 import static java.util.Objects.nonNull;
 
+@ConditionalOnProperty(name = "integration.eventlog.enabled", havingValue = "true")
 @Import(FeignConfiguration.class)
 public class EventlogConfiguration {
 

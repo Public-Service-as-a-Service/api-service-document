@@ -69,16 +69,16 @@ public class DocumentService {
 	private final DocumentRepository documentRepository;
 	private final DocumentTypeRepository documentTypeRepository;
 	private final RegistrationNumberService registrationNumberService;
-	private final EventLogClient eventLogClient;
-	private final EventlogProperties eventLogProperties;
+	private final Optional<EventLogClient> eventLogClient;
+	private final Optional<EventlogProperties> eventLogProperties;
 
 	public DocumentService(
 		final DatabaseHelper databaseHelper,
 		final DocumentRepository documentRepository,
 		final DocumentTypeRepository documentTypeRepository,
 		final RegistrationNumberService registrationNumberService,
-		final EventLogClient eventLogClient,
-		final EventlogProperties eventLogProperties) {
+		final Optional<EventLogClient> eventLogClient,
+		final Optional<EventlogProperties> eventLogProperties) {
 
 		this.databaseHelper = databaseHelper;
 		this.documentRepository = documentRepository;
@@ -258,12 +258,12 @@ public class DocumentService {
 	}
 
 	private void eventLogForDocument(String registrationNumber, ConfidentialityUpdateRequest confidentialityUpdateRequest, String municipalityId) {
-		eventLogClient.createEvent(municipalityId, eventLogProperties.logKeyUuid(), toEvent(
+		eventLogProperties.ifPresent(props -> eventLogClient.ifPresent(client -> client.createEvent(municipalityId, props.logKeyUuid(), toEvent(
 			UPDATE,
 			registrationNumber,
 			TEMPLATE_EVENTLOG_MESSAGE_CONFIDENTIALITY_UPDATED_ON_DOCUMENT
 				.formatted(confidentialityUpdateRequest.getConfidential(), confidentialityUpdateRequest.getLegalCitation(), registrationNumber, confidentialityUpdateRequest.getChangedBy()),
-			confidentialityUpdateRequest.getChangedBy()));
+			confidentialityUpdateRequest.getChangedBy()))));
 	}
 
 	private void addOrReplaceDocumentDataEntity(DocumentEntity documentEntity, DocumentDataEntity documentDataEntity) {

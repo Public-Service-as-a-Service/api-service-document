@@ -1,5 +1,6 @@
 integration:
   eventlog:
+    enabled: false
     connectTimeout: 5
     readTimeout: 30
 logging:

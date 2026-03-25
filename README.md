@@ -46,17 +46,46 @@ them. It also has support for reading revisions of a document._
      gradle bootRun
      ```
 
+## Architecture
+
+### Domain Model
+
+Documents have a **registration number** (format: `YYYY-municipalityId-sequence`, e.g. `2023-2281-1`) and a **revision** number that increments on each update. Updates create a new revision entity (copy-on-write). Files are stored as BLOBs via a separate `DocumentDataBinaryEntity` to allow lazy loading.
+
+### Key Paths
+
+- **3 Resource classes** serve different endpoint groups:
+  - `DocumentResource` — `/{municipalityId}/documents` (main CRUD + search + file ops)
+  - `DocumentRevisionResource` — `/{municipalityId}/documents/{registrationNumber}/revisions`
+  - `DocumentTypeAdministrationResource` — `/{municipalityId}/admin/documenttypes`
+- **Services**: `DocumentService` (core logic), `DocumentTypeService` (cached CRUD), `RegistrationNumberService` (sequence generation)
+- **Single integration**: EventLog via Feign client (`integration/eventlog/`). Models generated from `src/main/resources/integrations/eventlog-api.yaml`.
+
+### Caching
+
+`DocumentTypeService` uses Caffeine cache (`documentTypeCache`, 500 entries, 600s TTL) with `@Cacheable`/`@CacheEvict`. Config in `CacheConfiguration`.
+
+### Search
+
+Two search approaches: free-text query (LIKE on multiple fields via `SearchSpecification`) and parameterized filter via `DocumentParameters`. Both support confidentiality filtering via `InclusionFilter` enum.
+
+### Database
+
+MariaDB with Flyway (disabled by default). 3 migrations in `src/main/resources/db/migration/`. Integration tests use TestContainers (MariaDB 10.6.4) with Flyway enabled. Test data scripts in `src/integration-test/resources/db/scripts/`.
+
+### Multipart Handling
+
+Document creation/update accepts multipart requests: a JSON part (`document`) + file parts. The Resource deserializes JSON manually via `ObjectMapper`.
+
+## Testing Structure
+
+- `src/test/` — Unit tests. Resource tests use `@SpringBootTest` with `WebTestClient` and `@MockitoBean`.
+- `src/integration-test/` — AppTests extending `AbstractAppTest` with `@WireMockAppTestSuite`. WireMock stubs in `__files/` and `mappings/`.
+- `OpenApiSpecificationIT` — Contract test verifying `src/test/resources/api/openapi.yml` matches generated spec.
+
 ## Dependencies
 
-This microservice depends on the following services:
-
-- **Eventlog**
-  - **Purpose:** Used for logging the events happening on a document.
-  - **Repository:
-    ** [https://github.com/Sundsvallskommun/api-service-eventlog](https://github.com/Sundsvallskommun/api-service-eventlog)
-  - **Setup Instructions:** See documentation in repository above for installation and configuration steps.
-
-Ensure that these services are running and properly configured before starting this microservice.
+Optional external dependency: **Eventlog** (`api-service-eventlog`) for audit logging of document operations. Controlled by `integration.eventlog.enabled` (default: `true`). When disabled, all eventlog beans (`EventLogClient`, `EventlogConfiguration`, `EventlogProperties`) are excluded via `@ConditionalOnProperty`, and `DocumentService` receives empty `Optional`s — event logging is silently skipped. All document mutations (create, update, delete, file changes) log events with 10-year expiry when enabled.
 
 ## API Documentation
 

@@ -11,6 +11,9 @@ public class DocumentParameters extends AbstractParameterPagingAndSortingBase {
 	@Schema(description = "Municipality identifier", examples = "1234", accessMode = Schema.AccessMode.READ_ONLY)
 	private String municipalityId;
 
+	@Schema(description = "Filter by the user that created the document", examples = "User1")
+	private String createdBy;
+
 	@Schema(description = "Should the search include confidential documents?", examples = "true", defaultValue = "false")
 	private boolean includeConfidential;
 
@@ -95,6 +98,19 @@ public class DocumentParameters extends AbstractParameterPagingAndSortingBase {
 		this.municipalityId = municipalityId;
 	}
 
+	public DocumentParameters withCreatedBy(final String createdBy) {
+		this.createdBy = createdBy;
+		return this;
+	}
+
+	public String getCreatedBy() {
+		return createdBy;
+	}
+
+	public void setCreatedBy(String createdBy) {
+		this.createdBy = createdBy;
+	}
+
 	public DocumentParameters withIncludeConfidential(final boolean includeConfidential) {
 		this.includeConfidential = includeConfidential;
 		return this;
@@ -151,6 +167,7 @@ public class DocumentParameters extends AbstractParameterPagingAndSortingBase {
 	public String toString() {
 		return "DocumentParameters{" +
 			"municipalityId='" + municipalityId + '\'' +
+			", createdBy='" + createdBy + '\'' +
 			", includeConfidential=" + includeConfidential +
 			", onlyLatestRevision=" + onlyLatestRevision +
 			", documentTypes=" + documentTypes +
@@ -171,12 +188,12 @@ public class DocumentParameters extends AbstractParameterPagingAndSortingBase {
 		if (!super.equals(o))
 			return false;
 		DocumentParameters that = (DocumentParameters) o;
-		return includeConfidential == that.includeConfidential && onlyLatestRevision == that.onlyLatestRevision && Objects.equals(municipalityId, that.municipalityId) && Objects.equals(documentTypes, that.documentTypes)
-			&& Objects.equals(metaData, that.metaData);
+		return includeConfidential == that.includeConfidential && onlyLatestRevision == that.onlyLatestRevision && Objects.equals(municipalityId, that.municipalityId) && Objects.equals(createdBy, that.createdBy)
+			&& Objects.equals(documentTypes, that.documentTypes) && Objects.equals(metaData, that.metaData);
 	}
 
 	@Override
 	public int hashCode() {
-		return Objects.hash(super.hashCode(), municipalityId, includeConfidential, onlyLatestRevision, documentTypes, metaData);
+		return Objects.hash(super.hashCode(), municipalityId, createdBy, includeConfidential, onlyLatestRevision, documentTypes, metaData);
 	}
 }

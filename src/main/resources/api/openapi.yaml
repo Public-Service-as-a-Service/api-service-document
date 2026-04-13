@@ -234,7 +234,8 @@ paths:
       tags:
       - Documents
       summary: Search documents by parameters
-      description: "Parameters:\n- includeConfidential: Should the search include\
+      description: "Parameters:\n- createdBy: Filter by the user that created the\
+        \ document. Datatype - String\n- includeConfidential: Should the search include\
         \ confidential documents? Datatype - boolean (default: false)\n- onlyLatestRevision:\
         \ Should the search include only the latest revision of the documents? Datatype\
         \ - boolean (default: false)\n- documentTypes: Which document types to include\
@@ -1201,6 +1202,11 @@ components:
           examples:
           - "1234"
           readOnly: true
+        createdBy:
+          type: string
+          description: Filter by the user that created the document
+          examples:
+          - User1
         includeConfidential:
           type: boolean
           default: false

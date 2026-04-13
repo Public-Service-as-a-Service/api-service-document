@@ -38,6 +38,7 @@ public final class Constants {
 
 	public static final String SEARCH_BY_PARAMETERS_DOCUMENTATION = """
 		Parameters:
+		- createdBy: Filter by the user that created the document. Datatype - String
 		- includeConfidential: Should the search include confidential documents? Datatype - boolean (default: false)
 		- onlyLatestRevision: Should the search include only the latest revision of the documents? Datatype - boolean (default: false)
 		- documentTypes: Which document types to include in the search. Datatype - List of Strings

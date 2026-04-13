@@ -17,12 +17,15 @@ spring:
   application:
     name: api-document
   datasource:
+    url: ${DATASOURCE_URL}
+    username: ${DATASOURCE_USERNAME}
+    password: ${DATASOURCE_PASSWORD}
     driver-class-name: org.mariadb.jdbc.Driver
     hikari:
       pool-name: document-pool
     type: com.zaxxer.hikari.HikariDataSource
   flyway:
-    enabled: false
+    enabled: true
   jpa:
     properties:
       hibernate:
@@ -33,7 +36,7 @@ spring:
         persistence:
           schema-generation:
             database:
-              action: none
+              action: validate
     show-sql: false
   servlet:
     multipart:

@@ -434,32 +434,38 @@ class DocumentRepositoryTest {
 
 	private static Stream<Arguments> searchByParametersArgumentsProvider() {
 		return Stream.of(
-			Arguments.of("2281", true, true, List.of("EMPLOYEE_CERTIFICATE"), List.of(new DocumentParameters.MetaData().withKey("EMPLOYEE_TYPE").withMatchesAny(List.of("Vikarie"))), 2),
-			Arguments.of("2281", true, true, List.of("EMPLOYEE_CERTIFICATE"), List.of(new DocumentParameters.MetaData().withKey("EMPLOYEE_TYPE").withMatchesAny(List.of("Vaktmästare"))), 1),
-			Arguments.of("2281", true, true, List.of("EMPLOYEE_CERTIFICATE"), List.of(new DocumentParameters.MetaData().withKey("EMPLOYEE_TYPE")), 3),
-			Arguments.of("2281", true, true, List.of("EMPLOYEE_CERTIFICATE"), null, 5),
-			Arguments.of("2281", true, true, null, null, 6),
-			Arguments.of("2281", true, false, List.of("HOLIDAY_EXCHANGE"), null, 3),
-			Arguments.of("2281", true, true, null, List.of(new DocumentParameters.MetaData().withMatchesAny(List.of("Vikarie"))), 2),
-			Arguments.of("2281", false, true, List.of("EMPLOYEE_CERTIFICATE"), List.of(new DocumentParameters.MetaData().withKey("EMPLOYEE_TYPE").withMatchesAll(List.of("Vikarie", "Lärare"))), 0),
-			Arguments.of("2281", false, false, List.of("HOLIDAY_EXCHANGE"), List.of(new DocumentParameters.MetaData().withKey("document1-key1").withMatchesAll(List.of("value-1"))), 3),
-			Arguments.of("2281", true, true, null, List.of(new DocumentParameters.MetaData().withMatchesAny(List.of("Vaktmästare", "Vikarie"))), 3),
-			Arguments.of("2281", true, false, List.of("EMPLOYEE_CERTIFICATE"), List.of(new DocumentParameters.MetaData().withMatchesAll(List.of("Sidsjö skola", "Vikarie"))), 1),
-			Arguments.of("2281", true, true, List.of("EMPLOYEE_CERTIFICATE"), List.of(new DocumentParameters.MetaData().withKey("EMPLOYEE_TYPE")), 3),
+			Arguments.of("2281", true, true, List.of("EMPLOYEE_CERTIFICATE"), List.of(new DocumentParameters.MetaData().withKey("EMPLOYEE_TYPE").withMatchesAny(List.of("Vikarie"))), 2, null),
+			Arguments.of("2281", true, true, List.of("EMPLOYEE_CERTIFICATE"), List.of(new DocumentParameters.MetaData().withKey("EMPLOYEE_TYPE").withMatchesAny(List.of("Vaktmästare"))), 1, null),
+			Arguments.of("2281", true, true, List.of("EMPLOYEE_CERTIFICATE"), List.of(new DocumentParameters.MetaData().withKey("EMPLOYEE_TYPE")), 3, null),
+			Arguments.of("2281", true, true, List.of("EMPLOYEE_CERTIFICATE"), null, 5, null),
+			Arguments.of("2281", true, true, null, null, 6, null),
+			Arguments.of("2281", true, false, List.of("HOLIDAY_EXCHANGE"), null, 3, null),
+			Arguments.of("2281", true, true, null, List.of(new DocumentParameters.MetaData().withMatchesAny(List.of("Vikarie"))), 2, null),
+			Arguments.of("2281", false, true, List.of("EMPLOYEE_CERTIFICATE"), List.of(new DocumentParameters.MetaData().withKey("EMPLOYEE_TYPE").withMatchesAll(List.of("Vikarie", "Lärare"))), 0, null),
+			Arguments.of("2281", false, false, List.of("HOLIDAY_EXCHANGE"), List.of(new DocumentParameters.MetaData().withKey("document1-key1").withMatchesAll(List.of("value-1"))), 3, null),
+			Arguments.of("2281", true, true, null, List.of(new DocumentParameters.MetaData().withMatchesAny(List.of("Vaktmästare", "Vikarie"))), 3, null),
+			Arguments.of("2281", true, false, List.of("EMPLOYEE_CERTIFICATE"), List.of(new DocumentParameters.MetaData().withMatchesAll(List.of("Sidsjö skola", "Vikarie"))), 1, null),
+			Arguments.of("2281", true, true, List.of("EMPLOYEE_CERTIFICATE"), List.of(new DocumentParameters.MetaData().withKey("EMPLOYEE_TYPE")), 3, null),
 			Arguments.of("2281", true, true, List.of("EMPLOYEE_CERTIFICATE"), List.of(
 				new DocumentParameters.MetaData().withKey("EMPLOYEE_TYPE").withMatchesAny(List.of("Vaktmästare")),
-				new DocumentParameters.MetaData().withKey("EMPLOYEE_UNIT").withMatchesAll(List.of("Sidsjö skola"))), 1),
-			Arguments.of("2281", false, false, List.of("HOLIDAY_EXCHANGE"), null, 3),
-			Arguments.of(null, true, true, List.of("EMPLOYEE_CERTIFICATE"), List.of(new DocumentParameters.MetaData().withKey("EMPLOYEE_TYPE").withMatchesAny(List.of("Vikarie"))), 0),
-			Arguments.of("2281", true, true, List.of("EMPLOYEE_CERTIFICATE"), List.of(), 5),
-			Arguments.of("2281", true, true, null, List.of(new DocumentParameters.MetaData().withKey("document1-key1").withMatchesAny(List.of("value-1"))), 1));
+				new DocumentParameters.MetaData().withKey("EMPLOYEE_UNIT").withMatchesAll(List.of("Sidsjö skola"))), 1, null),
+			Arguments.of("2281", false, false, List.of("HOLIDAY_EXCHANGE"), null, 3, null),
+			Arguments.of(null, true, true, List.of("EMPLOYEE_CERTIFICATE"), List.of(new DocumentParameters.MetaData().withKey("EMPLOYEE_TYPE").withMatchesAny(List.of("Vikarie"))), 0, null),
+			Arguments.of("2281", true, true, List.of("EMPLOYEE_CERTIFICATE"), List.of(), 5, null),
+			Arguments.of("2281", true, true, null, List.of(new DocumentParameters.MetaData().withKey("document1-key1").withMatchesAny(List.of("value-1"))), 1, null),
+			// createdBy filter tests
+			Arguments.of("2281", true, false, null, null, 4, "User5"),
+			Arguments.of("2281", false, false, null, null, 1, "User1"),
+			Arguments.of("2281", true, true, null, null, 0, "User1"),
+			Arguments.of("2281", true, true, null, null, 0, "NonExistentUser"));
 	}
 
 	@ParameterizedTest
 	@MethodSource("searchByParametersArgumentsProvider")
-	void searchByParameters(String municipalityId, boolean includeConfidential, boolean onlyLatestRevision, List<String> documentTypes, List<DocumentParameters.MetaData> metaData, int expectedSize) {
+	void searchByParameters(String municipalityId, boolean includeConfidential, boolean onlyLatestRevision, List<String> documentTypes, List<DocumentParameters.MetaData> metaData, int expectedSize, String createdBy) {
 		var parameters = new DocumentParameters()
 			.withMunicipalityId(municipalityId)
+			.withCreatedBy(createdBy)
 			.withIncludeConfidential(includeConfidential)
 			.withOnlyLatestRevision(onlyLatestRevision)
 			.withDocumentTypes(documentTypes)
@@ -472,6 +478,27 @@ class DocumentRepositoryTest {
 		assertThat(result.getContent()).hasSize(expectedSize);
 		assertThat(result.getSize()).isEqualTo(parameters.getLimit());
 		assertThat(result.getTotalElements()).isEqualTo(expectedSize);
+	}
+
+	@Test
+	void searchByParametersWithCreatedBy() {
+		var parameters = new DocumentParameters()
+			.withMunicipalityId(MUNICIPALITY_ID)
+			.withCreatedBy("user5")
+			.withIncludeConfidential(true);
+		var pageable = PageRequest.of(0, 10, Sort.by(ASC, "registrationNumber"));
+
+		var result = documentRepository.searchByParameters(parameters, pageable);
+
+		assertThat(result).isNotNull();
+		assertThat(result.getContent())
+			.extracting(DocumentEntity::getRegistrationNumber, DocumentEntity::getCreatedBy)
+			.containsExactly(
+				tuple("2024-2281-601", "User5"),
+				tuple("2024-2281-602", "User5"),
+				tuple("2024-2281-603", "User5"),
+				tuple("2024-2281-666", "User5"));
+		assertThat(result.getTotalElements()).isEqualTo(4);
 	}
 
 	private DocumentEntity createDocumentEntity(String registrationNumber) {

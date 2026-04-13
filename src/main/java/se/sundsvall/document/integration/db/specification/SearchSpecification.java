@@ -38,6 +38,7 @@ public interface SearchSpecification {
 			.and(matchesMunicipalityId(parameters.getMunicipalityId(), false))
 			.and(includeConfidentialDocuments(parameters.isIncludeConfidential()))
 			.and(matchesType(parameters.getDocumentTypes()))
+			.and(matchesCreatedByExact(parameters.getCreatedBy()))
 			.and(matchesMetaData(parameters.getMetaData()));
 	}
 
@@ -190,6 +191,15 @@ public interface SearchSpecification {
 			return (entity, cq, cb) -> cb.and(); // Do not add any filter to return all documents regardless of whether they are confidential or not
 		}
 		return (entity, cq, cb) -> cb.equal(entity.get(CONFIDENTIALITY).get(CONFIDENTIAL), false); // Return non-confidential documents only
+	}
+
+	private static Specification<DocumentEntity> matchesCreatedByExact(String createdBy) {
+		return (entity, cq, cb) -> {
+			if (createdBy == null || createdBy.isBlank()) {
+				return cb.and();
+			}
+			return cb.equal(cb.lower(entity.get(CREATED_BY)), createdBy.toLowerCase());
+		};
 	}
 
 	private static Specification<DocumentEntity> matchesCreatedBy(String query) {

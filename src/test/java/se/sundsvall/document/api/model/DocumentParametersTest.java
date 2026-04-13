@@ -28,6 +28,7 @@ class DocumentParametersTest {
 	void testBuilderMethods() {
 
 		var municipalityId = "2281";
+		var createdBy = "User1";
 		var includeConfidential = true;
 		var onlyLatestRevision = true;
 		var documentTypes = List.of("type1", "type2");
@@ -39,6 +40,7 @@ class DocumentParametersTest {
 
 		final var bean = DocumentParameters.create()
 			.withMunicipalityId(municipalityId)
+			.withCreatedBy(createdBy)
 			.withIncludeConfidential(includeConfidential)
 			.withOnlyLatestRevision(onlyLatestRevision)
 			.withDocumentTypes(documentTypes)
@@ -46,6 +48,7 @@ class DocumentParametersTest {
 
 		Assertions.assertThat(bean).isNotNull().hasNoNullFieldsOrPropertiesExcept("sortBy");
 		Assertions.assertThat(bean.getMunicipalityId()).isEqualTo(municipalityId);
+		Assertions.assertThat(bean.getCreatedBy()).isEqualTo(createdBy);
 		Assertions.assertThat(bean.isIncludeConfidential()).isEqualTo(includeConfidential);
 		Assertions.assertThat(bean.isOnlyLatestRevision()).isEqualTo(onlyLatestRevision);
 		Assertions.assertThat(bean.getDocumentTypes()).isEqualTo(documentTypes);

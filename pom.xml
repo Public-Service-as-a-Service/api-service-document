@@ -101,8 +101,8 @@
 						<!-- API model classes -->
 						<exclude>**/db/model/*_*</exclude>
 						<!-- JPAModelGen classes -->
-						<!-- TODO: drop these excludes when Stage 1 follow-up adds unit tests + S3BinaryStoreIT -->
-						<exclude>**/service/storage/**</exclude>
+						<!-- Spring config wired only when document.storage.backend=s3; no IT runs in that mode. -->
+						<exclude>**/service/storage/S3StorageConfiguration*</exclude>
 					</excludes>
 				</configuration>
 			</plugin>

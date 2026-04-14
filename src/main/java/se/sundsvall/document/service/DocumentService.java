@@ -2,12 +2,14 @@ package se.sundsvall.document.service;
 
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Optional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.http.ContentDisposition;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -44,7 +46,6 @@ import static se.sundsvall.document.service.Constants.ERROR_DOCUMENT_FILE_BY_ID_
 import static se.sundsvall.document.service.Constants.ERROR_DOCUMENT_FILE_BY_REGISTRATION_NUMBER_AND_REVISION_NOT_FOUND;
 import static se.sundsvall.document.service.Constants.ERROR_DOCUMENT_FILE_BY_REGISTRATION_NUMBER_COULD_NOT_READ;
 import static se.sundsvall.document.service.Constants.ERROR_DOCUMENT_FILE_BY_REGISTRATION_NUMBER_NOT_FOUND;
-import static se.sundsvall.document.service.Constants.TEMPLATE_CONTENT_DISPOSITION_HEADER_VALUE;
 import static se.sundsvall.document.service.Constants.TEMPLATE_EVENTLOG_MESSAGE_CONFIDENTIALITY_UPDATED_ON_DOCUMENT;
 import static se.sundsvall.document.service.InclusionFilter.CONFIDENTIAL_AND_PUBLIC;
 import static se.sundsvall.document.service.mapper.DocumentMapper.copyDocumentEntity;
@@ -244,7 +245,10 @@ public class DocumentService {
 	private void addFileContentToResponse(DocumentDataEntity documentDataEntity, HttpServletResponse response) {
 		try {
 			response.addHeader(CONTENT_TYPE, documentDataEntity.getMimeType());
-			response.addHeader(CONTENT_DISPOSITION, TEMPLATE_CONTENT_DISPOSITION_HEADER_VALUE.formatted(documentDataEntity.getFileName()));
+			response.addHeader(CONTENT_DISPOSITION, ContentDisposition.attachment()
+				.filename(documentDataEntity.getFileName(), StandardCharsets.UTF_8)
+				.build()
+				.toString());
 			response.setContentLength((int) documentDataEntity.getFileSizeInBytes());
 
 			final var ref = new StorageRef(documentDataEntity.getStorageBackend(), documentDataEntity.getStorageLocator());

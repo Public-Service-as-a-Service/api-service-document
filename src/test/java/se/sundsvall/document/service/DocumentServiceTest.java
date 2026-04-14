@@ -9,6 +9,7 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.nio.charset.StandardCharsets;
 import java.time.OffsetDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
@@ -27,6 +28,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
+import org.springframework.http.ContentDisposition;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.web.multipart.MultipartFile;
 import se.sundsvall.dept44.problem.ThrowableProblem;
@@ -393,10 +395,33 @@ class DocumentServiceTest {
 		// Assert
 		verify(documentRepositoryMock).findTopByMunicipalityIdAndRegistrationNumberAndConfidentialityConfidentialInOrderByRevisionDesc(MUNICIPALITY_ID, REGISTRATION_NUMBER, PUBLIC.getValue());
 		verify(httpServletResponseMock).addHeader(CONTENT_TYPE, MIME_TYPE);
-		verify(httpServletResponseMock).addHeader(CONTENT_DISPOSITION, "attachment; filename=\"image.png\"");
+		verify(httpServletResponseMock).addHeader(CONTENT_DISPOSITION, ContentDisposition.attachment().filename(FILE_NAME, StandardCharsets.UTF_8).build().toString());
 		verify(httpServletResponseMock).setContentLength((int) FILE_SIZE_IN_BYTES);
 		verify(httpServletResponseMock).getOutputStream();
 		verify(binaryStoreMock).streamTo(eq(new StorageRef("jdbc", STORAGE_LOCATOR)), any(OutputStream.class));
+	}
+
+	@Test
+	void readFileByRegistrationNumber_withNonAsciiFilename_emitsRfc5987ContentDisposition() throws IOException {
+
+		// Arrange
+		final var includeConfidential = false;
+		final var documentEntity = createDocumentEntity();
+		documentEntity.getDocumentData().getFirst().setFileName("fet säl.jpg");
+
+		when(documentRepositoryMock.findTopByMunicipalityIdAndRegistrationNumberAndConfidentialityConfidentialInOrderByRevisionDesc(MUNICIPALITY_ID, REGISTRATION_NUMBER, PUBLIC.getValue())).thenReturn(Optional.of(documentEntity));
+		when(httpServletResponseMock.getOutputStream()).thenReturn(servletOutputStreamMock);
+
+		final var dispositionCaptor = ArgumentCaptor.forClass(String.class);
+
+		// Act
+		documentService.readFile(REGISTRATION_NUMBER, DOCUMENT_DATA_ID, includeConfidential, httpServletResponseMock, MUNICIPALITY_ID);
+
+		// Assert
+		verify(httpServletResponseMock).addHeader(eq(CONTENT_DISPOSITION), dispositionCaptor.capture());
+		assertThat(dispositionCaptor.getValue())
+			.startsWith("attachment;")
+			.contains("filename*=UTF-8''fet%20s%C3%A4l.jpg");
 	}
 
 	@Test
@@ -482,7 +507,7 @@ class DocumentServiceTest {
 
 		verify(documentRepositoryMock).findTopByMunicipalityIdAndRegistrationNumberAndConfidentialityConfidentialInOrderByRevisionDesc(MUNICIPALITY_ID, REGISTRATION_NUMBER, PUBLIC.getValue());
 		verify(httpServletResponseMock).addHeader(CONTENT_TYPE, MIME_TYPE);
-		verify(httpServletResponseMock).addHeader(CONTENT_DISPOSITION, "attachment; filename=\"image.png\"");
+		verify(httpServletResponseMock).addHeader(CONTENT_DISPOSITION, ContentDisposition.attachment().filename(FILE_NAME, StandardCharsets.UTF_8).build().toString());
 		verify(httpServletResponseMock).setContentLength((int) FILE_SIZE_IN_BYTES);
 		verify(httpServletResponseMock).getOutputStream();
 		verify(binaryStoreMock).streamTo(eq(new StorageRef("jdbc", STORAGE_LOCATOR)), any(OutputStream.class));
@@ -504,7 +529,7 @@ class DocumentServiceTest {
 		// Assert
 		verify(documentRepositoryMock).findByMunicipalityIdAndRegistrationNumberAndRevisionAndConfidentialityConfidentialIn(MUNICIPALITY_ID, REGISTRATION_NUMBER, REVISION, PUBLIC.getValue());
 		verify(httpServletResponseMock).addHeader(CONTENT_TYPE, MIME_TYPE);
-		verify(httpServletResponseMock).addHeader(CONTENT_DISPOSITION, "attachment; filename=\"image.png\"");
+		verify(httpServletResponseMock).addHeader(CONTENT_DISPOSITION, ContentDisposition.attachment().filename(FILE_NAME, StandardCharsets.UTF_8).build().toString());
 		verify(httpServletResponseMock).setContentLength((int) FILE_SIZE_IN_BYTES);
 		verify(httpServletResponseMock).getOutputStream();
 		verify(binaryStoreMock).streamTo(eq(new StorageRef("jdbc", STORAGE_LOCATOR)), any(OutputStream.class));

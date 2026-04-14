@@ -16,7 +16,20 @@
 		<!-- Service properties -->
 		<generated-sources-path>${project.build.directory}/generated-sources</generated-sources-path>
 		<faux-pas.version>0.9.0</faux-pas.version>
+		<aws-sdk.version>2.30.0</aws-sdk.version>
+		<testcontainers.version>1.20.4</testcontainers.version>
 	</properties>
+	<dependencyManagement>
+		<dependencies>
+			<dependency>
+				<groupId>software.amazon.awssdk</groupId>
+				<artifactId>bom</artifactId>
+				<version>${aws-sdk.version}</version>
+				<type>pom</type>
+				<scope>import</scope>
+			</dependency>
+		</dependencies>
+	</dependencyManagement>
 	<dependencies>
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
@@ -52,7 +65,19 @@
 			<artifactId>dept44-starter-jpa</artifactId>
 		</dependency>
 
+		<!-- Object storage (S3-compatible: AWS S3, MinIO, Garage) -->
+		<dependency>
+			<groupId>software.amazon.awssdk</groupId>
+			<artifactId>s3</artifactId>
+		</dependency>
+
 		<!-- Test -->
+		<dependency>
+			<groupId>org.testcontainers</groupId>
+			<artifactId>minio</artifactId>
+			<version>${testcontainers.version}</version>
+			<scope>test</scope>
+		</dependency>
 		<dependency>
 			<groupId>se.sundsvall.dept44</groupId>
 			<artifactId>dept44-starter-test</artifactId>
@@ -76,6 +101,8 @@
 						<!-- API model classes -->
 						<exclude>**/db/model/*_*</exclude>
 						<!-- JPAModelGen classes -->
+						<!-- TODO: drop these excludes when Stage 1 follow-up adds unit tests + S3BinaryStoreIT -->
+						<exclude>**/service/storage/**</exclude>
 					</excludes>
 				</configuration>
 			</plugin>

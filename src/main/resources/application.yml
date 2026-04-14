@@ -1,3 +1,15 @@
+document:
+  storage:
+    # Backends: jdbc (bytes in MariaDB LONGBLOB, legacy) or s3 (AWS S3 / MinIO / Garage).
+    # See Stage 1 of the storage-migration plan.
+    backend: jdbc
+    s3:
+      endpoint:
+      region: us-east-1
+      bucket:
+      access-key:
+      secret-key:
+      path-style-access: true
 integration:
   eventlog:
     enabled: false

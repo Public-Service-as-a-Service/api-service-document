@@ -8,8 +8,6 @@ import org.springframework.context.annotation.Configuration;
 import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
 import software.amazon.awssdk.auth.credentials.DefaultCredentialsProvider;
 import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
-import software.amazon.awssdk.core.checksums.RequestChecksumCalculation;
-import software.amazon.awssdk.core.checksums.ResponseChecksumValidation;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.S3Configuration;
@@ -21,16 +19,11 @@ public class S3StorageConfiguration {
 
 	@Bean
 	S3Client s3Client(S3StorageProperties properties) {
-		// AWS SDK v2.30+ enables flexible checksums by default (STREAMING-*-TRAILER payload modes);
-		// Garage v2 doesn't support them and rejects with "Invalid payload signature". Request
-		// WHEN_REQUIRED drops the trailer — the SDK then uses plain STREAMING-AWS4-HMAC-SHA256-PAYLOAD
-		// which Garage does accept. Keep chunked encoding ON (default): it signs per chunk without
-		// needing to re-read the stream, which matters for RequestBody.fromInputStream() where the
-		// MultipartFile stream can only be read once.
+		// SDK version is pinned at 2.29.x (see pom.xml) to avoid the v2.30+ flexible-checksum
+		// trailer payload modes that Garage v2 doesn't support. 2.29.x defaults use plain
+		// STREAMING-AWS4-HMAC-SHA256-PAYLOAD which Garage accepts.
 		final var builder = S3Client.builder()
 			.region(Region.of(properties.region() != null ? properties.region() : "us-east-1"))
-			.requestChecksumCalculation(RequestChecksumCalculation.WHEN_REQUIRED)
-			.responseChecksumValidation(ResponseChecksumValidation.WHEN_REQUIRED)
 			.serviceConfiguration(S3Configuration.builder()
 				.pathStyleAccessEnabled(properties.pathStyleAccess())
 				.build());

@@ -13,8 +13,6 @@ import org.testcontainers.containers.MinIOContainer;
 import se.sundsvall.dept44.problem.ThrowableProblem;
 import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
 import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
-import software.amazon.awssdk.core.checksums.RequestChecksumCalculation;
-import software.amazon.awssdk.core.checksums.ResponseChecksumValidation;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.S3Configuration;
@@ -44,15 +42,11 @@ class S3BinaryStoreIT {
 	static void setUp() {
 		MINIO.start();
 
-		// Mirror the production S3Client config (see S3StorageConfiguration) so this contract test
-		// exercises the same Garage-safe flags.
 		s3Client = S3Client.builder()
 			.endpointOverride(URI.create(MINIO.getS3URL()))
 			.credentialsProvider(StaticCredentialsProvider.create(
 				AwsBasicCredentials.create(MINIO.getUserName(), MINIO.getPassword())))
 			.region(Region.US_EAST_1)
-			.requestChecksumCalculation(RequestChecksumCalculation.WHEN_REQUIRED)
-			.responseChecksumValidation(ResponseChecksumValidation.WHEN_REQUIRED)
 			.serviceConfiguration(S3Configuration.builder()
 				.pathStyleAccessEnabled(true)
 				.build())

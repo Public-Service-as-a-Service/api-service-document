@@ -104,6 +104,17 @@ class S3BinaryStoreIT {
 	}
 
 	@Test
+	void put_withNonAsciiFilename_survivesSigV4_andRoundTripsEncoded() {
+		final var payload = "svenska".getBytes();
+		final var userMetadata = Map.of("original-filename", "fet_säl.jpg");
+
+		final var ref = binaryStore.put(new ByteArrayInputStream(payload), payload.length, "image/jpeg", userMetadata);
+
+		final var head = s3Client.headObject(HeadObjectRequest.builder().bucket(BUCKET).key(ref.locator()).build());
+		assertThat(head.metadata()).containsEntry("original-filename", "fet_s%C3%A4l.jpg");
+	}
+
+	@Test
 	void copy_createsIndependentObjectWithSameContent() throws Exception {
 		final var payload = "hello storage".getBytes();
 

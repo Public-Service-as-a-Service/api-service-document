@@ -9,7 +9,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
-import org.mariadb.jdbc.MariaDbBlob;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.data.jpa.test.autoconfigure.DataJpaTest;
 import org.springframework.boot.jdbc.test.autoconfigure.AutoConfigureTestDatabase;
@@ -21,7 +20,6 @@ import org.springframework.transaction.annotation.Transactional;
 import se.sundsvall.dept44.problem.Problem;
 import se.sundsvall.document.api.model.DocumentParameters;
 import se.sundsvall.document.integration.db.model.ConfidentialityEmbeddable;
-import se.sundsvall.document.integration.db.model.DocumentDataBinaryEntity;
 import se.sundsvall.document.integration.db.model.DocumentDataEntity;
 import se.sundsvall.document.integration.db.model.DocumentEntity;
 import se.sundsvall.document.integration.db.model.DocumentMetadataEmbeddable;
@@ -521,7 +519,8 @@ class DocumentRepositoryTest {
 	private static DocumentDataEntity createDocumentDataEntity(String filename) {
 		final var fileContent = "fileContent";
 		return DocumentDataEntity.create()
-			.withDocumentDataBinary(DocumentDataBinaryEntity.create().withBinaryFile(new MariaDbBlob(fileContent.getBytes())))
+			.withStorageBackend("jdbc")
+			.withStorageLocator(UUID.randomUUID().toString())
 			.withFileName(filename)
 			.withFileSizeInBytes(fileContent.length())
 			.withMimeType("text/plain");

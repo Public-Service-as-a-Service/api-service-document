@@ -2,28 +2,15 @@ package se.sundsvall.document.integration.db.model;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
-import jakarta.persistence.ForeignKey;
 import jakarta.persistence.Id;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.OneToOne;
 import jakarta.persistence.Table;
-import jakarta.persistence.UniqueConstraint;
 import java.io.Serializable;
 import java.util.Objects;
 import org.hibernate.annotations.ColumnDefault;
 import org.hibernate.annotations.UuidGenerator;
 
-import static jakarta.persistence.CascadeType.ALL;
-import static jakarta.persistence.FetchType.LAZY;
-
 @Entity
-@Table(
-	name = "document_data",
-	uniqueConstraints = {
-		@UniqueConstraint(name = "uq_document_data_binary_id", columnNames = {
-			"document_data_binary_id"
-		})
-	})
+@Table(name = "document_data")
 public class DocumentDataEntity implements Serializable {
 
 	private static final long serialVersionUID = -7783051635903859326L;
@@ -43,12 +30,12 @@ public class DocumentDataEntity implements Serializable {
 	@ColumnDefault("0")
 	private long fileSizeInBytes;
 
-	@OneToOne(fetch = LAZY, cascade = ALL, orphanRemoval = true)
-	@JoinColumn(
-		name = "document_data_binary_id",
-		referencedColumnName = "id",
-		foreignKey = @ForeignKey(name = "fk_document_data_document_data_binary"))
-	private DocumentDataBinaryEntity documentDataBinary;
+	@Column(name = "storage_backend", nullable = false, length = 16)
+	@ColumnDefault("'jdbc'")
+	private String storageBackend = "jdbc";
+
+	@Column(name = "storage_locator")
+	private String storageLocator;
 
 	public static DocumentDataEntity create() {
 		return new DocumentDataEntity();
@@ -106,16 +93,29 @@ public class DocumentDataEntity implements Serializable {
 		return this;
 	}
 
-	public DocumentDataBinaryEntity getDocumentDataBinary() {
-		return documentDataBinary;
+	public String getStorageBackend() {
+		return storageBackend;
 	}
 
-	public void setDocumentDataBinary(DocumentDataBinaryEntity documentDataBinary) {
-		this.documentDataBinary = documentDataBinary;
+	public void setStorageBackend(String storageBackend) {
+		this.storageBackend = storageBackend;
 	}
 
-	public DocumentDataEntity withDocumentDataBinary(DocumentDataBinaryEntity documentDataBinary) {
-		this.documentDataBinary = documentDataBinary;
+	public DocumentDataEntity withStorageBackend(String storageBackend) {
+		this.storageBackend = storageBackend;
+		return this;
+	}
+
+	public String getStorageLocator() {
+		return storageLocator;
+	}
+
+	public void setStorageLocator(String storageLocator) {
+		this.storageLocator = storageLocator;
+	}
+
+	public DocumentDataEntity withStorageLocator(String storageLocator) {
+		this.storageLocator = storageLocator;
 		return this;
 	}
 
@@ -129,20 +129,19 @@ public class DocumentDataEntity implements Serializable {
 		}
 		final DocumentDataEntity that = (DocumentDataEntity) o;
 		return (fileSizeInBytes == that.fileSizeInBytes) && Objects.equals(id, that.id) && Objects.equals(mimeType, that.mimeType) && Objects.equals(fileName, that.fileName) &&
-			Objects.equals(documentDataBinary, that.documentDataBinary);
+			Objects.equals(storageBackend, that.storageBackend) && Objects.equals(storageLocator, that.storageLocator);
 	}
 
 	@Override
 	public int hashCode() {
-		return Objects.hash(id, mimeType, fileName, fileSizeInBytes, documentDataBinary);
+		return Objects.hash(id, mimeType, fileName, fileSizeInBytes, storageBackend, storageLocator);
 	}
 
 	@Override
 	public String toString() {
 		final StringBuilder builder = new StringBuilder();
-		builder.append("DocumentDataEntity [id=").append(id).append(", mimeType=").append(mimeType).append(", fileName=").append(fileName).append(", fileSizeInBytes=").append(fileSizeInBytes).append(
-			", documentDataBinary=").append(documentDataBinary).append("]");
+		builder.append("DocumentDataEntity [id=").append(id).append(", mimeType=").append(mimeType).append(", fileName=").append(fileName).append(", fileSizeInBytes=").append(fileSizeInBytes)
+			.append(", storageBackend=").append(storageBackend).append(", storageLocator=").append(storageLocator).append("]");
 		return builder.toString();
 	}
-
 }

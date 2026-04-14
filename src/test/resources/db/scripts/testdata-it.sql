@@ -182,3 +182,9 @@ VALUES ('159c10bf-1b32-471b-b2d3-c4b4b13ea152', 'document1-key1', 'value-1'), --
 
 INSERT INTO registration_number_sequence (sequence_number, created, modified, id, municipality_id)
 VALUES (665, '2023-06-28 12:01:00.000', '2023-06-28 12:01:00.000', 'b734c963-b8d1-4ca0-b392-067f6f217794', '2321');
+
+
+-- Stage 1 storage-abstraction bridge: document_data rows above use the legacy
+-- document_data_binary_id column; mirror that into the new storage_locator so
+-- JdbcBinaryStore can resolve them at read time.
+UPDATE document_data SET storage_locator = document_data_binary_id WHERE storage_locator IS NULL;

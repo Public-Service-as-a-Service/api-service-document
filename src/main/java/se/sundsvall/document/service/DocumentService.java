@@ -2,7 +2,6 @@ package se.sundsvall.document.service;
 
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
-import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Optional;
 import org.slf4j.Logger;
@@ -21,7 +20,6 @@ import se.sundsvall.document.api.model.DocumentFiles;
 import se.sundsvall.document.api.model.DocumentParameters;
 import se.sundsvall.document.api.model.DocumentUpdateRequest;
 import se.sundsvall.document.api.model.PagedDocumentResponse;
-import se.sundsvall.document.integration.db.DatabaseHelper;
 import se.sundsvall.document.integration.db.DocumentRepository;
 import se.sundsvall.document.integration.db.DocumentTypeRepository;
 import se.sundsvall.document.integration.db.model.DocumentDataEntity;
@@ -29,6 +27,8 @@ import se.sundsvall.document.integration.db.model.DocumentEntity;
 import se.sundsvall.document.integration.eventlog.EventLogClient;
 import se.sundsvall.document.integration.eventlog.configuration.EventlogProperties;
 import se.sundsvall.document.service.mapper.DocumentMapper;
+import se.sundsvall.document.service.storage.BinaryStore;
+import se.sundsvall.document.service.storage.StorageRef;
 
 import static generated.se.sundsvall.eventlog.EventType.UPDATE;
 import static java.util.Objects.nonNull;
@@ -38,7 +38,6 @@ import static org.springframework.http.HttpHeaders.CONTENT_TYPE;
 import static org.springframework.http.HttpStatus.INTERNAL_SERVER_ERROR;
 import static org.springframework.http.HttpStatus.NOT_FOUND;
 import static org.springframework.util.CollectionUtils.isEmpty;
-import static org.springframework.util.StreamUtils.copy;
 import static se.sundsvall.document.service.Constants.ERROR_DOCUMENT_BY_REGISTRATION_NUMBER_AND_REVISION_NOT_FOUND;
 import static se.sundsvall.document.service.Constants.ERROR_DOCUMENT_BY_REGISTRATION_NUMBER_NOT_FOUND;
 import static se.sundsvall.document.service.Constants.ERROR_DOCUMENT_FILE_BY_ID_NOT_FOUND;
@@ -65,7 +64,7 @@ public class DocumentService {
 	private static final String ERROR_DOCUMENT_TYPE_NOT_FOUND = "Document type with identifier %s was not found within municipality with id %s";
 	private static final Logger LOGGER = LoggerFactory.getLogger(DocumentService.class);
 
-	private final DatabaseHelper databaseHelper;
+	private final BinaryStore binaryStore;
 	private final DocumentRepository documentRepository;
 	private final DocumentTypeRepository documentTypeRepository;
 	private final RegistrationNumberService registrationNumberService;
@@ -73,14 +72,14 @@ public class DocumentService {
 	private final Optional<EventlogProperties> eventLogProperties;
 
 	public DocumentService(
-		final DatabaseHelper databaseHelper,
+		final BinaryStore binaryStore,
 		final DocumentRepository documentRepository,
 		final DocumentTypeRepository documentTypeRepository,
 		final RegistrationNumberService registrationNumberService,
 		final Optional<EventLogClient> eventLogClient,
 		final Optional<EventlogProperties> eventLogProperties) {
 
-		this.databaseHelper = databaseHelper;
+		this.binaryStore = binaryStore;
 		this.documentRepository = documentRepository;
 		this.documentTypeRepository = documentTypeRepository;
 		this.registrationNumberService = registrationNumberService;
@@ -90,7 +89,7 @@ public class DocumentService {
 
 	public Document create(final DocumentCreateRequest documentCreateRequest, final DocumentFiles documentFiles, final String municipalityId) {
 
-		final var documentDataEntities = toDocumentDataEntities(documentFiles, databaseHelper);
+		final var documentDataEntities = toDocumentDataEntities(documentFiles, binaryStore);
 		final var registrationNumber = registrationNumberService.generateRegistrationNumber(municipalityId);
 		final var documentTypeEntity = documentTypeRepository.findByMunicipalityIdAndType(municipalityId, documentCreateRequest.getType())
 			.orElseThrow(() -> Problem.valueOf(NOT_FOUND, ERROR_DOCUMENT_TYPE_NOT_FOUND.formatted(documentCreateRequest.getType(), municipalityId)));
@@ -167,10 +166,10 @@ public class DocumentService {
 			.orElseThrow(() -> Problem.valueOf(NOT_FOUND, ERROR_DOCUMENT_BY_REGISTRATION_NUMBER_NOT_FOUND.formatted(registrationNumber)));
 
 		// Create documentData element to add/replace.
-		final var newDocumentDataEntity = toDocumentDataEntity(documentFile, databaseHelper);
+		final var newDocumentDataEntity = toDocumentDataEntity(documentFile, binaryStore);
 
 		// Do not update existing entity, create a new revision instead.
-		final var newDocumentEntity = copyDocumentEntity(documentEntity)
+		final var newDocumentEntity = copyDocumentEntity(documentEntity, binaryStore)
 			.withRevision(documentEntity.getRevision() + 1)
 			.withCreatedBy(documentDataCreateRequest.getCreatedBy());
 
@@ -190,11 +189,11 @@ public class DocumentService {
 		}
 
 		// Do not update existing entity, create a new revision instead.
-		final var newDocumentEntity = copyDocumentEntity(documentEntity)
+		final var newDocumentEntity = copyDocumentEntity(documentEntity, binaryStore)
 			.withRevision(documentEntity.getRevision() + 1)
 			.withDocumentData(documentEntity.getDocumentData().stream()
 				.filter(docDataEntity -> !docDataEntity.getId().equals(documentDataId)) // Create a new documentData list without the "deleted" object.
-				.map(DocumentMapper::copyDocumentDataEntity)
+				.map(d -> DocumentMapper.copyDocumentDataEntity(d, binaryStore))
 				.toList());
 
 		// If size on new list is the same as the old list, nothing was removed in new revision.
@@ -211,7 +210,7 @@ public class DocumentService {
 			.orElseThrow(() -> Problem.valueOf(NOT_FOUND, ERROR_DOCUMENT_BY_REGISTRATION_NUMBER_NOT_FOUND.formatted(registrationNumber)));
 
 		// Do not update existing entity, create a new revision instead.
-		final var newDocumentEntity = toDocumentEntity(documentUpdateRequest, existingDocumentEntity);
+		final var newDocumentEntity = toDocumentEntity(documentUpdateRequest, existingDocumentEntity, binaryStore);
 		if (nonNull(documentUpdateRequest.getType())) {
 			final var documentTypeEntity = documentTypeRepository.findByMunicipalityIdAndType(municipalityId, documentUpdateRequest.getType())
 				.orElseThrow(() -> Problem.valueOf(NOT_FOUND, ERROR_DOCUMENT_TYPE_NOT_FOUND.formatted(documentUpdateRequest.getType(), municipalityId)));
@@ -243,15 +242,14 @@ public class DocumentService {
 	}
 
 	private void addFileContentToResponse(DocumentDataEntity documentDataEntity, HttpServletResponse response) {
-
 		try {
-			final var file = documentDataEntity.getDocumentDataBinary().getBinaryFile();
 			response.addHeader(CONTENT_TYPE, documentDataEntity.getMimeType());
 			response.addHeader(CONTENT_DISPOSITION, TEMPLATE_CONTENT_DISPOSITION_HEADER_VALUE.formatted(documentDataEntity.getFileName()));
-			response.setContentLength((int) file.length());
+			response.setContentLength((int) documentDataEntity.getFileSizeInBytes());
 
-			copy(file.getBinaryStream(), response.getOutputStream());
-		} catch (SQLException | IOException e) {
+			final var ref = new StorageRef(documentDataEntity.getStorageBackend(), documentDataEntity.getStorageLocator());
+			binaryStore.streamTo(ref, response.getOutputStream());
+		} catch (final IOException e) {
 			LOGGER.warn(ERROR_DOCUMENT_FILE_BY_REGISTRATION_NUMBER_COULD_NOT_READ.formatted(documentDataEntity.getId()), e);
 			throw Problem.valueOf(INTERNAL_SERVER_ERROR, ERROR_DOCUMENT_FILE_BY_REGISTRATION_NUMBER_COULD_NOT_READ.formatted(documentDataEntity.getId()));
 		}

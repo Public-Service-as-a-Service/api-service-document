@@ -243,19 +243,30 @@ public class DocumentService {
 	}
 
 	private void addFileContentToResponse(DocumentDataEntity documentDataEntity, HttpServletResponse response) {
-		try {
-			response.addHeader(CONTENT_TYPE, documentDataEntity.getMimeType());
-			response.addHeader(CONTENT_DISPOSITION, ContentDisposition.attachment()
-				.filename(documentDataEntity.getFileName(), StandardCharsets.UTF_8)
-				.build()
-				.toString());
-			response.setContentLength((int) documentDataEntity.getFileSizeInBytes());
+		response.addHeader(CONTENT_TYPE, documentDataEntity.getMimeType());
+		response.addHeader(CONTENT_DISPOSITION, ContentDisposition.attachment()
+			.filename(documentDataEntity.getFileName(), StandardCharsets.UTF_8)
+			.build()
+			.toString());
+		response.setContentLength((int) documentDataEntity.getFileSizeInBytes());
 
-			final var ref = new StorageRef(documentDataEntity.getStorageBackend(), documentDataEntity.getStorageLocator());
+		final var ref = new StorageRef(documentDataEntity.getStorageBackend(), documentDataEntity.getStorageLocator());
+		try {
 			binaryStore.streamTo(ref, response.getOutputStream());
 		} catch (final IOException e) {
 			LOGGER.warn(ERROR_DOCUMENT_FILE_BY_REGISTRATION_NUMBER_COULD_NOT_READ.formatted(documentDataEntity.getId()), e);
+			resetIfUncommitted(response);
 			throw Problem.valueOf(INTERNAL_SERVER_ERROR, ERROR_DOCUMENT_FILE_BY_REGISTRATION_NUMBER_COULD_NOT_READ.formatted(documentDataEntity.getId()));
+		} catch (final RuntimeException e) {
+			// Stale Content-Length/Content-Type headers would make clients wait for bytes the error handler never writes.
+			resetIfUncommitted(response);
+			throw e;
+		}
+	}
+
+	private static void resetIfUncommitted(HttpServletResponse response) {
+		if (!response.isCommitted()) {
+			response.reset();
 		}
 	}
 

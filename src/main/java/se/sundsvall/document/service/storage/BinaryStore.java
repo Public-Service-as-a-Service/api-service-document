@@ -3,6 +3,7 @@ package se.sundsvall.document.service.storage;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.util.Map;
 
 /**
  * Service-layer abstraction over the location of a document's file content.
@@ -21,11 +22,14 @@ public interface BinaryStore {
 	 *
 	 * Implementations MUST stream — no full-file buffering in the heap.
 	 *
-	 * @param in          the byte stream; will be read to completion
-	 * @param sizeInBytes total length (must match `in`); required by S3 `PutObject`
-	 * @param contentType MIME type; may be persisted as object metadata
+	 * @param in           the byte stream; will be read to completion
+	 * @param sizeInBytes  total length (must match `in`); required by S3 `PutObject`
+	 * @param contentType  MIME type; may be persisted as object metadata
+	 * @param userMetadata optional key/value pairs attached as object user-metadata (S3 only; the
+	 *                     JDBC backend ignores them). Intended for minimal context when inspecting
+	 *                     the bucket manually — keep the values small and immutable. May be empty.
 	 */
-	StorageRef put(InputStream in, long sizeInBytes, String contentType);
+	StorageRef put(InputStream in, long sizeInBytes, String contentType, Map<String, String> userMetadata);
 
 	/**
 	 * Stream the bytes identified by `ref` into `out`. Used for the file-download endpoint.

@@ -12,6 +12,7 @@ import java.io.OutputStream;
 import java.time.OffsetDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
@@ -63,6 +64,7 @@ import static org.junit.jupiter.api.Assertions.fail;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.anyMap;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
@@ -164,7 +166,7 @@ class DocumentServiceTest {
 
 		when(documentTypeRepositoryMock.findByMunicipalityIdAndType(MUNICIPALITY_ID, DOCUMENT_TYPE)).thenReturn(Optional.of(DocumentTypeEntity.create().withType(DOCUMENT_TYPE)));
 		when(registrationNumberServiceMock.generateRegistrationNumber(MUNICIPALITY_ID)).thenReturn(REGISTRATION_NUMBER);
-		when(binaryStoreMock.put(any(InputStream.class), anyLong(), anyString())).thenReturn(StorageRef.jdbc(newLocator));
+		when(binaryStoreMock.put(any(InputStream.class), anyLong(), anyString(), anyMap())).thenReturn(StorageRef.jdbc(newLocator));
 		when(documentRepositoryMock.save(any(DocumentEntity.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
 		// Act
@@ -175,7 +177,7 @@ class DocumentServiceTest {
 
 		verify(documentTypeRepositoryMock).findByMunicipalityIdAndType(MUNICIPALITY_ID, DOCUMENT_TYPE);
 		verify(registrationNumberServiceMock).generateRegistrationNumber(MUNICIPALITY_ID);
-		verify(binaryStoreMock).put(any(InputStream.class), eq(file.length()), eq("text/plain"));
+		verify(binaryStoreMock).put(any(InputStream.class), eq(file.length()), eq("text/plain"), eq(Map.of("original-filename", file.getName(), "municipality-id", MUNICIPALITY_ID)));
 		verify(documentRepositoryMock).save(documentEntityCaptor.capture());
 
 		final var capturedDocumentEntity = documentEntityCaptor.getValue();
@@ -210,7 +212,7 @@ class DocumentServiceTest {
 
 		when(documentTypeRepositoryMock.findByMunicipalityIdAndType(MUNICIPALITY_ID, DOCUMENT_TYPE)).thenReturn(Optional.of(DocumentTypeEntity.create().withType(DOCUMENT_TYPE)));
 		when(registrationNumberServiceMock.generateRegistrationNumber(MUNICIPALITY_ID)).thenReturn(REGISTRATION_NUMBER);
-		when(binaryStoreMock.put(any(InputStream.class), anyLong(), anyString())).thenAnswer(invocation -> StorageRef.jdbc(randomUUID().toString()));
+		when(binaryStoreMock.put(any(InputStream.class), anyLong(), anyString(), anyMap())).thenAnswer(invocation -> StorageRef.jdbc(randomUUID().toString()));
 		when(documentRepositoryMock.save(any(DocumentEntity.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
 		// Act
@@ -221,8 +223,8 @@ class DocumentServiceTest {
 
 		verify(documentTypeRepositoryMock).findByMunicipalityIdAndType(MUNICIPALITY_ID, DOCUMENT_TYPE);
 		verify(registrationNumberServiceMock).generateRegistrationNumber(MUNICIPALITY_ID);
-		verify(binaryStoreMock).put(any(InputStream.class), eq(file1.length()), eq("image/png"));
-		verify(binaryStoreMock).put(any(InputStream.class), eq(file2.length()), eq("text/plain"));
+		verify(binaryStoreMock).put(any(InputStream.class), eq(file1.length()), eq("image/png"), anyMap());
+		verify(binaryStoreMock).put(any(InputStream.class), eq(file2.length()), eq("text/plain"), anyMap());
 		verify(documentRepositoryMock).save(documentEntityCaptor.capture());
 
 		final var capturedDocumentEntity = documentEntityCaptor.getValue();
@@ -756,7 +758,7 @@ class DocumentServiceTest {
 		final var multipartFile = (MultipartFile) new MockMultipartFile("file", file.getName(), "image/png", toByteArray(new FileInputStream(file)));
 
 		when(documentRepositoryMock.findTopByMunicipalityIdAndRegistrationNumberAndConfidentialityConfidentialInOrderByRevisionDesc(MUNICIPALITY_ID, REGISTRATION_NUMBER, CONFIDENTIAL_AND_PUBLIC.getValue())).thenReturn(Optional.of(existingEntity));
-		when(binaryStoreMock.put(any(InputStream.class), anyLong(), anyString())).thenReturn(StorageRef.jdbc(randomUUID().toString()));
+		when(binaryStoreMock.put(any(InputStream.class), anyLong(), anyString(), anyMap())).thenReturn(StorageRef.jdbc(randomUUID().toString()));
 		when(binaryStoreMock.copy(any(StorageRef.class))).thenAnswer(invocation -> StorageRef.jdbc(randomUUID().toString()));
 		when(documentRepositoryMock.save(any(DocumentEntity.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
@@ -766,7 +768,7 @@ class DocumentServiceTest {
 		// Assert
 		assertThat(result).isNotNull();
 
-		verify(binaryStoreMock).put(any(InputStream.class), eq(file.length()), eq("image/png"));
+		verify(binaryStoreMock).put(any(InputStream.class), eq(file.length()), eq("image/png"), anyMap());
 		verify(documentRepositoryMock).save(documentEntityCaptor.capture());
 		verifyNoInteractions(registrationNumberServiceMock, documentTypeRepositoryMock);
 
@@ -800,7 +802,7 @@ class DocumentServiceTest {
 		final var multipartFile = (MultipartFile) new MockMultipartFile("file", FILE_NAME, "image/png", toByteArray(new FileInputStream(file))); // Same name as in "existingEntity"
 
 		when(documentRepositoryMock.findTopByMunicipalityIdAndRegistrationNumberAndConfidentialityConfidentialInOrderByRevisionDesc(MUNICIPALITY_ID, REGISTRATION_NUMBER, CONFIDENTIAL_AND_PUBLIC.getValue())).thenReturn(Optional.of(existingEntity));
-		when(binaryStoreMock.put(any(InputStream.class), anyLong(), anyString())).thenReturn(StorageRef.jdbc(randomUUID().toString()));
+		when(binaryStoreMock.put(any(InputStream.class), anyLong(), anyString(), anyMap())).thenReturn(StorageRef.jdbc(randomUUID().toString()));
 		when(binaryStoreMock.copy(any(StorageRef.class))).thenAnswer(invocation -> StorageRef.jdbc(randomUUID().toString()));
 		when(documentRepositoryMock.save(any(DocumentEntity.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
@@ -810,7 +812,7 @@ class DocumentServiceTest {
 		// Assert
 		assertThat(result).isNotNull();
 
-		verify(binaryStoreMock).put(any(InputStream.class), eq(file.length()), eq("image/png"));
+		verify(binaryStoreMock).put(any(InputStream.class), eq(file.length()), eq("image/png"), anyMap());
 		verify(documentRepositoryMock).save(documentEntityCaptor.capture());
 		verifyNoInteractions(registrationNumberServiceMock, documentTypeRepositoryMock);
 

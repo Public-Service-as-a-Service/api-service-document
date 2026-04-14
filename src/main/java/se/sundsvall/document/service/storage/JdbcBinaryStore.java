@@ -5,6 +5,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.sql.SQLException;
+import java.util.Map;
 import org.hibernate.Session;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
@@ -33,7 +34,8 @@ public class JdbcBinaryStore implements BinaryStore {
 	}
 
 	@Override
-	public StorageRef put(InputStream in, long sizeInBytes, String contentType) {
+	public StorageRef put(InputStream in, long sizeInBytes, String contentType, Map<String, String> userMetadata) {
+		// userMetadata is ignored by the JDBC backend — LONGBLOB has nowhere to put it.
 		try {
 			final var blob = entityManager.unwrap(Session.class).getLobHelper().createBlob(in, sizeInBytes);
 			final var entity = DocumentDataBinaryEntity.create().withBinaryFile(blob);

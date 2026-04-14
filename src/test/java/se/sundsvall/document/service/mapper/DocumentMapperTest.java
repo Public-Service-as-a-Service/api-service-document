@@ -6,6 +6,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.time.OffsetDateTime;
 import java.util.List;
+import java.util.Map;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -43,7 +44,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.tuple;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.anyMap;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.data.domain.Sort.Direction.ASC;
@@ -483,10 +486,10 @@ class DocumentMapperTest {
 		final var multipartFile = (MultipartFile) new MockMultipartFile("file", fileName, mimeType, toByteArray(new FileInputStream(file)));
 		final var documents = DocumentFiles.create().withFiles(List.of(multipartFile));
 
-		when(binaryStoreMock.put(any(InputStream.class), anyLong(), anyString())).thenReturn(StorageRef.jdbc(newLocator));
+		when(binaryStoreMock.put(any(InputStream.class), anyLong(), anyString(), anyMap())).thenReturn(StorageRef.jdbc(newLocator));
 
 		// Act
-		final var result = DocumentMapper.toDocumentDataEntities(documents, binaryStoreMock);
+		final var result = DocumentMapper.toDocumentDataEntities(documents, binaryStoreMock, MUNICIPALITY_ID);
 
 		// Assert
 		assertThat(result)
@@ -505,14 +508,18 @@ class DocumentMapperTest {
 				"jdbc",
 				newLocator));
 
-		verify(binaryStoreMock).put(any(InputStream.class), anyLong(), anyString());
+		verify(binaryStoreMock).put(
+			any(InputStream.class),
+			eq(file.length()),
+			eq(mimeType),
+			eq(Map.of("original-filename", fileName, "municipality-id", MUNICIPALITY_ID)));
 	}
 
 	@Test
 	void toDocumentDataEntitiesFromMultipartWhenInputIsNull() {
 
 		// Act
-		final var result = DocumentMapper.toDocumentDataEntities(null, binaryStoreMock);
+		final var result = DocumentMapper.toDocumentDataEntities(null, binaryStoreMock, MUNICIPALITY_ID);
 
 		// Assert
 		assertThat(result).isNull();

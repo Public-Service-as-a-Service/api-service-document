@@ -93,7 +93,7 @@ class JdbcBinaryStoreTest {
 
 		assertThatThrownBy(() -> store.put(new ByteArrayInputStream(new byte[] {
 			1
-		}), 1L, "application/octet-stream"))
+		}), 1L, "application/octet-stream", java.util.Map.of()))
 			.isInstanceOf(ThrowableProblem.class)
 			.satisfies(ex -> {
 				final var problem = (ThrowableProblem) ex;

@@ -2,7 +2,9 @@ package se.sundsvall.document.service.mapper;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import org.springframework.data.domain.Page;
 import org.springframework.web.multipart.MultipartFile;
@@ -51,21 +53,25 @@ public class DocumentMapper {
 			.orElse(null);
 	}
 
-	public static List<DocumentDataEntity> toDocumentDataEntities(final DocumentFiles documentFiles, final BinaryStore binaryStore) {
+	public static List<DocumentDataEntity> toDocumentDataEntities(final DocumentFiles documentFiles, final BinaryStore binaryStore, final String municipalityId) {
 		return Optional.ofNullable(documentFiles).map(DocumentFiles::getFiles)
 			.map(files -> files.stream()
-				.map(file -> toDocumentDataEntity(file, binaryStore))
+				.map(file -> toDocumentDataEntity(file, binaryStore, municipalityId))
 				.toList())
 			.orElse(null);
 	}
 
-	public static DocumentDataEntity toDocumentDataEntity(MultipartFile multipartFile, BinaryStore binaryStore) {
+	public static DocumentDataEntity toDocumentDataEntity(MultipartFile multipartFile, BinaryStore binaryStore, String municipalityId) {
 		if (multipartFile == null) {
 			return null;
 		}
 		final StorageRef ref;
 		try {
-			ref = binaryStore.put(multipartFile.getInputStream(), multipartFile.getSize(), multipartFile.getContentType());
+			ref = binaryStore.put(
+				multipartFile.getInputStream(),
+				multipartFile.getSize(),
+				multipartFile.getContentType(),
+				buildUserMetadata(multipartFile.getOriginalFilename(), municipalityId));
 		} catch (final IOException e) {
 			throw Problem.valueOf(INTERNAL_SERVER_ERROR, "Failed to read upload for " + multipartFile.getOriginalFilename() + ": " + e.getMessage());
 		}
@@ -75,6 +81,17 @@ public class DocumentMapper {
 			.withMimeType(multipartFile.getContentType())
 			.withFileName(multipartFile.getOriginalFilename())
 			.withFileSizeInBytes(multipartFile.getSize());
+	}
+
+	private static Map<String, String> buildUserMetadata(String originalFilename, String municipalityId) {
+		final var metadata = new LinkedHashMap<String, String>();
+		if (originalFilename != null && !originalFilename.isBlank()) {
+			metadata.put("original-filename", originalFilename);
+		}
+		if (municipalityId != null && !municipalityId.isBlank()) {
+			metadata.put("municipality-id", municipalityId);
+		}
+		return metadata;
 	}
 
 	public static List<Boolean> toInclusionFilter(boolean includeConfidential) {

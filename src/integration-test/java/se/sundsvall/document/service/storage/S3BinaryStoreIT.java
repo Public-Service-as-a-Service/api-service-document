@@ -55,7 +55,6 @@ class S3BinaryStoreIT {
 			.responseChecksumValidation(ResponseChecksumValidation.WHEN_REQUIRED)
 			.serviceConfiguration(S3Configuration.builder()
 				.pathStyleAccessEnabled(true)
-				.chunkedEncodingEnabled(false)
 				.build())
 			.build();
 

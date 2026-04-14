@@ -89,7 +89,7 @@ public class DocumentService {
 
 	public Document create(final DocumentCreateRequest documentCreateRequest, final DocumentFiles documentFiles, final String municipalityId) {
 
-		final var documentDataEntities = toDocumentDataEntities(documentFiles, binaryStore);
+		final var documentDataEntities = toDocumentDataEntities(documentFiles, binaryStore, municipalityId);
 		final var registrationNumber = registrationNumberService.generateRegistrationNumber(municipalityId);
 		final var documentTypeEntity = documentTypeRepository.findByMunicipalityIdAndType(municipalityId, documentCreateRequest.getType())
 			.orElseThrow(() -> Problem.valueOf(NOT_FOUND, ERROR_DOCUMENT_TYPE_NOT_FOUND.formatted(documentCreateRequest.getType(), municipalityId)));
@@ -166,7 +166,7 @@ public class DocumentService {
 			.orElseThrow(() -> Problem.valueOf(NOT_FOUND, ERROR_DOCUMENT_BY_REGISTRATION_NUMBER_NOT_FOUND.formatted(registrationNumber)));
 
 		// Create documentData element to add/replace.
-		final var newDocumentDataEntity = toDocumentDataEntity(documentFile, binaryStore);
+		final var newDocumentDataEntity = toDocumentDataEntity(documentFile, binaryStore, municipalityId);
 
 		// Do not update existing entity, create a new revision instead.
 		final var newDocumentEntity = copyDocumentEntity(documentEntity, binaryStore)

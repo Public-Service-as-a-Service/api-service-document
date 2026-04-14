@@ -4,6 +4,7 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.net.URI;
 import java.security.SecureRandom;
+import java.util.Map;
 import java.util.UUID;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
@@ -16,6 +17,7 @@ import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.S3Configuration;
 import software.amazon.awssdk.services.s3.model.CreateBucketRequest;
+import software.amazon.awssdk.services.s3.model.HeadObjectRequest;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
@@ -74,7 +76,7 @@ class S3BinaryStoreIT {
 	void put_thenStreamTo_roundTripsBytes() throws Exception {
 		final var payload = randomBytes(5 * 1024 * 1024); // 5 MB
 
-		final var ref = binaryStore.put(new ByteArrayInputStream(payload), payload.length, "application/octet-stream");
+		final var ref = binaryStore.put(new ByteArrayInputStream(payload), payload.length, "application/octet-stream", Map.of());
 
 		assertThat(ref).isNotNull();
 		assertThat(ref.backend()).isEqualTo("s3");
@@ -87,10 +89,25 @@ class S3BinaryStoreIT {
 	}
 
 	@Test
+	void put_persistsUserMetadata_andHeadObjectReturnsIt() {
+		final var payload = "metadata sample".getBytes();
+		final var userMetadata = Map.of("original-filename", "invoice.pdf", "municipality-id", "2281");
+
+		final var ref = binaryStore.put(new ByteArrayInputStream(payload), payload.length, "application/pdf", userMetadata);
+
+		final var head = s3Client.headObject(HeadObjectRequest.builder().bucket(BUCKET).key(ref.locator()).build());
+
+		assertThat(head.metadata())
+			.containsEntry("original-filename", "invoice.pdf")
+			.containsEntry("municipality-id", "2281");
+		assertThat(head.contentType()).isEqualTo("application/pdf");
+	}
+
+	@Test
 	void copy_createsIndependentObjectWithSameContent() throws Exception {
 		final var payload = "hello storage".getBytes();
 
-		final var original = binaryStore.put(new ByteArrayInputStream(payload), payload.length, "text/plain");
+		final var original = binaryStore.put(new ByteArrayInputStream(payload), payload.length, "text/plain", Map.of());
 		final var copy = binaryStore.copy(original);
 
 		assertThat(copy.backend()).isEqualTo("s3");
@@ -107,7 +124,7 @@ class S3BinaryStoreIT {
 	@Test
 	void delete_removesObject_andStreamToThrowsNotFound() {
 		final var payload = "temp".getBytes();
-		final var ref = binaryStore.put(new ByteArrayInputStream(payload), payload.length, "text/plain");
+		final var ref = binaryStore.put(new ByteArrayInputStream(payload), payload.length, "text/plain", Map.of());
 
 		binaryStore.delete(ref);
 

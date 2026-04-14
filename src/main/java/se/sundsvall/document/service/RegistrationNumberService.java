@@ -1,15 +1,12 @@
 package se.sundsvall.document.service;
 
-import java.time.OffsetDateTime;
-import java.util.Optional;
+import java.time.Year;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import se.sundsvall.document.integration.db.RegistrationNumberSequenceRepository;
 import se.sundsvall.document.integration.db.model.RegistrationNumberSequenceEntity;
 
-import static java.time.OffsetDateTime.now;
 import static java.time.ZoneId.systemDefault;
-import static org.apache.commons.lang3.ObjectUtils.allNull;
 import static se.sundsvall.document.service.Constants.TEMPLATE_REGISTRATION_NUMBER;
 
 /**
@@ -36,32 +33,20 @@ public class RegistrationNumberService {
 	}
 
 	public String generateRegistrationNumber(String municipalityId) {
+		final var currentYear = Year.now(systemDefault()).getValue();
 
 		final var sequenceEntity = registrationNumberSequenceRepository.findByMunicipalityId(municipalityId)
-			.orElse(RegistrationNumberSequenceEntity.create().withMunicipalityId(municipalityId));
+			.map(existing -> existing.withSequenceNumber(nextSequenceNumber(existing, currentYear)))
+			.orElseGet(() -> RegistrationNumberSequenceEntity.create()
+				.withMunicipalityId(municipalityId)
+				.withSequenceNumber(SEQUENCE_START));
 
-		// Reset sequence every year.
-		if (getLastTouched(sequenceEntity).getYear() < getCurrentYear()) {
-			return createRegistrationNumber(registrationNumberSequenceRepository
-				.save(sequenceEntity.withSequenceNumber(SEQUENCE_START)));
-		}
-
-		return createRegistrationNumber(registrationNumberSequenceRepository
-			.save(sequenceEntity.withSequenceNumber(sequenceEntity.getSequenceNumber() + 1)));
+		final var saved = registrationNumberSequenceRepository.save(sequenceEntity);
+		return TEMPLATE_REGISTRATION_NUMBER.formatted(currentYear, saved.getMunicipalityId(), saved.getSequenceNumber());
 	}
 
-	private int getCurrentYear() {
-		return now(systemDefault()).getYear();
-	}
-
-	private OffsetDateTime getLastTouched(RegistrationNumberSequenceEntity sequenceEntity) {
-		if (allNull(sequenceEntity.getModified(), sequenceEntity.getCreated())) {
-			return now(systemDefault()); // RegistrationNumberSequenceEntity is not persisted yet (newly created object), return now.
-		}
-		return Optional.ofNullable(sequenceEntity.getModified()).orElse(sequenceEntity.getCreated());
-	}
-
-	private String createRegistrationNumber(RegistrationNumberSequenceEntity sequenceEntity) {
-		return TEMPLATE_REGISTRATION_NUMBER.formatted(getCurrentYear(), sequenceEntity.getMunicipalityId(), sequenceEntity.getSequenceNumber());
+	private static int nextSequenceNumber(RegistrationNumberSequenceEntity existing, int currentYear) {
+		final var lastTouched = existing.getModified() != null ? existing.getModified() : existing.getCreated();
+		return lastTouched.getYear() < currentYear ? SEQUENCE_START : existing.getSequenceNumber() + 1;
 	}
 }

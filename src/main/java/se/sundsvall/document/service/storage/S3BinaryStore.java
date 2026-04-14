@@ -3,6 +3,7 @@ package se.sundsvall.document.service.storage;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.util.Map;
 import java.util.UUID;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
@@ -40,16 +41,18 @@ public class S3BinaryStore implements BinaryStore {
 	}
 
 	@Override
-	public StorageRef put(InputStream in, long sizeInBytes, String contentType) {
+	public StorageRef put(InputStream in, long sizeInBytes, String contentType, Map<String, String> userMetadata) {
 		final var key = UUID.randomUUID().toString();
 		try {
-			final var request = PutObjectRequest.builder()
+			final var builder = PutObjectRequest.builder()
 				.bucket(properties.bucket())
 				.key(key)
 				.contentType(contentType)
-				.contentLength(sizeInBytes)
-				.build();
-			s3Client.putObject(request, RequestBody.fromInputStream(in, sizeInBytes));
+				.contentLength(sizeInBytes);
+			if (userMetadata != null && !userMetadata.isEmpty()) {
+				builder.metadata(userMetadata);
+			}
+			s3Client.putObject(builder.build(), RequestBody.fromInputStream(in, sizeInBytes));
 			return StorageRef.s3(key);
 		} catch (final Exception e) {
 			throw Problem.valueOf(INTERNAL_SERVER_ERROR, "Failed to store binary in S3: " + e.getMessage());

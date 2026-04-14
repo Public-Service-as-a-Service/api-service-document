@@ -22,16 +22,17 @@ public class S3StorageConfiguration {
 	@Bean
 	S3Client s3Client(S3StorageProperties properties) {
 		// AWS SDK v2.30+ enables flexible checksums by default (STREAMING-*-TRAILER payload modes);
-		// Garage v2 doesn't support them and rejects with "Invalid payload signature". Pin the
-		// client to pre-v2.30 behaviour: skip CRC32 trailers and use single-chunk PutObject with
-		// full SHA-256 precomputed at signing time.
+		// Garage v2 doesn't support them and rejects with "Invalid payload signature". Request
+		// WHEN_REQUIRED drops the trailer — the SDK then uses plain STREAMING-AWS4-HMAC-SHA256-PAYLOAD
+		// which Garage does accept. Keep chunked encoding ON (default): it signs per chunk without
+		// needing to re-read the stream, which matters for RequestBody.fromInputStream() where the
+		// MultipartFile stream can only be read once.
 		final var builder = S3Client.builder()
 			.region(Region.of(properties.region() != null ? properties.region() : "us-east-1"))
 			.requestChecksumCalculation(RequestChecksumCalculation.WHEN_REQUIRED)
 			.responseChecksumValidation(ResponseChecksumValidation.WHEN_REQUIRED)
 			.serviceConfiguration(S3Configuration.builder()
 				.pathStyleAccessEnabled(properties.pathStyleAccess())
-				.chunkedEncodingEnabled(false)
 				.build());
 
 		if (properties.endpoint() != null) {

@@ -3,6 +3,9 @@ package se.sundsvall.document.service.storage;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.UUID;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -50,13 +53,22 @@ public class S3BinaryStore implements BinaryStore {
 				.contentType(contentType)
 				.contentLength(sizeInBytes);
 			if (userMetadata != null && !userMetadata.isEmpty()) {
-				builder.metadata(userMetadata);
+				builder.metadata(encodeMetadataValues(userMetadata));
 			}
 			s3Client.putObject(builder.build(), RequestBody.fromInputStream(in, sizeInBytes));
 			return StorageRef.s3(key);
 		} catch (final Exception e) {
 			throw Problem.valueOf(INTERNAL_SERVER_ERROR, "Failed to store binary in S3: " + e.getMessage());
 		}
+	}
+
+	// SigV4 signs header values byte-for-byte; HTTP/1.1 header transport mangles anything outside
+	// US-ASCII, so we URL-encode metadata values to keep the signed and transmitted bytes identical.
+	// Values stay readable in `mc stat` (e.g. `fet_s%C3%A4l.jpg` for `fet_säl.jpg`).
+	private static Map<String, String> encodeMetadataValues(Map<String, String> raw) {
+		final var encoded = new LinkedHashMap<String, String>(raw.size());
+		raw.forEach((k, v) -> encoded.put(k, URLEncoder.encode(v, StandardCharsets.UTF_8).replace("+", "%20")));
+		return encoded;
 	}
 
 	@Override

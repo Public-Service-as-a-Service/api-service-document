@@ -1,12 +1,11 @@
 package se.sundsvall.document.service.storage;
 
-import jakarta.persistence.EntityManager;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.sql.SQLException;
 import java.util.Map;
-import org.hibernate.Session;
+import org.hibernate.Hibernate;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StreamUtils;
@@ -25,11 +24,9 @@ import static org.springframework.http.HttpStatus.NOT_FOUND;
 @ConditionalOnProperty(name = "document.storage.backend", havingValue = "jdbc", matchIfMissing = true)
 public class JdbcBinaryStore implements BinaryStore {
 
-	private final EntityManager entityManager;
 	private final DocumentDataBinaryRepository repository;
 
-	public JdbcBinaryStore(EntityManager entityManager, DocumentDataBinaryRepository repository) {
-		this.entityManager = entityManager;
+	public JdbcBinaryStore(DocumentDataBinaryRepository repository) {
 		this.repository = repository;
 	}
 
@@ -37,7 +34,7 @@ public class JdbcBinaryStore implements BinaryStore {
 	public StorageRef put(InputStream in, long sizeInBytes, String contentType, Map<String, String> userMetadata) {
 		// userMetadata is ignored by the JDBC backend — LONGBLOB has nowhere to put it.
 		try {
-			final var blob = entityManager.unwrap(Session.class).getLobHelper().createBlob(in, sizeInBytes);
+			final var blob = Hibernate.getLobHelper().createBlob(in, sizeInBytes);
 			final var entity = DocumentDataBinaryEntity.create().withBinaryFile(blob);
 			final var saved = repository.saveAndFlush(entity);
 			return StorageRef.jdbc(saved.getId());

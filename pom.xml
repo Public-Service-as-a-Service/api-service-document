@@ -16,6 +16,7 @@
 		<!-- Service properties -->
 		<generated-sources-path>${project.build.directory}/generated-sources</generated-sources-path>
 		<faux-pas.version>0.9.0</faux-pas.version>
+		<maven.compiler.forceJavacCompilerUse>true</maven.compiler.forceJavacCompilerUse>
 		<!-- Pinned pre-2.30 so Garage v2 doesn't reject uploads with "Invalid payload signature".
 				SDK 2.30+ enables flexible checksums + STREAMING-*-TRAILER payload signing by default. -->
 		<aws-sdk.version>2.29.52</aws-sdk.version>
@@ -55,11 +56,6 @@
 			<groupId>org.zalando</groupId>
 			<artifactId>faux-pas</artifactId>
 			<version>${faux-pas.version}</version>
-		</dependency>
-		<dependency>
-			<groupId>org.hibernate.orm</groupId>
-			<artifactId>hibernate-processor</artifactId>
-			<scope>provided</scope>
 		</dependency>
 		<!-- Database-->
 		<dependency>

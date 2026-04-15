@@ -6,6 +6,7 @@ public final class Constants {
 
 	// Templates
 	public static final String TEMPLATE_EVENTLOG_MESSAGE_CONFIDENTIALITY_UPDATED_ON_DOCUMENT = "Confidentiality flag updated to: '%s' with legal citation: '%s' for document with registrationNumber: '%s'. Action performed by: '%s'";
+	public static final String TEMPLATE_EVENTLOG_MESSAGE_RESPONSIBILITIES_UPDATED_ON_DOCUMENT = "Responsibilities updated from: '%s' to: '%s' for document with registrationNumber: '%s'. Action performed by: '%s'";
 	public static final String TEMPLATE_REGISTRATION_NUMBER = "%s-%s-%s"; // [YYYY-MUNICIPALITY_ID-SEQUENCE]
 
 	// Error messages
@@ -42,6 +43,7 @@ public final class Constants {
 		- onlyLatestRevision: Should the search include only the latest revision of the documents? Datatype - boolean (default: false)
 		- documentTypes: Which document types to include in the search. Datatype - List of Strings
 		- metaData: Uses the metadata object to search for documents with specific metadata. Datatype - List of metadata objects.
+		- responsibilities: Uses document responsibilities to search for documents where at least one principal matches. Datatype - List of DocumentResponsibility objects.
 		- page: The page number to retrieve. Datatype - integer (default: 1)
 		- limit: The number of documents to retrieve per page. Datatype - integer (default: 100)
 
@@ -50,6 +52,10 @@ public final class Constants {
 			- key: A given metadata key, this is optional. All metadata will be searched if key is not provided. Datatype - String
 			- matchesAny: Returns documents where metadata entry with the given key have at least one of the matchesAny values (if key is present), or if the complete set of metadata have at least one of the matchesAny (when no key is present). Datatype - List of Strings
 			- matchesAll: Returns documents where metadata entry with the given key have at least one of the matchesAny values (if key is present), or if the complete set of metadata have at least one of the matchesAny (when no key is present). Datatype - List of Strings
+		}
+		- DocumentResponsibility: {
+			- principalType: USER or GROUP. Datatype - String
+			- principalId: Username for USER, group name for GROUP. Datatype - String
 		}
 		""";
 }

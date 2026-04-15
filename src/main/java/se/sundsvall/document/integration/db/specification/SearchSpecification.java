@@ -11,30 +11,32 @@ import java.util.Objects;
 import java.util.Optional;
 import org.springframework.data.jpa.domain.Specification;
 import se.sundsvall.document.api.model.DocumentParameters;
+import se.sundsvall.document.api.model.DocumentResponsibility;
 import se.sundsvall.document.integration.db.model.DocumentEntity;
-import se.sundsvall.document.integration.db.model.DocumentEntity_;
 import se.sundsvall.document.integration.db.model.DocumentMetadataEmbeddable;
-import se.sundsvall.document.integration.db.model.DocumentTypeEntity_;
+import se.sundsvall.document.integration.db.model.DocumentResponsibilityEntity;
 
 import static jakarta.persistence.criteria.JoinType.LEFT;
 import static org.apache.commons.lang3.StringUtils.EMPTY;
-import static se.sundsvall.document.integration.db.model.ConfidentialityEmbeddable_.CONFIDENTIAL;
-import static se.sundsvall.document.integration.db.model.DocumentDataEntity_.FILE_NAME;
-import static se.sundsvall.document.integration.db.model.DocumentDataEntity_.MIME_TYPE;
-import static se.sundsvall.document.integration.db.model.DocumentEntity_.CONFIDENTIALITY;
-import static se.sundsvall.document.integration.db.model.DocumentEntity_.CREATED_BY;
-import static se.sundsvall.document.integration.db.model.DocumentEntity_.DESCRIPTION;
-import static se.sundsvall.document.integration.db.model.DocumentEntity_.DOCUMENT_DATA;
-import static se.sundsvall.document.integration.db.model.DocumentEntity_.METADATA;
-import static se.sundsvall.document.integration.db.model.DocumentEntity_.MUNICIPALITY_ID;
-import static se.sundsvall.document.integration.db.model.DocumentEntity_.REGISTRATION_NUMBER;
-import static se.sundsvall.document.integration.db.model.DocumentEntity_.REVISION;
-import static se.sundsvall.document.integration.db.model.DocumentEntity_.VALID_FROM;
-import static se.sundsvall.document.integration.db.model.DocumentEntity_.VALID_TO;
-import static se.sundsvall.document.integration.db.model.DocumentMetadataEmbeddable_.KEY;
-import static se.sundsvall.document.integration.db.model.DocumentMetadataEmbeddable_.VALUE;
 
 public interface SearchSpecification {
+
+	String CONFIDENTIAL = "confidential";
+	String CONFIDENTIALITY = "confidentiality";
+	String CREATED_BY = "createdBy";
+	String DESCRIPTION = "description";
+	String DOCUMENT_DATA = "documentData";
+	String FILE_NAME = "fileName";
+	String KEY = "key";
+	String METADATA = "metadata";
+	String MIME_TYPE = "mimeType";
+	String MUNICIPALITY_ID = "municipalityId";
+	String REGISTRATION_NUMBER = "registrationNumber";
+	String REVISION = "revision";
+	String TYPE = "type";
+	String VALID_FROM = "validFrom";
+	String VALID_TO = "validTo";
+	String VALUE = "value";
 
 	static Specification<DocumentEntity> withSearchParameters(final DocumentParameters parameters) {
 		return onlyLatestRevisionOfDocuments(parameters.isOnlyLatestRevision())
@@ -43,7 +45,40 @@ public interface SearchSpecification {
 			.and(matchesType(parameters.getDocumentTypes()))
 			.and(matchesCreatedByExact(parameters.getCreatedBy()))
 			.and(matchesMetaData(parameters.getMetaData()))
+			.and(matchesResponsibilities(parameters.getResponsibilities()))
 			.and(matchesValidOn(parameters.getValidOn()));
+	}
+
+	static Specification<DocumentEntity> matchesResponsibilities(final List<DocumentResponsibility> responsibilities) {
+		return (root, query, cb) -> {
+			if (responsibilities == null || responsibilities.isEmpty()) {
+				return cb.and();
+			}
+
+			final var subQuery = query.subquery(Long.class);
+			final var responsibilityRoot = subQuery.from(DocumentResponsibilityEntity.class);
+
+			final var principalPredicates = responsibilities.stream()
+				.filter(Objects::nonNull)
+				.filter(responsibility -> responsibility.getPrincipalType() != null)
+				.filter(responsibility -> responsibility.getPrincipalId() != null && !responsibility.getPrincipalId().isBlank())
+				.map(responsibility -> cb.and(
+					cb.equal(responsibilityRoot.get("principalType"), responsibility.getPrincipalType()),
+					cb.equal(responsibilityRoot.get("principalId"), responsibility.getPrincipalId().trim().toLowerCase())))
+				.toList();
+
+			if (principalPredicates.isEmpty()) {
+				return cb.disjunction();
+			}
+
+			subQuery.select(cb.literal(1L))
+				.where(
+					cb.equal(responsibilityRoot.get("municipalityId"), root.get(MUNICIPALITY_ID)),
+					cb.equal(responsibilityRoot.get("registrationNumber"), root.get(REGISTRATION_NUMBER)),
+					cb.or(principalPredicates.toArray(new Predicate[0])));
+
+			return cb.exists(subQuery);
+		};
 	}
 
 	private static Specification<DocumentEntity> matchesValidOn(LocalDate validOn) {
@@ -165,7 +200,7 @@ public interface SearchSpecification {
 				.filter(Objects::nonNull)
 				.map(String::toLowerCase)
 				.toList();
-			return cb.lower(root.join(DocumentEntity_.TYPE, JoinType.INNER).get(DocumentTypeEntity_.TYPE)).in(lowerCaseValues);
+			return cb.lower(root.join(TYPE, JoinType.INNER).get(TYPE)).in(lowerCaseValues);
 		};
 	}
 

@@ -241,9 +241,12 @@ paths:
         \ - boolean (default: false)\n- documentTypes: Which document types to include\
         \ in the search. Datatype - List of Strings\n- metaData: Uses the metadata\
         \ object to search for documents with specific metadata. Datatype - List of\
-        \ metadata objects.\n- page: The page number to retrieve. Datatype - integer\
-        \ (default: 1)\n- limit: The number of documents to retrieve per page. Datatype\
-        \ - integer (default: 100)\n\nObjects:\n- MetaData: {\n\t- key: A given metadata\
+        \ metadata objects.\n- responsibilities: Uses document responsibilities to\
+        \ search for documents where at least one principal matches. Datatype - List\
+        \ of DocumentResponsibility objects.\n- page: The page number to retrieve.\
+        \ Datatype - integer (default: 1)\n- limit: The number of documents to retrieve\
+        \ per page. Datatype - integer (default: 100)\n\nObjects:\n- MetaData: {\n\
+        \t- key: A given metadata\
         \ key, this is optional. All metadata will be searched if key is not provided.\
         \ Datatype - String\n\t- matchesAny: Returns documents where metadata entry\
         \ with the given key have at least one of the matchesAny values (if key is\
@@ -252,7 +255,9 @@ paths:
         \ documents where metadata entry with the given key have at least one of the\
         \ matchesAny values (if key is present), or if the complete set of metadata\
         \ have at least one of the matchesAny (when no key is present). Datatype -\
-        \ List of Strings\n}\n"
+        \ List of Strings\n}\n- DocumentResponsibility: {\n\t- principalType: USER\
+        \ or GROUP. Datatype - String\n\t- principalId: Username for USER, group name\
+        \ for GROUP. Datatype - String\n}\n"
       operationId: searchByParameters
       parameters:
         - name: municipalityId
@@ -513,6 +518,56 @@ paths:
         required: true
       responses:
         "200":
+          description: Successful operation
+        "404":
+          description: Not found
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "400":
+          description: Bad request
+          content:
+            application/problem+json:
+              schema:
+                oneOf:
+                  - $ref: "#/components/schemas/Problem"
+                  - $ref: "#/components/schemas/ConstraintViolationProblem"
+        "500":
+          description: Internal Server error
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+  /{municipalityId}/documents/{registrationNumber}/responsibilities:
+    put:
+      tags:
+        - Documents
+      summary: Replace document responsibilities.
+      operationId: updateResponsibilities
+      parameters:
+        - name: municipalityId
+          in: path
+          description: Municipality ID
+          required: true
+          schema:
+            type: string
+          example: 2281
+        - name: registrationNumber
+          in: path
+          description: Document registration number
+          required: true
+          schema:
+            type: string
+          example: 2023-2281-1337
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DocumentResponsibilitiesUpdateRequest"
+        required: true
+      responses:
+        "204":
           description: Successful operation
         "404":
           description: Not found
@@ -1129,6 +1184,12 @@ components:
           items:
             $ref: "#/components/schemas/DocumentMetadata"
           minItems: 1
+        responsibilities:
+          type: array
+          description: Document responsibilities.
+          uniqueItems: true
+          items:
+            $ref: "#/components/schemas/DocumentResponsibility"
         type:
           type: string
           description: The type of document (validated against a defined list of document
@@ -1177,6 +1238,31 @@ components:
       enum:
         - ASC
         - DESC
+    PrincipalType:
+      type: string
+      enum:
+        - USER
+        - GROUP
+    DocumentResponsibility:
+      type: object
+      description: Document responsibility model.
+      properties:
+        principalType:
+          $ref: "#/components/schemas/PrincipalType"
+          description: Principal type.
+          examples:
+            - USER
+        principalId:
+          type: string
+          description: "Principal identifier. Username for USER, group name for GROUP.\
+            \ Case-insensitive; stored lowercased."
+          examples:
+            - username123
+          maxLength: 255
+          minLength: 1
+      required:
+        - principalId
+        - principalType
     DocumentParameters:
       type: object
       properties:
@@ -1241,6 +1327,12 @@ components:
           items:
             $ref: "#/components/schemas/MetaData"
             description: List of metadata
+        responsibilities:
+          type: array
+          items:
+            $ref: "#/components/schemas/DocumentResponsibility"
+            description: List of document responsibilities. Documents match if at
+              least one responsibility matches.
         validOn:
           type: string
           format: date
@@ -1326,6 +1418,11 @@ components:
           description: Document data
           items:
             $ref: "#/components/schemas/DocumentData"
+        responsibilities:
+          type: array
+          description: Document responsibilities.
+          items:
+            $ref: "#/components/schemas/DocumentResponsibility"
         type:
           type: string
           description: Document type
@@ -1521,6 +1618,25 @@ components:
       required:
         - changedBy
         - confidential
+    DocumentResponsibilitiesUpdateRequest:
+      type: object
+      description: Document responsibilities update request model.
+      properties:
+        changedBy:
+          type: string
+          description: Actor that performed this change.
+          examples:
+            - username123
+          minLength: 1
+        responsibilities:
+          type: array
+          uniqueItems: true
+          items:
+            $ref: "#/components/schemas/DocumentResponsibility"
+            description: List of document responsibilities.
+      required:
+        - changedBy
+        - responsibilities
     DocumentTypeUpdateRequest:
       type: object
       properties:

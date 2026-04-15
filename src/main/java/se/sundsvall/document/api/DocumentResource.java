@@ -42,6 +42,7 @@ import se.sundsvall.document.api.model.DocumentCreateRequest;
 import se.sundsvall.document.api.model.DocumentDataCreateRequest;
 import se.sundsvall.document.api.model.DocumentFiles;
 import se.sundsvall.document.api.model.DocumentParameters;
+import se.sundsvall.document.api.model.DocumentResponsibilitiesUpdateRequest;
 import se.sundsvall.document.api.model.DocumentUpdateRequest;
 import se.sundsvall.document.api.model.PagedDocumentResponse;
 import se.sundsvall.document.api.validation.DocumentTypeValidator;
@@ -151,6 +152,24 @@ class DocumentResource {
 		return noContent().build();
 	}
 
+	@PutMapping(path = "/{registrationNumber}/responsibilities", consumes = {
+		APPLICATION_JSON_VALUE
+	}, produces = {
+		APPLICATION_JSON_VALUE
+	})
+	@Operation(summary = "Replace document responsibilities.", responses = {
+		@ApiResponse(responseCode = "204", description = "Successful operation"),
+		@ApiResponse(responseCode = "404", description = "Not found", content = @Content(mediaType = APPLICATION_PROBLEM_JSON_VALUE, schema = @Schema(implementation = Problem.class)))
+	})
+	ResponseEntity<Void> updateResponsibilities(
+		@PathVariable @Parameter(name = "municipalityId", description = "Municipality ID", example = "2281") @ValidMunicipalityId final String municipalityId,
+		@PathVariable @Parameter(name = "registrationNumber", description = "Document registration number", example = "2023-2281-1337") final String registrationNumber,
+		@NotNull @Valid @RequestBody final DocumentResponsibilitiesUpdateRequest body) {
+
+		documentService.updateResponsibilities(registrationNumber, body, municipalityId);
+		return noContent().build();
+	}
+
 	@GetMapping(path = "/{registrationNumber}", produces = {
 		APPLICATION_JSON_VALUE
 	})
@@ -247,7 +266,7 @@ class DocumentResource {
 		@ApiResponse(responseCode = "200", description = "Successful operation", useReturnTypeSchema = true)
 	})
 	ResponseEntity<PagedDocumentResponse> searchByParameters(@PathVariable final String municipalityId,
-		@RequestBody final DocumentParameters documentParameters) {
+		@Valid @RequestBody final DocumentParameters documentParameters) {
 
 		final var decoratedRequest = documentParameters.withMunicipalityId(municipalityId);
 

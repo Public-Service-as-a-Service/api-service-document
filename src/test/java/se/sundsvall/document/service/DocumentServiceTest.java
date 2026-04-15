@@ -30,6 +30,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.ContentDisposition;
+import org.springframework.http.ResponseEntity;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.web.multipart.MultipartFile;
 import se.sundsvall.dept44.problem.ThrowableProblem;
@@ -39,13 +40,18 @@ import se.sundsvall.document.api.model.DocumentCreateRequest;
 import se.sundsvall.document.api.model.DocumentDataCreateRequest;
 import se.sundsvall.document.api.model.DocumentFiles;
 import se.sundsvall.document.api.model.DocumentMetadata;
+import se.sundsvall.document.api.model.DocumentResponsibilitiesUpdateRequest;
+import se.sundsvall.document.api.model.DocumentResponsibility;
 import se.sundsvall.document.api.model.DocumentUpdateRequest;
+import se.sundsvall.document.api.model.PrincipalType;
 import se.sundsvall.document.integration.db.DocumentRepository;
+import se.sundsvall.document.integration.db.DocumentResponsibilityRepository;
 import se.sundsvall.document.integration.db.DocumentTypeRepository;
 import se.sundsvall.document.integration.db.model.ConfidentialityEmbeddable;
 import se.sundsvall.document.integration.db.model.DocumentDataEntity;
 import se.sundsvall.document.integration.db.model.DocumentEntity;
 import se.sundsvall.document.integration.db.model.DocumentMetadataEmbeddable;
+import se.sundsvall.document.integration.db.model.DocumentResponsibilityEntity;
 import se.sundsvall.document.integration.db.model.DocumentTypeEntity;
 import se.sundsvall.document.integration.eventlog.EventLogClient;
 import se.sundsvall.document.integration.eventlog.configuration.EventlogProperties;
@@ -107,13 +113,13 @@ class DocumentServiceTest {
 	private static final LocalDate VALID_TO = LocalDate.of(2027, 4, 15);
 
 	@Mock
-	private EventLogClient eventLogClientMock;
-
-	@Mock
 	private EventlogProperties eventlogPropertiesMock;
 
 	@Mock
 	private DocumentRepository documentRepositoryMock;
+
+	@Mock
+	private DocumentResponsibilityRepository documentResponsibilityRepositoryMock;
 
 	@Mock
 	private DocumentTypeRepository documentTypeRepositoryMock;
@@ -142,16 +148,20 @@ class DocumentServiceTest {
 	private ArgumentCaptor<List<DocumentEntity>> documentEntitiesCaptor;
 
 	@Captor
-	private ArgumentCaptor<Event> eventCaptor;
+	private ArgumentCaptor<List<DocumentResponsibilityEntity>> responsibilityEntitiesCaptor;
+
+	private TestEventLogClient eventLogClient;
 
 	@BeforeEach
 	void setUp() {
+		eventLogClient = new TestEventLogClient();
 		documentService = new DocumentService(
 			binaryStoreMock,
 			documentRepositoryMock,
+			documentResponsibilityRepositoryMock,
 			documentTypeRepositoryMock,
 			registrationNumberServiceMock,
-			Optional.of(eventLogClientMock),
+			Optional.of(eventLogClient),
 			Optional.of(eventlogPropertiesMock));
 	}
 
@@ -162,6 +172,7 @@ class DocumentServiceTest {
 		final var documentCreateRequest = DocumentCreateRequest.create()
 			.withCreatedBy(CREATED_BY)
 			.withMetadataList(List.of(DocumentMetadata.create().withKey(METADATA_KEY).withValue(METADATA_VALUE)))
+			.withResponsibilities(List.of(DocumentResponsibility.create().withPrincipalType(PrincipalType.USER).withPrincipalId(CREATED_BY)))
 			.withType(DOCUMENT_TYPE)
 			.withValidFrom(VALID_FROM)
 			.withValidTo(VALID_TO);
@@ -175,17 +186,20 @@ class DocumentServiceTest {
 		when(registrationNumberServiceMock.generateRegistrationNumber(MUNICIPALITY_ID)).thenReturn(REGISTRATION_NUMBER);
 		when(binaryStoreMock.put(any(InputStream.class), anyLong(), anyString(), anyMap())).thenReturn(StorageRef.jdbc(newLocator));
 		when(documentRepositoryMock.save(any(DocumentEntity.class))).thenAnswer(invocation -> invocation.getArgument(0));
+		when(documentResponsibilityRepositoryMock.saveAll(any())).thenAnswer(invocation -> invocation.getArgument(0));
 
 		// Act
 		final var result = documentService.create(documentCreateRequest, documentFiles, MUNICIPALITY_ID);
 
 		// Assert
 		assertThat(result).isNotNull();
+		assertThat(result.getResponsibilities()).containsExactly(DocumentResponsibility.create().withPrincipalType(PrincipalType.USER).withPrincipalId(CREATED_BY.toLowerCase()));
 
 		verify(documentTypeRepositoryMock).findByMunicipalityIdAndType(MUNICIPALITY_ID, DOCUMENT_TYPE);
 		verify(registrationNumberServiceMock).generateRegistrationNumber(MUNICIPALITY_ID);
 		verify(binaryStoreMock).put(any(InputStream.class), eq(file.length()), eq("text/plain"), eq(Map.of("original-filename", file.getName(), "municipality-id", MUNICIPALITY_ID)));
 		verify(documentRepositoryMock).save(documentEntityCaptor.capture());
+		verify(documentResponsibilityRepositoryMock).saveAll(responsibilityEntitiesCaptor.capture());
 
 		final var capturedDocumentEntity = documentEntityCaptor.getValue();
 		assertThat(capturedDocumentEntity).isNotNull();
@@ -202,6 +216,11 @@ class DocumentServiceTest {
 		});
 		assertThat(capturedDocumentEntity.getValidFrom()).isEqualTo(VALID_FROM);
 		assertThat(capturedDocumentEntity.getValidTo()).isEqualTo(VALID_TO);
+
+		assertThat(responsibilityEntitiesCaptor.getValue())
+			.extracting(DocumentResponsibilityEntity::getMunicipalityId, DocumentResponsibilityEntity::getRegistrationNumber, DocumentResponsibilityEntity::getPrincipalType, DocumentResponsibilityEntity::getPrincipalId,
+				DocumentResponsibilityEntity::getCreatedBy)
+			.containsExactly(tuple(MUNICIPALITY_ID, REGISTRATION_NUMBER, PrincipalType.USER, CREATED_BY.toLowerCase(), CREATED_BY));
 	}
 
 	@Test
@@ -752,7 +771,7 @@ class DocumentServiceTest {
 		// Assert
 		verify(documentRepositoryMock).findByMunicipalityIdAndRegistrationNumberAndConfidentialityConfidentialIn(MUNICIPALITY_ID, REGISTRATION_NUMBER, CONFIDENTIAL_AND_PUBLIC.getValue());
 		verify(documentRepositoryMock).saveAll(documentEntitiesCaptor.capture());
-		verify(eventLogClientMock).createEvent(eq(MUNICIPALITY_ID), eq(eventLogKey), eventCaptor.capture());
+		assertThat(eventLogClient.requests).hasSize(1);
 		verifyNoInteractions(registrationNumberServiceMock, documentTypeRepositoryMock, binaryStoreMock);
 
 		// Assert captured DocumentEntity-objects.
@@ -766,7 +785,9 @@ class DocumentServiceTest {
 				tuple(ConfidentialityEmbeddable.create().withConfidential(newConfidentialValue).withLegalCitation(LEGAL_CITATION), REGISTRATION_NUMBER, REVISION + 1));
 
 		// Assert captured Eventlog-event.
-		final var capturedEvent = eventCaptor.getValue();
+		final var capturedEvent = eventLogClient.requests.getFirst().event();
+		assertThat(eventLogClient.requests.getFirst().municipalityId()).isEqualTo(MUNICIPALITY_ID);
+		assertThat(eventLogClient.requests.getFirst().logKey()).isEqualTo(eventLogKey);
 		assertThat(capturedEvent).isNotNull();
 		assertThat(capturedEvent.getExpires()).isCloseTo(now(systemDefault()).plusYears(10), within(2, ChronoUnit.SECONDS));
 		assertThat(capturedEvent.getType()).isEqualTo(UPDATE);
@@ -777,6 +798,78 @@ class DocumentServiceTest {
 			.containsExactlyInAnyOrder(
 				tuple("RegistrationNumber", REGISTRATION_NUMBER),
 				tuple("ExecutedBy", CREATED_BY));
+	}
+
+	@Test
+	void updateResponsibilities() {
+
+		// Arrange
+		final var eventLogKey = UUID.randomUUID().toString();
+		final var request = DocumentResponsibilitiesUpdateRequest.create()
+			.withChangedBy(CREATED_BY)
+			.withResponsibilities(List.of(
+				DocumentResponsibility.create().withPrincipalType(PrincipalType.USER).withPrincipalId(CREATED_BY),
+				DocumentResponsibility.create().withPrincipalType(PrincipalType.GROUP).withPrincipalId("group")));
+		final var oldResponsibilities = List.of(DocumentResponsibilityEntity.create()
+			.withMunicipalityId(MUNICIPALITY_ID)
+			.withRegistrationNumber(REGISTRATION_NUMBER)
+			.withPrincipalType(PrincipalType.USER)
+			.withPrincipalId("oldUser"));
+
+		when(eventlogPropertiesMock.logKeyUuid()).thenReturn(eventLogKey);
+		when(documentRepositoryMock.existsByMunicipalityIdAndRegistrationNumber(MUNICIPALITY_ID, REGISTRATION_NUMBER)).thenReturn(true);
+		when(documentResponsibilityRepositoryMock.findByMunicipalityIdAndRegistrationNumberOrderByPrincipalTypeAscPrincipalIdAsc(MUNICIPALITY_ID, REGISTRATION_NUMBER)).thenReturn(oldResponsibilities);
+
+		// Act
+		documentService.updateResponsibilities(REGISTRATION_NUMBER, request, MUNICIPALITY_ID);
+
+		// Assert
+		verify(documentRepositoryMock).existsByMunicipalityIdAndRegistrationNumber(MUNICIPALITY_ID, REGISTRATION_NUMBER);
+		verify(documentResponsibilityRepositoryMock).findByMunicipalityIdAndRegistrationNumberOrderByPrincipalTypeAscPrincipalIdAsc(MUNICIPALITY_ID, REGISTRATION_NUMBER);
+		verify(documentResponsibilityRepositoryMock).deleteByMunicipalityIdAndRegistrationNumber(MUNICIPALITY_ID, REGISTRATION_NUMBER);
+		verify(documentResponsibilityRepositoryMock).saveAll(responsibilityEntitiesCaptor.capture());
+		assertThat(eventLogClient.requests).hasSize(1);
+		verifyNoInteractions(registrationNumberServiceMock, documentTypeRepositoryMock, binaryStoreMock);
+
+		assertThat(responsibilityEntitiesCaptor.getValue())
+			.extracting(DocumentResponsibilityEntity::getMunicipalityId, DocumentResponsibilityEntity::getRegistrationNumber, DocumentResponsibilityEntity::getPrincipalType, DocumentResponsibilityEntity::getPrincipalId,
+				DocumentResponsibilityEntity::getCreatedBy)
+			.containsExactly(
+				tuple(MUNICIPALITY_ID, REGISTRATION_NUMBER, PrincipalType.USER, CREATED_BY.toLowerCase(), CREATED_BY),
+				tuple(MUNICIPALITY_ID, REGISTRATION_NUMBER, PrincipalType.GROUP, "group", CREATED_BY));
+
+		final var capturedEvent = eventLogClient.requests.getFirst().event();
+		assertThat(eventLogClient.requests.getFirst().municipalityId()).isEqualTo(MUNICIPALITY_ID);
+		assertThat(eventLogClient.requests.getFirst().logKey()).isEqualTo(eventLogKey);
+		assertThat(capturedEvent.getType()).isEqualTo(UPDATE);
+		assertThat(capturedEvent.getMessage()).contains("Responsibilities updated from:", "oldUser", CREATED_BY, "group", REGISTRATION_NUMBER);
+		assertThat(capturedEvent.getMetadata())
+			.extracting(Metadata::getKey, Metadata::getValue)
+			.containsExactlyInAnyOrder(
+				tuple("RegistrationNumber", REGISTRATION_NUMBER),
+				tuple("ExecutedBy", CREATED_BY));
+	}
+
+	@Test
+	void updateResponsibilitiesWhenDocumentIsNotFound() {
+
+		// Arrange
+		final var request = DocumentResponsibilitiesUpdateRequest.create()
+			.withChangedBy(CREATED_BY)
+			.withResponsibilities(List.of(DocumentResponsibility.create().withPrincipalType(PrincipalType.USER).withPrincipalId(CREATED_BY)));
+
+		when(documentRepositoryMock.existsByMunicipalityIdAndRegistrationNumber(MUNICIPALITY_ID, REGISTRATION_NUMBER)).thenReturn(false);
+
+		// Act
+		final var exception = assertThrows(ThrowableProblem.class, () -> documentService.updateResponsibilities(REGISTRATION_NUMBER, request, MUNICIPALITY_ID));
+
+		// Assert
+		assertThat(exception).isNotNull();
+		assertThat(exception.getMessage()).isEqualTo("Not Found: No document with registrationNumber: '2023-2281-4' could be found!");
+
+		verify(documentRepositoryMock).existsByMunicipalityIdAndRegistrationNumber(MUNICIPALITY_ID, REGISTRATION_NUMBER);
+		assertThat(eventLogClient.requests).isEmpty();
+		verifyNoInteractions(documentResponsibilityRepositoryMock, registrationNumberServiceMock, documentTypeRepositoryMock, binaryStoreMock);
 	}
 
 	@Test
@@ -1010,5 +1103,19 @@ class DocumentServiceTest {
 			.withFileName(FILE_NAME)
 			.withMimeType(MIME_TYPE)
 			.withFileSizeInBytes(FILE_SIZE_IN_BYTES);
+	}
+
+	private static final class TestEventLogClient implements EventLogClient {
+
+		private final List<EventLogRequest> requests = new java.util.ArrayList<>();
+
+		@Override
+		public ResponseEntity<Void> createEvent(final String municipalityId, final String logKey, final Event event) {
+			requests.add(new EventLogRequest(municipalityId, logKey, event));
+			return ResponseEntity.noContent().build();
+		}
+	}
+
+	private record EventLogRequest(String municipalityId, String logKey, Event event) {
 	}
 }

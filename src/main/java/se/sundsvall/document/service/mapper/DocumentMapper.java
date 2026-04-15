@@ -17,12 +17,14 @@ import se.sundsvall.document.api.model.DocumentCreateRequest;
 import se.sundsvall.document.api.model.DocumentData;
 import se.sundsvall.document.api.model.DocumentFiles;
 import se.sundsvall.document.api.model.DocumentMetadata;
+import se.sundsvall.document.api.model.DocumentResponsibility;
 import se.sundsvall.document.api.model.DocumentUpdateRequest;
 import se.sundsvall.document.api.model.PagedDocumentResponse;
 import se.sundsvall.document.integration.db.model.ConfidentialityEmbeddable;
 import se.sundsvall.document.integration.db.model.DocumentDataEntity;
 import se.sundsvall.document.integration.db.model.DocumentEntity;
 import se.sundsvall.document.integration.db.model.DocumentMetadataEmbeddable;
+import se.sundsvall.document.integration.db.model.DocumentResponsibilityEntity;
 import se.sundsvall.document.service.storage.BinaryStore;
 import se.sundsvall.document.service.storage.StorageRef;
 
@@ -134,6 +136,27 @@ public class DocumentMapper {
 			.orElse(ConfidentialityEmbeddable.create());
 	}
 
+	public static List<DocumentResponsibilityEntity> toDocumentResponsibilityEntities(final List<DocumentResponsibility> responsibilities, final String municipalityId, final String registrationNumber, final String createdBy) {
+		return Optional.ofNullable(responsibilities).orElse(emptyList()).stream()
+			.map(responsibility -> toDocumentResponsibilityEntity(responsibility, municipalityId, registrationNumber, createdBy))
+			.toList();
+	}
+
+	public static DocumentResponsibilityEntity toDocumentResponsibilityEntity(final DocumentResponsibility responsibility, final String municipalityId, final String registrationNumber, final String createdBy) {
+		return Optional.ofNullable(responsibility)
+			.map(value -> DocumentResponsibilityEntity.create()
+				.withMunicipalityId(municipalityId)
+				.withRegistrationNumber(registrationNumber)
+				.withPrincipalType(value.getPrincipalType())
+				.withPrincipalId(normalizePrincipalId(value.getPrincipalId()))
+				.withCreatedBy(createdBy))
+			.orElse(null);
+	}
+
+	private static String normalizePrincipalId(final String principalId) {
+		return principalId == null ? null : principalId.trim().toLowerCase();
+	}
+
 	/**
 	 * Database to API mappings.
 	 */
@@ -158,6 +181,10 @@ public class DocumentMapper {
 	}
 
 	public static Document toDocument(DocumentEntity documentEntity) {
+		return toDocument(documentEntity, emptyList());
+	}
+
+	public static Document toDocument(DocumentEntity documentEntity, List<DocumentResponsibilityEntity> responsibilities) {
 		return Optional.ofNullable(documentEntity)
 			.map(docEntity -> Document.create()
 				.withConfidentiality(toConfidentiality(docEntity.getConfidentiality()))
@@ -170,6 +197,7 @@ public class DocumentMapper {
 				.withMetadataList(toDocumentMetadataList(docEntity.getMetadata()))
 				.withMunicipalityId(docEntity.getMunicipalityId())
 				.withRegistrationNumber(docEntity.getRegistrationNumber())
+				.withResponsibilities(toDocumentResponsibilities(responsibilities))
 				.withRevision(docEntity.getRevision())
 				.withType(docEntity.getType().getType())
 				.withValidFrom(docEntity.getValidFrom())
@@ -182,6 +210,20 @@ public class DocumentMapper {
 			.map(c -> Confidentiality.create()
 				.withConfidential(c.isConfidential())
 				.withLegalCitation(c.getLegalCitation()))
+			.orElse(null);
+	}
+
+	public static List<DocumentResponsibility> toDocumentResponsibilities(final List<DocumentResponsibilityEntity> responsibilities) {
+		return Optional.ofNullable(responsibilities).orElse(emptyList()).stream()
+			.map(DocumentMapper::toDocumentResponsibility)
+			.toList();
+	}
+
+	public static DocumentResponsibility toDocumentResponsibility(final DocumentResponsibilityEntity responsibility) {
+		return Optional.ofNullable(responsibility)
+			.map(value -> DocumentResponsibility.create()
+				.withPrincipalType(value.getPrincipalType())
+				.withPrincipalId(value.getPrincipalId()))
 			.orElse(null);
 	}
 

@@ -4,6 +4,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Map;
@@ -82,6 +83,8 @@ class DocumentMapperTest {
 	private static final String DOCUMENT_TYPE_ID = "documentTypeId";
 	private static final OffsetDateTime DOCUMENT_TYPE_UPDATED = now(systemDefault()).minusDays(6);
 	private static final String DOCUMENT_TYPE_UPDATED_BY = "documentTypeUpdatedBy";
+	private static final LocalDate VALID_FROM = LocalDate.of(2026, 4, 15);
+	private static final LocalDate VALID_TO = LocalDate.of(2027, 4, 15);
 
 	@Mock
 	private BinaryStore binaryStoreMock;
@@ -98,7 +101,9 @@ class DocumentMapperTest {
 			.withDescription(DESCRIPTION)
 			.withMetadataList(List.of(DocumentMetadata.create()
 				.withKey(METADATA_KEY)
-				.withValue(METADATA_VALUE)));
+				.withValue(METADATA_VALUE)))
+			.withValidFrom(VALID_FROM)
+			.withValidTo(VALID_TO);
 
 		// Act
 		final var result = DocumentMapper.toDocumentEntity(documentCreateRequest, MUNICIPALITY_ID);
@@ -115,7 +120,9 @@ class DocumentMapperTest {
 				.withMetadata(List.of(DocumentMetadataEmbeddable.create()
 					.withKey(METADATA_KEY)
 					.withValue(METADATA_VALUE)))
-				.withMunicipalityId(MUNICIPALITY_ID));
+				.withMunicipalityId(MUNICIPALITY_ID)
+				.withValidFrom(VALID_FROM)
+				.withValidTo(VALID_TO));
 	}
 
 	@Test
@@ -177,7 +184,9 @@ class DocumentMapperTest {
 				.withLastUpdated(DOCUMENT_TYPE_UPDATED)
 				.withLastUpdatedBy(DOCUMENT_TYPE_UPDATED_BY)
 				.withMunicipalityId(MUNICIPALITY_ID)
-				.withType(DOCUMENT_TYPE));
+				.withType(DOCUMENT_TYPE))
+			.withValidFrom(VALID_FROM)
+			.withValidTo(VALID_TO);
 
 		when(binaryStoreMock.copy(any(StorageRef.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
@@ -221,7 +230,9 @@ class DocumentMapperTest {
 					.withLastUpdated(DOCUMENT_TYPE_UPDATED)
 					.withLastUpdatedBy(DOCUMENT_TYPE_UPDATED_BY)
 					.withMunicipalityId(MUNICIPALITY_ID)
-					.withType(DOCUMENT_TYPE)));
+					.withType(DOCUMENT_TYPE))
+				.withValidFrom(VALID_FROM)
+				.withValidTo(VALID_TO));
 
 		verify(binaryStoreMock).copy(new StorageRef(STORAGE_BACKEND, STORAGE_LOCATOR_1));
 		verify(binaryStoreMock).copy(new StorageRef(STORAGE_BACKEND, STORAGE_LOCATOR_2));
@@ -433,7 +444,9 @@ class DocumentMapperTest {
 			.withRegistrationNumber(REGISTRATION_NUMBER)
 			.withRevision(REVISION)
 			.withType(DocumentTypeEntity.create()
-				.withType(DOCUMENT_TYPE));
+				.withType(DOCUMENT_TYPE))
+			.withValidFrom(VALID_FROM)
+			.withValidTo(VALID_TO);
 
 		// Act
 		final var result = DocumentMapper.toDocument(documentEntity);
@@ -467,7 +480,9 @@ class DocumentMapperTest {
 				.withMunicipalityId(MUNICIPALITY_ID)
 				.withRegistrationNumber(REGISTRATION_NUMBER)
 				.withRevision(REVISION)
-				.withType(DOCUMENT_TYPE));
+				.withType(DOCUMENT_TYPE)
+				.withValidFrom(VALID_FROM)
+				.withValidTo(VALID_TO));
 	}
 
 	@Test
@@ -567,7 +582,9 @@ class DocumentMapperTest {
 				.withLastUpdated(DOCUMENT_TYPE_UPDATED)
 				.withLastUpdatedBy(DOCUMENT_TYPE_UPDATED_BY)
 				.withMunicipalityId(MUNICIPALITY_ID)
-				.withType(DOCUMENT_TYPE));
+				.withType(DOCUMENT_TYPE))
+			.withValidFrom(VALID_FROM)
+			.withValidTo(VALID_TO);
 
 		when(binaryStoreMock.copy(any(StorageRef.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
@@ -612,7 +629,9 @@ class DocumentMapperTest {
 					.withLastUpdated(DOCUMENT_TYPE_UPDATED)
 					.withLastUpdatedBy(DOCUMENT_TYPE_UPDATED_BY)
 					.withMunicipalityId(MUNICIPALITY_ID)
-					.withType(DOCUMENT_TYPE)));
+					.withType(DOCUMENT_TYPE))
+				.withValidFrom(VALID_FROM)
+				.withValidTo(VALID_TO));
 
 		verify(binaryStoreMock).copy(new StorageRef(STORAGE_BACKEND, STORAGE_LOCATOR_1));
 		verify(binaryStoreMock).copy(new StorageRef(STORAGE_BACKEND, STORAGE_LOCATOR_2));

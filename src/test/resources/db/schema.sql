@@ -3,6 +3,8 @@
         archive bit not null,
         confidential bit not null,
         revision integer not null,
+        valid_from date,
+        valid_to date,
         created datetime(6),
         created_by varchar(255),
         description varchar(8192) not null,

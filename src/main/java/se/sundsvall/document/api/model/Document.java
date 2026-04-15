@@ -1,6 +1,7 @@
 package se.sundsvall.document.api.model;
 
 import io.swagger.v3.oas.annotations.media.Schema;
+import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Objects;
@@ -48,6 +49,14 @@ public class Document {
 
 	@Schema(description = "Document type", examples = "Type for the document.")
 	private String type;
+
+	@Schema(description = "Start of validity period (inclusive). ISO date (yyyy-MM-dd).", examples = "2026-04-15")
+	@DateTimeFormat(iso = ISO.DATE)
+	private LocalDate validFrom;
+
+	@Schema(description = "End of validity period (inclusive). ISO date (yyyy-MM-dd).", examples = "2027-04-15")
+	@DateTimeFormat(iso = ISO.DATE)
+	private LocalDate validTo;
 
 	public static Document create() {
 		return new Document();
@@ -209,9 +218,35 @@ public class Document {
 		return this;
 	}
 
+	public LocalDate getValidFrom() {
+		return validFrom;
+	}
+
+	public void setValidFrom(LocalDate validFrom) {
+		this.validFrom = validFrom;
+	}
+
+	public Document withValidFrom(LocalDate validFrom) {
+		this.validFrom = validFrom;
+		return this;
+	}
+
+	public LocalDate getValidTo() {
+		return validTo;
+	}
+
+	public void setValidTo(LocalDate validTo) {
+		this.validTo = validTo;
+	}
+
+	public Document withValidTo(LocalDate validTo) {
+		this.validTo = validTo;
+		return this;
+	}
+
 	@Override
 	public int hashCode() {
-		return Objects.hash(archive, confidentiality, created, createdBy, description, documentData, id, metadataList, municipalityId, registrationNumber, revision, type);
+		return Objects.hash(archive, confidentiality, created, createdBy, description, documentData, id, metadataList, municipalityId, registrationNumber, revision, type, validFrom, validTo);
 	}
 
 	@Override
@@ -224,7 +259,7 @@ public class Document {
 		}
 		return archive == other.archive && Objects.equals(confidentiality, other.confidentiality) && Objects.equals(created, other.created) && Objects.equals(createdBy, other.createdBy) && Objects.equals(description, other.description) && Objects
 			.equals(documentData, other.documentData) && Objects.equals(id, other.id) && Objects.equals(metadataList, other.metadataList) && Objects.equals(municipalityId, other.municipalityId) && Objects.equals(registrationNumber,
-				other.registrationNumber) && revision == other.revision && Objects.equals(type, other.type);
+				other.registrationNumber) && revision == other.revision && Objects.equals(type, other.type) && Objects.equals(validFrom, other.validFrom) && Objects.equals(validTo, other.validTo);
 	}
 
 	@Override
@@ -232,7 +267,7 @@ public class Document {
 		final var builder = new StringBuilder();
 		builder.append("Document [id=").append(id).append(", municipalityId=").append(municipalityId).append(", registrationNumber=").append(registrationNumber).append(", revision=").append(revision).append(", confidentiality=").append(
 			confidentiality).append(", description=").append(description).append(", created=").append(created).append(", createdBy=").append(createdBy).append(", archive=").append(archive).append(", metadataList=").append(metadataList).append(
-				", documentData=").append(documentData).append(", type=").append(type).append("]");
+				", documentData=").append(documentData).append(", type=").append(type).append(", validFrom=").append(validFrom).append(", validTo=").append(validTo).append("]");
 		return builder.toString();
 	}
 }

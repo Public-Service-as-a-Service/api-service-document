@@ -49,7 +49,9 @@ public class DocumentMapper {
 				.withCreatedBy(doc.getCreatedBy())
 				.withDescription(doc.getDescription())
 				.withMetadata(toDocumentMetadataEmbeddableList(doc.getMetadataList()))
-				.withMunicipalityId(municipalityId))
+				.withMunicipalityId(municipalityId)
+				.withValidFrom(doc.getValidFrom())
+				.withValidTo(doc.getValidTo()))
 			.orElse(null);
 	}
 
@@ -118,7 +120,9 @@ public class DocumentMapper {
 				.map(DocumentMapper::toDocumentMetadataEmbeddableList)
 				.orElse(copyDocumentMetadataEmbeddableList(existingDocumentEntity.getMetadata())))
 			.withDocumentData(copyDocumentDataEntities(existingDocumentEntity.getDocumentData(), binaryStore))
-			.withType(existingDocumentEntity.getType());
+			.withType(existingDocumentEntity.getType())
+			.withValidFrom(existingDocumentEntity.getValidFrom())
+			.withValidTo(existingDocumentEntity.getValidTo());
 	}
 
 	public static ConfidentialityEmbeddable toConfidentialityEmbeddable(Confidentiality confidentiality) {
@@ -174,7 +178,9 @@ public class DocumentMapper {
 				.withMunicipalityId(docEntity.getMunicipalityId())
 				.withRegistrationNumber(docEntity.getRegistrationNumber())
 				.withRevision(docEntity.getRevision())
-				.withType(docEntity.getType().getType()))
+				.withType(docEntity.getType().getType())
+				.withValidFrom(docEntity.getValidFrom())
+				.withValidTo(docEntity.getValidTo()))
 			.orElse(null);
 	}
 
@@ -202,7 +208,9 @@ public class DocumentMapper {
 				.withMunicipalityId(docEntity.getMunicipalityId())
 				.withRegistrationNumber(docEntity.getRegistrationNumber())
 				.withRevision(docEntity.getRevision())
-				.withType(docEntity.getType()))
+				.withType(docEntity.getType())
+				.withValidFrom(docEntity.getValidFrom())
+				.withValidTo(docEntity.getValidTo()))
 			.orElse(null);
 	}
 

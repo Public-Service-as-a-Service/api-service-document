@@ -1,5 +1,6 @@
 package se.sundsvall.document.api.model;
 
+import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Random;
@@ -24,6 +25,7 @@ class DocumentTest {
 	@BeforeAll
 	static void setup() {
 		registerValueGenerator(() -> now().plusDays(new Random().nextInt()), OffsetDateTime.class);
+		registerValueGenerator(() -> LocalDate.now().plusDays(new Random().nextInt()), LocalDate.class);
 	}
 
 	@Test
@@ -51,6 +53,8 @@ class DocumentTest {
 		final var registrationNumber = "12345";
 		final var revision = 5;
 		final var type = "type";
+		final var validFrom = LocalDate.of(2026, 4, 15);
+		final var validTo = LocalDate.of(2027, 4, 15);
 
 		final var bean = Document.create()
 			.withArchive(archive)
@@ -64,7 +68,9 @@ class DocumentTest {
 			.withMunicipalityId(municipalityId)
 			.withRegistrationNumber(registrationNumber)
 			.withRevision(revision)
-			.withType(type);
+			.withType(type)
+			.withValidFrom(validFrom)
+			.withValidTo(validTo);
 
 		assertThat(bean).isNotNull().hasNoNullFieldsOrProperties();
 		assertThat(bean.isArchive()).isEqualTo(archive);
@@ -79,6 +85,8 @@ class DocumentTest {
 		assertThat(bean.getRegistrationNumber()).isEqualTo(registrationNumber);
 		assertThat(bean.getRevision()).isEqualTo(revision);
 		assertThat(bean.getType()).isEqualTo(type);
+		assertThat(bean.getValidFrom()).isEqualTo(validFrom);
+		assertThat(bean.getValidTo()).isEqualTo(validTo);
 	}
 
 	@Test

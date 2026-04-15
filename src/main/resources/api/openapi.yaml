@@ -1241,6 +1241,14 @@ components:
           items:
             $ref: "#/components/schemas/MetaData"
             description: List of metadata
+        validOn:
+          type: string
+          format: date
+          description: Only include documents whose validity window covers this date.
+            A null validFrom is treated as valid from the beginning of time; a null
+            validTo is treated as valid forever. ISO date (yyyy-MM-dd).
+          examples:
+            - 2026-04-15
     MetaData:
       type: object
       properties:

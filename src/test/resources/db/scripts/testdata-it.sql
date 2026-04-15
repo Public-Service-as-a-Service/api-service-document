@@ -78,6 +78,26 @@ VALUES ('159c10bf-1b32-471b-b2d3-c4b4b13ea152', 1, '2023-06-28 12:01:00.000', 'U
        ('8ad5ecbf-15e5-4572-9b80-96bbfc2145b6', 2, '2024-04-06 08:33:07.000', 'User6', '2024-2281-139', false,
         'Law §7.2', false, 'Generated Document 20', '933622d0-4b69-4d96-a204-507f31e20e61', '2281');
 
+-- Document type + documents used exclusively by the validOn search IT (municipality 2999).
+-- These rows are isolated from all other tests which target municipalities 2281 / 2282.
+INSERT INTO document_type (id, created, last_updated, created_by, display_name, last_updated_by, municipality_id,
+                           `type`)
+VALUES ('a9f1d2b0-0000-4000-8000-000000000001', '2024-10-25 14:00:00.000', null, 'User1', 'Validity window', null,
+        '2999', 'VALIDITY_TEST');
+
+INSERT INTO document (id, revision, created, created_by, registration_number, confidential, legal_citation, archive,
+                      description, document_type_id, municipality_id, valid_from, valid_to)
+VALUES ('b0000001-0000-0000-0000-000000000001', 1, '2025-01-01 00:00:00.000', 'validity-tester', '2025-2999-0001', false,
+        null, false, 'Valid only in 2025', 'a9f1d2b0-0000-4000-8000-000000000001', '2999', '2025-01-01', '2025-12-31'),
+       ('b0000001-0000-0000-0000-000000000002', 1, '2025-01-01 00:00:00.000', 'validity-tester', '2025-2999-0002', false,
+        null, false, 'Valid from 2026 onwards', 'a9f1d2b0-0000-4000-8000-000000000001', '2999', '2026-01-01', null),
+       ('b0000001-0000-0000-0000-000000000003', 1, '2025-01-01 00:00:00.000', 'validity-tester', '2025-2999-0003', false,
+        null, false, 'Valid until 2025', 'a9f1d2b0-0000-4000-8000-000000000001', '2999', null, '2025-12-31'),
+       ('b0000001-0000-0000-0000-000000000004', 1, '2025-01-01 00:00:00.000', 'validity-tester', '2025-2999-0004', false,
+        null, false, 'Always valid', 'a9f1d2b0-0000-4000-8000-000000000001', '2999', null, null),
+       ('b0000001-0000-0000-0000-000000000005', 1, '2025-01-01 00:00:00.000', 'validity-tester', '2025-2999-0005', false,
+        null, false, 'Valid only in 2027', 'a9f1d2b0-0000-4000-8000-000000000001', '2999', '2027-01-01', '2027-12-31');
+
 
 INSERT INTO document_data_binary (id, binary_file)
 VALUES ('d35254ce-d26c-47e3-806f-4cf68cf2fa56',

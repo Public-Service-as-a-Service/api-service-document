@@ -1,0 +1,44 @@
+{
+	"documents": [
+		{
+			"municipalityId": "2999",
+			"createdBy": "validity-tester",
+			"registrationNumber": "2025-2999-0002",
+			"created": "${json-unit.any-string}",
+			"confidentiality": {
+				"confidential": false
+			},
+			"description": "Valid from 2026 onwards",
+			"archive": false,
+			"id": "b0000001-0000-0000-0000-000000000002",
+			"documentData": [],
+			"type": "VALIDITY_TEST",
+			"revision": 1,
+			"metadataList": [],
+			"validFrom": "2026-01-01"
+		},
+		{
+			"municipalityId": "2999",
+			"createdBy": "validity-tester",
+			"registrationNumber": "2025-2999-0004",
+			"created": "${json-unit.any-string}",
+			"confidentiality": {
+				"confidential": false
+			},
+			"description": "Always valid",
+			"archive": false,
+			"id": "b0000001-0000-0000-0000-000000000004",
+			"documentData": [],
+			"type": "VALIDITY_TEST",
+			"revision": 1,
+			"metadataList": []
+		}
+	],
+	"_meta": {
+		"totalRecords": 2,
+		"limit": 20,
+		"count": 2,
+		"totalPages": 1,
+		"page": 0
+	}
+}

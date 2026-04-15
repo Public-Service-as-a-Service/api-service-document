@@ -4,7 +4,7 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 
 /**
  * Configuration for the S3-compatible object store used by {@link S3BinaryStore}.
- *
+ * <p>
  * Works with AWS S3, MinIO and Garage. Path-style access (`path-style-access=true`) is usually
  * required for MinIO and Garage; AWS S3 supports it too but prefers virtual-host style.
  */

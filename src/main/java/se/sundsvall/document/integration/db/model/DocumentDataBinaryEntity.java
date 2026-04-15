@@ -5,16 +5,13 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.Lob;
 import jakarta.persistence.Table;
-import java.io.Serializable;
 import java.sql.Blob;
 import java.util.Objects;
 import org.hibernate.annotations.UuidGenerator;
 
 @Entity
 @Table(name = "document_data_binary")
-public class DocumentDataBinaryEntity implements Serializable {
-
-	private static final long serialVersionUID = -1254399670053984961L;
+public class DocumentDataBinaryEntity {
 
 	@Id
 	@UuidGenerator

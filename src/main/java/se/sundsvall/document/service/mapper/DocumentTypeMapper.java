@@ -1,5 +1,6 @@
 package se.sundsvall.document.service.mapper;
 
+import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -48,7 +49,7 @@ public class DocumentTypeMapper {
 	public static List<DocumentType> toDocumentTypes(List<DocumentTypeEntity> documentTypeEntities) {
 		return Optional.ofNullable(documentTypeEntities).orElse(emptyList()).stream()
 			.filter(Objects::nonNull)
-			.sorted((a1, a2) -> a1.getDisplayName().compareTo(a2.getDisplayName()))
+			.sorted(Comparator.comparing(DocumentTypeEntity::getDisplayName))
 			.map(DocumentTypeMapper::toDocumentType)
 			.toList();
 	}

@@ -7,11 +7,11 @@ import java.util.Map;
 
 /**
  * Service-layer abstraction over the location of a document's file content.
- *
+ * <p>
  * Implementations:
  * - `JdbcBinaryStore` stores the bytes in the MariaDB `document_data_binary.binary_file` LONGBLOB column.
  * - `S3BinaryStore` stores the bytes in an S3-compatible object store (AWS S3, MinIO, Garage).
- *
+ * <p>
  * Picked at runtime via the `document.storage.backend` property (`jdbc` or `s3`). See Stage 1 of the
  * storage-migration plan for context.
  */
@@ -19,7 +19,7 @@ public interface BinaryStore {
 
 	/**
 	 * Store the bytes from `in` and return a {@link StorageRef} that can later read them back.
-	 *
+	 * <p>
 	 * Implementations MUST stream — no full-file buffering in the heap.
 	 *
 	 * @param in           the byte stream; will be read to completion
@@ -33,7 +33,7 @@ public interface BinaryStore {
 
 	/**
 	 * Stream the bytes identified by `ref` into `out`. Used for the file-download endpoint.
-	 *
+	 * <p>
 	 * MUST stream — no full-file buffering in the heap.
 	 */
 	void streamTo(StorageRef ref, OutputStream out) throws IOException;
@@ -47,7 +47,7 @@ public interface BinaryStore {
 	/**
 	 * Return a new {@link StorageRef} referring to the same bytes. Used when a document is updated
 	 * without replacing its files — the new revision's `document_data` rows get copied refs.
-	 *
+	 * <p>
 	 * - `JdbcBinaryStore` creates a new `document_data_binary` row that shares the underlying Blob.
 	 * - `S3BinaryStore` issues a server-side `CopyObject` to a new key.
 	 */

@@ -2,13 +2,10 @@ package se.sundsvall.document.integration.db.model;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Embeddable;
-import java.io.Serializable;
 import java.util.Objects;
 
 @Embeddable
-public class DocumentMetadataEmbeddable implements Serializable {
-
-	private static final long serialVersionUID = -7924624070926644671L;
+public class DocumentMetadataEmbeddable {
 
 	@Column(name = "`key`")
 	private String key;

@@ -7,7 +7,6 @@ import jakarta.persistence.Id;
 import jakarta.persistence.Index;
 import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
-import java.io.Serializable;
 import java.time.OffsetDateTime;
 import java.util.Objects;
 import org.hibernate.annotations.TimeZoneStorage;
@@ -26,9 +25,7 @@ import static org.hibernate.annotations.TimeZoneStorageType.NORMALIZE;
 		@Index(name = "ix_municipality_id", columnList = "municipality_id")
 	})
 @EntityListeners(RegistrationNumberSequenceEntityListener.class)
-public class RegistrationNumberSequenceEntity implements Serializable {
-
-	private static final long serialVersionUID = -6803997089374760074L;
+public class RegistrationNumberSequenceEntity {
 
 	@Id
 	@UuidGenerator

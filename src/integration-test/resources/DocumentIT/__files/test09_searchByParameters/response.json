@@ -24,7 +24,9 @@
 					"value": "Analyst",
 					"key": "EMPLOYEE_TYPE"
 				}
-			]
+			],
+			"validFrom": "2027-01-01",
+			"validTo": "2028-12-31"
 		},
 		{
 			"municipalityId": "2281",
@@ -49,7 +51,9 @@
 					"value": "Analyst",
 					"key": "EMPLOYEE_TYPE"
 				}
-			]
+			],
+			"validFrom": "2024-08-29",
+			"validTo": "2027-08-29"
 		}
 	],
 	"_meta": {

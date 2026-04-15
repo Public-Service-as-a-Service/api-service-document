@@ -541,4 +541,21 @@ class DocumentIT extends AbstractAppTest {
 			.sendRequestAndVerifyResponse();
 	}
 
+	/**
+	 * Filters documents in municipality 2999 by validOn=2026-06-01. Of the five seeded rows
+	 * only the open-ended ("from 2026") and the always-valid one should match; rows limited to
+	 * 2025 or 2027 are excluded.
+	 */
+	@Test
+	@Order(35)
+	void test35_searchByParametersValidOn() {
+		setupCall()
+			.withServicePath("/2999/documents/filter?sortBy=id")
+			.withHttpMethod(POST)
+			.withRequest(REQUEST_FILE)
+			.withExpectedResponseStatus(OK)
+			.withExpectedResponse(RESPONSE_FILE)
+			.sendRequestAndVerifyResponse();
+	}
+
 }

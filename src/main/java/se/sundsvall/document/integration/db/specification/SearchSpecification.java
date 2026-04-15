@@ -5,6 +5,7 @@ import jakarta.persistence.criteria.JoinType;
 import jakarta.persistence.criteria.Predicate;
 import jakarta.persistence.criteria.Root;
 import jakarta.persistence.criteria.Subquery;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -28,6 +29,8 @@ import static se.sundsvall.document.integration.db.model.DocumentEntity_.METADAT
 import static se.sundsvall.document.integration.db.model.DocumentEntity_.MUNICIPALITY_ID;
 import static se.sundsvall.document.integration.db.model.DocumentEntity_.REGISTRATION_NUMBER;
 import static se.sundsvall.document.integration.db.model.DocumentEntity_.REVISION;
+import static se.sundsvall.document.integration.db.model.DocumentEntity_.VALID_FROM;
+import static se.sundsvall.document.integration.db.model.DocumentEntity_.VALID_TO;
 import static se.sundsvall.document.integration.db.model.DocumentMetadataEmbeddable_.KEY;
 import static se.sundsvall.document.integration.db.model.DocumentMetadataEmbeddable_.VALUE;
 
@@ -39,7 +42,19 @@ public interface SearchSpecification {
 			.and(includeConfidentialDocuments(parameters.isIncludeConfidential()))
 			.and(matchesType(parameters.getDocumentTypes()))
 			.and(matchesCreatedByExact(parameters.getCreatedBy()))
-			.and(matchesMetaData(parameters.getMetaData()));
+			.and(matchesMetaData(parameters.getMetaData()))
+			.and(matchesValidOn(parameters.getValidOn()));
+	}
+
+	private static Specification<DocumentEntity> matchesValidOn(LocalDate validOn) {
+		return (root, query, cb) -> {
+			if (validOn == null) {
+				return cb.and();
+			}
+			return cb.and(
+				cb.or(cb.isNull(root.get(VALID_FROM)), cb.lessThanOrEqualTo(root.get(VALID_FROM), validOn)),
+				cb.or(cb.isNull(root.get(VALID_TO)), cb.greaterThanOrEqualTo(root.get(VALID_TO), validOn)));
+		};
 	}
 
 	static Specification<DocumentEntity> matchesMetaData(final List<DocumentParameters.MetaData> metaData) {

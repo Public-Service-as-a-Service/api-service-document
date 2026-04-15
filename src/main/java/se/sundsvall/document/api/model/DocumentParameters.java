@@ -2,8 +2,11 @@ package se.sundsvall.document.api.model;
 
 import io.swagger.v3.oas.annotations.media.ArraySchema;
 import io.swagger.v3.oas.annotations.media.Schema;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Objects;
+import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.format.annotation.DateTimeFormat.ISO;
 import se.sundsvall.dept44.models.api.paging.AbstractParameterPagingAndSortingBase;
 
 public class DocumentParameters extends AbstractParameterPagingAndSortingBase {
@@ -25,6 +28,12 @@ public class DocumentParameters extends AbstractParameterPagingAndSortingBase {
 
 	@ArraySchema(schema = @Schema(description = "List of metadata", implementation = MetaData.class))
 	private List<MetaData> metaData;
+
+	@DateTimeFormat(iso = ISO.DATE)
+	@Schema(description = "Only include documents whose validity window covers this date. "
+		+ "A null validFrom is treated as valid from the beginning of time; a null validTo is treated as valid forever. "
+		+ "ISO date (yyyy-MM-dd).", examples = "2026-04-15")
+	private LocalDate validOn;
 
 	public static class MetaData {
 
@@ -163,6 +172,19 @@ public class DocumentParameters extends AbstractParameterPagingAndSortingBase {
 		this.metaData = metaData;
 	}
 
+	public DocumentParameters withValidOn(final LocalDate validOn) {
+		this.validOn = validOn;
+		return this;
+	}
+
+	public LocalDate getValidOn() {
+		return validOn;
+	}
+
+	public void setValidOn(LocalDate validOn) {
+		this.validOn = validOn;
+	}
+
 	@Override
 	public String toString() {
 		return "DocumentParameters{" +
@@ -172,6 +194,7 @@ public class DocumentParameters extends AbstractParameterPagingAndSortingBase {
 			", onlyLatestRevision=" + onlyLatestRevision +
 			", documentTypes=" + documentTypes +
 			", metaData=" + metaData +
+			", validOn=" + validOn +
 			", sortBy=" + sortBy +
 			", sortDirection=" + sortDirection +
 			", page=" + page +
@@ -189,11 +212,11 @@ public class DocumentParameters extends AbstractParameterPagingAndSortingBase {
 			return false;
 		DocumentParameters that = (DocumentParameters) o;
 		return includeConfidential == that.includeConfidential && onlyLatestRevision == that.onlyLatestRevision && Objects.equals(municipalityId, that.municipalityId) && Objects.equals(createdBy, that.createdBy)
-			&& Objects.equals(documentTypes, that.documentTypes) && Objects.equals(metaData, that.metaData);
+			&& Objects.equals(documentTypes, that.documentTypes) && Objects.equals(metaData, that.metaData) && Objects.equals(validOn, that.validOn);
 	}
 
 	@Override
 	public int hashCode() {
-		return Objects.hash(super.hashCode(), municipalityId, createdBy, includeConfidential, onlyLatestRevision, documentTypes, metaData);
+		return Objects.hash(super.hashCode(), municipalityId, createdBy, includeConfidential, onlyLatestRevision, documentTypes, metaData, validOn);
 	}
 }

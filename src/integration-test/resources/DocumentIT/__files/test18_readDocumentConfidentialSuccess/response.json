@@ -37,5 +37,7 @@
 			"value": "Developer",
 			"key": "EMPLOYEE_TYPE"
 		}
-	]
+	],
+	"validFrom": "2023-06-28",
+	"validTo": "2024-06-28"
 }

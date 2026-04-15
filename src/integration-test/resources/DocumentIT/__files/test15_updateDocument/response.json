@@ -24,5 +24,7 @@
 			"value": "Updated value",
 			"key": "Updated key"
 		}
-	]
+	],
+	"validFrom": "2023-06-28",
+	"validTo": "2026-06-28"
 }

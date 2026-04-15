@@ -38,7 +38,9 @@
 					"value": "value-4",
 					"key": "document1-key4"
 				}
-			]
+			],
+			"validFrom": "2023-06-28",
+			"validTo": "2026-06-28"
 		},
 		{
 			"municipalityId": "2281",
@@ -78,7 +80,9 @@
 					"value": "Developer",
 					"key": "EMPLOYEE_TYPE"
 				}
-			]
+			],
+			"validFrom": "2023-06-28",
+			"validTo": "2026-06-28"
 		}
 	],
 	"_meta": {

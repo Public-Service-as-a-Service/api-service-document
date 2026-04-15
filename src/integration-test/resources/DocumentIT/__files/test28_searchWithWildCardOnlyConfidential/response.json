@@ -38,7 +38,9 @@
 					"value": "value-4",
 					"key": "document1-key4"
 				}
-			]
+			],
+			"validFrom": "2023-06-28",
+			"validTo": "2026-06-28"
 		},
 		{
 			"municipalityId": "2281",
@@ -78,7 +80,9 @@
 					"value": "Developer",
 					"key": "EMPLOYEE_TYPE"
 				}
-			]
+			],
+			"validFrom": "2023-06-28",
+			"validTo": "2026-06-28"
 		},
 		{
 			"municipalityId": "2281",
@@ -123,7 +127,9 @@
 					"value": "Analyst",
 					"key": "EMPLOYEE_TYPE"
 				}
-			]
+			],
+			"validFrom": "2023-06-28",
+			"validTo": "2024-06-28"
 		},
 		{
 			"municipalityId": "2281",
@@ -147,7 +153,8 @@
 			],
 			"type": "CONFIDENTIALITY_AGREEMENT",
 			"revision": 2,
-			"metadataList": []
+			"metadataList": [],
+			"validFrom": "2024-04-06"
 		},
 		{
 			"municipalityId": "2281",
@@ -188,7 +195,9 @@
 					"value": "Developer",
 					"key": "EMPLOYEE_TYPE"
 				}
-			]
+			],
+			"validFrom": "2023-06-28",
+			"validTo": "2024-06-28"
 		},
 		{
 			"municipalityId": "2281",
@@ -224,7 +233,9 @@
 					"value": "Manager",
 					"key": "EMPLOYEE_TYPE"
 				}
-			]
+			],
+			"validFrom": "2023-06-28",
+			"validTo": "2026-06-28"
 		},
 		{
 			"municipalityId": "2281",
@@ -250,7 +261,9 @@
 					"value": "Consultant",
 					"key": "EMPLOYEE_TYPE"
 				}
-			]
+			],
+			"validFrom": "2024-02-05",
+			"validTo": "2025-02-05"
 		},
 		{
 			"municipalityId": "2281",
@@ -276,7 +289,9 @@
 					"value": "Developer",
 					"key": "EMPLOYEE_TYPE"
 				}
-			]
+			],
+			"validFrom": "2023-12-07",
+			"validTo": "2026-12-07"
 		},
 		{
 			"municipalityId": "2281",
@@ -302,7 +317,8 @@
 					"value": "Manager",
 					"key": "EMPLOYEE_TYPE"
 				}
-			]
+			],
+			"validFrom": "2024-01-23"
 		},
 		{
 			"municipalityId": "2281",
@@ -319,7 +335,9 @@
 			"documentData": [],
 			"type": "CONFIDENTIALITY_AGREEMENT",
 			"revision": 2,
-			"metadataList": []
+			"metadataList": [],
+			"validFrom": "2024-03-08",
+			"validTo": "2027-03-08"
 		},
 		{
 			"municipalityId": "2281",
@@ -370,7 +388,9 @@
 					"value": "Consultant",
 					"key": "EMPLOYEE_TYPE"
 				}
-			]
+			],
+			"validFrom": "2024-06-28",
+			"validTo": "2027-06-28"
 		},
 		{
 			"municipalityId": "2281",
@@ -422,7 +442,8 @@
 					"value": "Developer",
 					"key": "EMPLOYEE_TYPE"
 				}
-			]
+			],
+			"validFrom": "2024-04-06"
 		},
 		{
 			"municipalityId": "2281",
@@ -447,7 +468,9 @@
 					"value": "Analyst",
 					"key": "EMPLOYEE_TYPE"
 				}
-			]
+			],
+			"validFrom": "2027-01-01",
+			"validTo": "2028-12-31"
 		},
 		{
 			"municipalityId": "2281",
@@ -473,7 +496,9 @@
 					"value": "Manager",
 					"key": "EMPLOYEE_TYPE"
 				}
-			]
+			],
+			"validFrom": "2024-06-23",
+			"validTo": "2027-06-23"
 		},
 		{
 			"municipalityId": "2281",
@@ -499,7 +524,9 @@
 					"value": "Developer",
 					"key": "EMPLOYEE_TYPE"
 				}
-			]
+			],
+			"validFrom": "2027-01-01",
+			"validTo": "2028-12-31"
 		},
 		{
 			"municipalityId": "2281",
@@ -516,7 +543,8 @@
 			"documentData": [],
 			"type": "CONFIDENTIALITY_AGREEMENT",
 			"revision": 2,
-			"metadataList": []
+			"metadataList": [],
+			"validFrom": "2024-08-31"
 		},
 		{
 			"municipalityId": "2281",
@@ -542,7 +570,9 @@
 					"value": "Analyst",
 					"key": "EMPLOYEE_TYPE"
 				}
-			]
+			],
+			"validFrom": "2024-03-08",
+			"validTo": "2027-03-08"
 		},
 		{
 			"municipalityId": "2281",
@@ -567,7 +597,9 @@
 					"value": "Analyst",
 					"key": "EMPLOYEE_TYPE"
 				}
-			]
+			],
+			"validFrom": "2024-08-29",
+			"validTo": "2027-08-29"
 		}
 	],
 	"_meta": {

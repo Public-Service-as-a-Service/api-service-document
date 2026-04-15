@@ -24,7 +24,9 @@
 					"value": "Developer",
 					"key": "EMPLOYEE_TYPE"
 				}
-			]
+			],
+			"validFrom": "2023-12-07",
+			"validTo": "2026-12-07"
 		},
 		{
 			"municipalityId": "2281",

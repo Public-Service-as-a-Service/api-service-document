@@ -13,70 +13,77 @@ VALUES ('86b9efc9-c649-40d5-ade0-ac415ea146f1', '2024-10-25 14:00:00.000', null,
        ('227a66a6-7485-48ba-b536-f7f487daa92c', '2024-10-25 14:00:00.000', null, 'User1', 'Typ att ta bort', null,
         '2260', 'TYPE_TO_DELETE');
 
+-- Validity-window profiles (for search/filter tests — see reactive-leaping-marble plan):
+--   P1 active   : valid_from = created, valid_to = created + 3y   (covers 2026-04-15)
+--   P2 expired  : valid_from = created, valid_to = created + 1y   (ended before 2026-04-15)
+--   P3 future   : valid_from = 2027-01-01, valid_to = 2028-12-31
+--   P4 open-end : valid_from = created, valid_to = NULL
+--   P5 always   : both NULL
+-- Profile is tied to registration_number so every revision of the same document agrees.
 INSERT INTO document (id, revision, created, created_by, registration_number, confidential, legal_citation, archive,
-                      description, document_type_id, municipality_id)
+                      description, document_type_id, municipality_id, valid_from, valid_to)
 VALUES ('159c10bf-1b32-471b-b2d3-c4b4b13ea152', 1, '2023-06-28 12:01:00.000', 'User1', '2023-2281-123', false, null,
-        false, 'Document 1', '86b9efc9-c649-40d5-ade0-ac415ea146f1', '2281'),            -- Document-1, revision 1
+        false, 'Document 1', '86b9efc9-c649-40d5-ade0-ac415ea146f1', '2281', '2023-06-28', '2026-06-28'),        -- Document-1, revision 1 (P1)
        ('8efd63a3-b525-4581-8b0b-9759f381a5a5', 2, '2023-06-28 12:02:00.000', 'User2', '2023-2281-123', false, null,
-        false, 'Document 1', '86b9efc9-c649-40d5-ade0-ac415ea146f1', '2281'),            -- Document-1, revision 2
+        false, 'Document 1', '86b9efc9-c649-40d5-ade0-ac415ea146f1', '2281', '2023-06-28', '2026-06-28'),        -- Document-1, revision 2 (P1)
        ('612dc8d0-e6b7-426c-abcc-c9b49ae1e7e2', 3, '2023-06-28 12:03:00.000', 'User3', '2023-2281-123', false, null,
-        true, 'Document 1', '86b9efc9-c649-40d5-ade0-ac415ea146f1', '2281'),             -- Document-1, revision 3
+        true, 'Document 1', '86b9efc9-c649-40d5-ade0-ac415ea146f1', '2281', '2023-06-28', '2026-06-28'),         -- Document-1, revision 3 (P1)
        ('03d33a6a-bc8c-410c-95f6-2c890822967d', 1, '2023-06-28 12:01:00.000', 'User4', '2024-2281-999', true,
-        'Law §7.1', true, 'Document 2', '3fdecd8b-d295-4222-b60c-e95ba5f5075a', '2281'), -- Document-2, revision 1
+        'Law §7.1', true, 'Document 2', '3fdecd8b-d295-4222-b60c-e95ba5f5075a', '2281', '2023-06-28', '2024-06-28'), -- Document-2, revision 1 (P2)
        ('435bb041-2b02-4bb3-b3e7-3782a13f47d5', 2, '2023-06-28 12:01:00.000', 'User5', '2024-2281-999', true,
-        'Law §7.2', true, 'Document 2', '3fdecd8b-d295-4222-b60c-e95ba5f5075a', '2281'), -- Document-2, revision 2
+        'Law §7.2', true, 'Document 2', '3fdecd8b-d295-4222-b60c-e95ba5f5075a', '2281', '2023-06-28', '2024-06-28'), -- Document-2, revision 2 (P2)
        ('8901694b-8e3a-46b7-83ea-cd351ccc0f52', 1, '2023-06-28 12:04:00.000', 'User6', '2024-2282-666', true, null,
-        true, 'Document 3', '257506b2-f870-470d-9a1b-d095acb212a7', '2282'),             -- Document-3, revision 1
+        true, 'Document 3', '257506b2-f870-470d-9a1b-d095acb212a7', '2282', '2023-06-28', null),                 -- Document-3 (P4)
        ('676eaf7a-d609-4885-9743-2dbcdffe6628', 1, '2024-06-23 08:31:00.000', 'User5', '2024-2281-417', false,
-        'Law §7.1', false, 'Generated Document 1', '1e5447b7-8941-43a4-afb7-cab09375efad', '2281'),
+        'Law §7.1', false, 'Generated Document 1', '1e5447b7-8941-43a4-afb7-cab09375efad', '2281', '2024-06-23', '2027-06-23'), -- Gen 1 (P1)
        ('34095a16-68c5-48f8-ac1e-9d6b7dd08562', 1, '2024-02-22 08:31:00.000', 'User2', '2024-2281-403', true, null,
-        false, 'Generated Document 2', '86b9efc9-c649-40d5-ade0-ac415ea146f1', '2281'),
+        false, 'Generated Document 2', '86b9efc9-c649-40d5-ade0-ac415ea146f1', '2281', null, null),              -- Gen 2 (P5)
        ('c3ee6cd8-d9e1-499c-b483-a9956b43ab7d', 1, '2024-09-10 08:31:00.000', 'User3', '2024-2281-370', false, null,
-        true, 'Generated Document 3', '257506b2-f870-470d-9a1b-d095acb212a7', '2281'),
+        true, 'Generated Document 3', '257506b2-f870-470d-9a1b-d095acb212a7', '2281', '2024-09-10', '2027-09-10'), -- Gen 3 (P1)
        ('1cc8599b-8726-4cf7-869d-36737044400c', 1, '2024-01-23 08:31:00.000', 'User2', '2024-2281-283', false,
-        'Law §7.2', false, 'Generated Document 4', '257506b2-f870-470d-9a1b-d095acb212a7', '2281'),
+        'Law §7.2', false, 'Generated Document 4', '257506b2-f870-470d-9a1b-d095acb212a7', '2281', '2024-01-23', null), -- Gen 4 (P4)
        ('e4c860ad-fce3-431e-965f-0229e5610fb7', 1, '2024-08-23 08:31:00.000', 'User1', '2024-2281-200', false,
-        'Law §7.2', true, 'Generated Document 5', '86b9efc9-c649-40d5-ade0-ac415ea146f1', '2281'),
+        'Law §7.2', true, 'Generated Document 5', '86b9efc9-c649-40d5-ade0-ac415ea146f1', '2281', '2027-01-01', '2028-12-31'), -- Gen 5 (P3)
        ('84ae9dbe-159a-472f-9dc7-8ecb03c2c3c1', 1, '2024-08-29 08:31:00.000', 'User4', '2024-2281-639', false, null,
-        false, 'Generated Document 6', '3fdecd8b-d295-4222-b60c-e95ba5f5075a', '2281'),
+        false, 'Generated Document 6', '3fdecd8b-d295-4222-b60c-e95ba5f5075a', '2281', '2024-08-29', '2027-08-29'), -- Gen 6 (P1)
        ('019d0963-b6c6-49fb-9f88-31ef5e525a1c', 1, '2024-02-05 08:31:00.000', 'User4', '2024-2281-991', false,
-        'Law §7.2', false, 'Generated Document 7', '3fdecd8b-d295-4222-b60c-e95ba5f5075a', '2281'),
+        'Law §7.2', false, 'Generated Document 7', '3fdecd8b-d295-4222-b60c-e95ba5f5075a', '2281', '2024-02-05', '2025-02-05'), -- Gen 7 (P2)
        ('df8e4237-4369-45e7-a365-3f46741814d0', 1, '2024-06-02 08:31:00.000', 'User4', '2024-2281-382', false,
-        'Law §7.2', false, 'Generated Document 8', '1e5447b7-8941-43a4-afb7-cab09375efad', '2281'),
+        'Law §7.2', false, 'Generated Document 8', '1e5447b7-8941-43a4-afb7-cab09375efad', '2281', '2024-06-02', null), -- Gen 8 (P4)
        ('69d31844-1810-4857-bdb9-f7c533b675b1', 1, '2024-07-02 08:31:00.000', 'User2', '2024-2281-810', false,
-        'Law §7.2', true, 'Generated Document 9', '257506b2-f870-470d-9a1b-d095acb212a7', '2281'),
+        'Law §7.2', true, 'Generated Document 9', '257506b2-f870-470d-9a1b-d095acb212a7', '2281', '2027-01-01', '2028-12-31'), -- Gen 9 (P3)
        ('488c4523-4ae1-41ea-8a3a-cf991999b12f', 1, '2023-11-17 08:31:00.000', 'User1', '2024-2281-491', true,
-        'Law §7.1', false, 'Generated Document 10', '933622d0-4b69-4d96-a204-507f31e20e61', '2281'),
+        'Law §7.1', false, 'Generated Document 10', '933622d0-4b69-4d96-a204-507f31e20e61', '2281', null, null),  -- Gen 10 (P5)
        ('82a4ecd5-b406-49d3-b7de-0922ff2f3b95', 1, '2024-03-08 08:33:07.000', 'User6', '2024-2281-797', true,
-        'Law §7.1', false, 'Generated Document 11', '1e5447b7-8941-43a4-afb7-cab09375efad', '2281'),
+        'Law §7.1', false, 'Generated Document 11', '1e5447b7-8941-43a4-afb7-cab09375efad', '2281', '2024-03-08', '2027-03-08'), -- Gen 11 rev 1 (P1)
        ('f182fd95-7a17-4cb7-843b-abf1f8ce8ce7', 1, '2024-01-28 08:33:07.000', 'User2', '2024-2281-632', false,
-        'Law §7.2', false, 'Generated Document 12', '933622d0-4b69-4d96-a204-507f31e20e61', '2281'),
+        'Law §7.2', false, 'Generated Document 12', '933622d0-4b69-4d96-a204-507f31e20e61', '2281', '2024-01-28', '2025-01-28'), -- Gen 12 (P2)
        ('9f2e05c4-a06d-4fed-b487-2003c591bc6a', 1, '2024-08-31 08:33:07.000', 'User1', '2024-2281-232', false, null,
-        false, 'Generated Document 13', '1e5447b7-8941-43a4-afb7-cab09375efad', '2281'),
+        false, 'Generated Document 13', '1e5447b7-8941-43a4-afb7-cab09375efad', '2281', '2024-08-31', null),      -- Gen 13 rev 1 (P4)
        ('37a7aefa-5f24-460e-817b-f089b7dd84be', 1, '2024-06-28 08:33:07.000', 'User1', '2024-2281-646', false,
-        'Law §7.1', false, 'Generated Document 14', '1e5447b7-8941-43a4-afb7-cab09375efad', '2281'),
+        'Law §7.1', false, 'Generated Document 14', '1e5447b7-8941-43a4-afb7-cab09375efad', '2281', '2024-06-28', '2027-06-28'), -- Gen 14 (P1)
        ('fe9a0099-e407-4350-aaf2-f47edb20a770', 1, '2024-01-10 08:33:07.000', 'User4', '2024-2281-755', false,
-        'Law §7.2', false, 'Generated Document 15', '1e5447b7-8941-43a4-afb7-cab09375efad', '2281'),
+        'Law §7.2', false, 'Generated Document 15', '1e5447b7-8941-43a4-afb7-cab09375efad', '2281', '2024-01-10', '2025-01-10'), -- Gen 15 rev 1 (P2)
        ('db983069-1a9f-4e6a-8b21-865ebd2fb902', 1, '2024-08-27 08:33:07.000', 'User6', '2024-2281-252', false,
-        'Law §7.1', true, 'Generated Document 16', '257506b2-f870-470d-9a1b-d095acb212a7', '2281'),
+        'Law §7.1', true, 'Generated Document 16', '257506b2-f870-470d-9a1b-d095acb212a7', '2281', '2024-08-27', null), -- Gen 16 rev 1 (P4)
        ('1a3e2060-c190-4c91-b221-b380493e5f4b', 1, '2023-12-07 08:33:07.000', 'User3', '2024-2281-369', false,
-        'Law §7.2', false, 'Generated Document 17', '1e5447b7-8941-43a4-afb7-cab09375efad', '2281'),
+        'Law §7.2', false, 'Generated Document 17', '1e5447b7-8941-43a4-afb7-cab09375efad', '2281', '2023-12-07', '2026-12-07'), -- Gen 17 (P1)
        ('ef87f332-50b1-4943-bf0d-c1fa798734a9', 1, '2023-12-29 08:33:07.000', 'User1', '2024-2281-266', true, null,
-        false, 'Generated Document 18', '1e5447b7-8941-43a4-afb7-cab09375efad', '2281'),
+        false, 'Generated Document 18', '1e5447b7-8941-43a4-afb7-cab09375efad', '2281', null, null),              -- Gen 18 (P5)
        ('5a728f56-2fb1-460e-9158-7a4d5775e80f', 1, '2024-08-03 08:33:07.000', 'User4', '2024-2281-465', true, null,
-        false, 'Generated Document 19', '257506b2-f870-470d-9a1b-d095acb212a7', '2281'),
+        false, 'Generated Document 19', '257506b2-f870-470d-9a1b-d095acb212a7', '2281', '2027-01-01', '2028-12-31'), -- Gen 19 (P3)
        ('4ad5ecbf-15e5-4572-9b80-96bbfc2145b6', 1, '2024-04-06 08:33:07.000', 'User3', '2024-2281-139', false,
-        'Law §7.2', false, 'Generated Document 20', '933622d0-4b69-4d96-a204-507f31e20e61', '2281'),
+        'Law §7.2', false, 'Generated Document 20', '933622d0-4b69-4d96-a204-507f31e20e61', '2281', '2024-04-06', null), -- Gen 20 rev 1 (P4)
        ('7f2e05c4-a06d-4fed-b487-2003c591bc6a', 2, '2024-04-06 08:33:07.000', 'User2', '2024-2281-232', false,
-        'Law §7.2', false, 'Generated Document 20', '933622d0-4b69-4d96-a204-507f31e20e61', '2281'),
+        'Law §7.2', false, 'Generated Document 20', '933622d0-4b69-4d96-a204-507f31e20e61', '2281', '2024-08-31', null), -- Gen 13 rev 2 (P4)
        ('fe6a0099-e407-4350-aaf2-f47edb20a770', 2, '2024-04-06 08:33:07.000', 'User5', '2024-2281-755', false,
-        'Law §7.2', false, 'Generated Document 20', '933622d0-4b69-4d96-a204-507f31e20e61', '2281'),
+        'Law §7.2', false, 'Generated Document 20', '933622d0-4b69-4d96-a204-507f31e20e61', '2281', '2024-01-10', '2025-01-10'), -- Gen 15 rev 2 (P2)
        ('22a4ecd5-b406-49d3-b7de-0922ff2f3b95', 2, '2024-04-06 08:33:07.000', 'User2', '2024-2281-797', false,
-        'Law §7.2', false, 'Generated Document 20', '933622d0-4b69-4d96-a204-507f31e20e61', '2281'),
+        'Law §7.2', false, 'Generated Document 20', '933622d0-4b69-4d96-a204-507f31e20e61', '2281', '2024-03-08', '2027-03-08'), -- Gen 11 rev 2 (P1)
        ('db933069-1a9f-4e6a-8b21-865ebd2fb902', 2, '2024-04-06 08:33:07.000', 'User2', '2024-2281-252', false,
-        'Law §7.2', false, 'Generated Document 20', '933622d0-4b69-4d96-a204-507f31e20e61', '2281'),
+        'Law §7.2', false, 'Generated Document 20', '933622d0-4b69-4d96-a204-507f31e20e61', '2281', '2024-08-27', null), -- Gen 16 rev 2 (P4)
        ('8ad5ecbf-15e5-4572-9b80-96bbfc2145b6', 2, '2024-04-06 08:33:07.000', 'User6', '2024-2281-139', false,
-        'Law §7.2', false, 'Generated Document 20', '933622d0-4b69-4d96-a204-507f31e20e61', '2281');
+        'Law §7.2', false, 'Generated Document 20', '933622d0-4b69-4d96-a204-507f31e20e61', '2281', '2024-04-06', null); -- Gen 20 rev 2 (P4)
 
 -- Document type + documents used exclusively by the validOn search IT (municipality 2999).
 -- These rows are isolated from all other tests which target municipalities 2281 / 2282.

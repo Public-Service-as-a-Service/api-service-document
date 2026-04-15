@@ -4,16 +4,13 @@ import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
-import java.io.Serializable;
 import java.util.Objects;
 import org.hibernate.annotations.ColumnDefault;
 import org.hibernate.annotations.UuidGenerator;
 
 @Entity
 @Table(name = "document_data")
-public class DocumentDataEntity implements Serializable {
-
-	private static final long serialVersionUID = -7783051635903859326L;
+public class DocumentDataEntity {
 
 	@Id
 	@UuidGenerator

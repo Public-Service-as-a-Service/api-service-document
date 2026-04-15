@@ -4,10 +4,10 @@ import java.util.Objects;
 
 /**
  * Opaque reference to a stored binary.
- *
+ * <p>
  * `backend` picks the {@link BinaryStore} that produced it; `locator` is backend-specific
  * (the `document_data_binary.id` row for jdbc, the S3 object key for s3).
- *
+ * <p>
  * Persisted on {@link se.sundsvall.document.integration.db.model.DocumentDataEntity} as two
  * columns so that a single row can point at either backend — this is what enables the
  * per-row migration path (Stage 2) without a flag-day cut-over.

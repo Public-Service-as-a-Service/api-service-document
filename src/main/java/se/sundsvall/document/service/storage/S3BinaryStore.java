@@ -26,7 +26,7 @@ import static org.springframework.http.HttpStatus.NOT_FOUND;
 /**
  * {@link BinaryStore} implementation that persists bytes in an S3-compatible object store.
  * Works with AWS S3, MinIO and Garage.
- *
+ * <p>
  * Object key = UUID (one per write). No global dedup — revision copies produce new keys via
  * server-side {@code CopyObject}; this matches the current MariaDB behaviour (bytes duplicated
  * per revision) and preserves the "delete old revision doesn't affect current" guarantee.

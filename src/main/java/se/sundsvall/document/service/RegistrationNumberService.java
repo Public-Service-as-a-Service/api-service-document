@@ -11,13 +11,13 @@ import static se.sundsvall.document.service.Constants.TEMPLATE_REGISTRATION_NUMB
 
 /**
  * Class responsible for generating unique registration numbers.
- *
+ * <p>
  * Registration numbers are created with the following format: [YYYY-MUNICIPALITY_ID-SEQUENCE]
- *
+ * <p>
  * Example:
  * If a registrationNumber is created on date 2022-10-26 for "Sundsvall municipality" (municipalityID: 2281), for the
  * first time, the registrationNumber will be: 2022-2281-1. The next generated number will be 2022-2281-2 and so on.
- *
+ * <p>
  * Every new year, the sequence will be reset to 1. (e.g. 2023-2281-1).
  */
 @Service

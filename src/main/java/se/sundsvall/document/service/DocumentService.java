@@ -5,6 +5,7 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Optional;
+import org.apache.commons.lang3.Strings;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.PageRequest;
@@ -34,7 +35,6 @@ import se.sundsvall.document.service.storage.StorageRef;
 
 import static generated.se.sundsvall.eventlog.EventType.UPDATE;
 import static java.util.Objects.nonNull;
-import static org.apache.commons.lang3.StringUtils.equalsIgnoreCase;
 import static org.springframework.http.HttpHeaders.CONTENT_DISPOSITION;
 import static org.springframework.http.HttpHeaders.CONTENT_TYPE;
 import static org.springframework.http.HttpStatus.INTERNAL_SERVER_ERROR;
@@ -284,7 +284,7 @@ public class DocumentService {
 		final var documentDataList = Optional.ofNullable(documentEntity.getDocumentData()).orElse(new ArrayList<>());
 
 		// Remove existing documentData element, if the filename already exists.
-		documentDataList.removeIf(documentData -> equalsIgnoreCase(documentData.getFileName(), documentDataEntity.getFileName()));
+		documentDataList.removeIf(documentData -> Strings.CI.equals(documentData.getFileName(), documentDataEntity.getFileName()));
 
 		// Add new documentData element.
 		documentDataList.add(documentDataEntity);

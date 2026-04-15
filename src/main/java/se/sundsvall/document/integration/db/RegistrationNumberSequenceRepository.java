@@ -13,7 +13,7 @@ public interface RegistrationNumberSequenceRepository extends JpaRepository<Regi
 
 	/**
 	 * Find current registrationNumber sequence by municipalityId.
-	 *
+	 * <p>
 	 * Lock-note: Lock rows in transaction. Other threads will wait until lock is released.
 	 *
 	 * @param  municipalityId the municipalityId

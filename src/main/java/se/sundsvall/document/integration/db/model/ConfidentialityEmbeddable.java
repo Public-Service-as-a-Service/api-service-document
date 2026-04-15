@@ -2,13 +2,10 @@ package se.sundsvall.document.integration.db.model;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Embeddable;
-import java.io.Serializable;
 import java.util.Objects;
 
 @Embeddable
-public class ConfidentialityEmbeddable implements Serializable {
-
-	private static final long serialVersionUID = 556950848173909842L;
+public class ConfidentialityEmbeddable {
 
 	@Column(name = "confidential", nullable = false)
 	private boolean confidential;

@@ -28,7 +28,6 @@ import se.sundsvall.document.service.storage.StorageRef;
 
 import static java.util.Collections.emptyList;
 import static java.util.stream.Collectors.toCollection;
-import static org.apache.commons.lang3.ObjectUtils.anyNull;
 import static org.springframework.http.HttpStatus.INTERNAL_SERVER_ERROR;
 import static se.sundsvall.document.service.InclusionFilter.CONFIDENTIAL_AND_PUBLIC;
 import static se.sundsvall.document.service.InclusionFilter.PUBLIC;
@@ -42,17 +41,15 @@ public class DocumentMapper {
 	 */
 
 	public static DocumentEntity toDocumentEntity(DocumentCreateRequest documentCreateRequest, String municipalityId) {
-		return Optional.ofNullable(documentCreateRequest)
-			.map(doc -> DocumentEntity.create()
-				.withArchive(documentCreateRequest.isArchive())
-				.withConfidentiality(toConfidentialityEmbeddable(documentCreateRequest.getConfidentiality()))
-				.withCreatedBy(doc.getCreatedBy())
-				.withDescription(doc.getDescription())
-				.withMetadata(toDocumentMetadataEmbeddableList(doc.getMetadataList()))
-				.withMunicipalityId(municipalityId)
-				.withValidFrom(doc.getValidFrom())
-				.withValidTo(doc.getValidTo()))
-			.orElse(null);
+		return DocumentEntity.create()
+			.withArchive(documentCreateRequest.isArchive())
+			.withConfidentiality(toConfidentialityEmbeddable(documentCreateRequest.getConfidentiality()))
+			.withCreatedBy(documentCreateRequest.getCreatedBy())
+			.withDescription(documentCreateRequest.getDescription())
+			.withMetadata(toDocumentMetadataEmbeddableList(documentCreateRequest.getMetadataList()))
+			.withMunicipalityId(municipalityId)
+			.withValidFrom(documentCreateRequest.getValidFrom())
+			.withValidTo(documentCreateRequest.getValidTo());
 	}
 
 	public static List<DocumentDataEntity> toDocumentDataEntities(final DocumentFiles documentFiles, final BinaryStore binaryStore, final String municipalityId) {
@@ -104,10 +101,6 @@ public class DocumentMapper {
 	}
 
 	public static DocumentEntity toDocumentEntity(DocumentUpdateRequest documentUpdateRequest, DocumentEntity existingDocumentEntity, BinaryStore binaryStore) {
-		if (anyNull(documentUpdateRequest, existingDocumentEntity)) {
-			return null;
-		}
-
 		return DocumentEntity.create()
 			.withCreatedBy(documentUpdateRequest.getCreatedBy())
 			.withMunicipalityId(existingDocumentEntity.getMunicipalityId())

@@ -14,7 +14,6 @@ import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
-import java.io.Serializable;
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.util.List;
@@ -39,9 +38,7 @@ import static org.hibernate.annotations.TimeZoneStorageType.NORMALIZE;
 	@Index(name = "ix_confidential", columnList = "confidential"),
 })
 @EntityListeners(DocumentEntityListener.class)
-public class DocumentEntity implements Serializable {
-
-	private static final long serialVersionUID = -4452832623957756766L;
+public class DocumentEntity {
 
 	@Id
 	@UuidGenerator

@@ -125,11 +125,6 @@ class DocumentMapperTest {
 				.withValidTo(VALID_TO));
 	}
 
-	@Test
-	void toDocumentEntityFromDocumentCreateRequestWhenInputIsNull() {
-		assertThat(DocumentMapper.toDocumentEntity((DocumentCreateRequest) null, null)).isNull();
-	}
-
 	@ParameterizedTest
 	@ValueSource(booleans = {
 		true, false
@@ -236,12 +231,6 @@ class DocumentMapperTest {
 
 		verify(binaryStoreMock).copy(new StorageRef(STORAGE_BACKEND, STORAGE_LOCATOR_1));
 		verify(binaryStoreMock).copy(new StorageRef(STORAGE_BACKEND, STORAGE_LOCATOR_2));
-	}
-
-	@Test
-	void toDocumentEntityFromDocumentUpdateRequestWhenInputIsNull() {
-		assertThat(DocumentMapper.toDocumentEntity(DocumentUpdateRequest.create(), null, binaryStoreMock)).isNull();
-		assertThat(DocumentMapper.toDocumentEntity(null, DocumentEntity.create(), binaryStoreMock)).isNull();
 	}
 
 	@Test

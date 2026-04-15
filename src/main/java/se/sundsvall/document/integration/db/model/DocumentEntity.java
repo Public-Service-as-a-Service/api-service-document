@@ -15,6 +15,7 @@ import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
 import java.io.Serializable;
+import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Objects;
@@ -75,6 +76,12 @@ public class DocumentEntity implements Serializable {
 	@Column(name = "created")
 	@TimeZoneStorage(NORMALIZE)
 	private OffsetDateTime created;
+
+	@Column(name = "valid_from", columnDefinition = "date")
+	private LocalDate validFrom;
+
+	@Column(name = "valid_to", columnDefinition = "date")
+	private LocalDate validTo;
 
 	@OneToMany(cascade = ALL, orphanRemoval = true)
 	@JoinColumn(name = "document_id", referencedColumnName = "id", nullable = false, foreignKey = @ForeignKey(name = "fk_document_data_document"))
@@ -220,6 +227,32 @@ public class DocumentEntity implements Serializable {
 		return this;
 	}
 
+	public LocalDate getValidFrom() {
+		return validFrom;
+	}
+
+	public void setValidFrom(LocalDate validFrom) {
+		this.validFrom = validFrom;
+	}
+
+	public DocumentEntity withValidFrom(LocalDate validFrom) {
+		this.validFrom = validFrom;
+		return this;
+	}
+
+	public LocalDate getValidTo() {
+		return validTo;
+	}
+
+	public void setValidTo(LocalDate validTo) {
+		this.validTo = validTo;
+	}
+
+	public DocumentEntity withValidTo(LocalDate validTo) {
+		this.validTo = validTo;
+		return this;
+	}
+
 	public List<DocumentDataEntity> getDocumentData() {
 		return documentData;
 	}
@@ -248,7 +281,7 @@ public class DocumentEntity implements Serializable {
 
 	@Override
 	public int hashCode() {
-		return Objects.hash(archive, confidentiality, created, createdBy, description, documentData, id, metadata, municipalityId, registrationNumber, revision, type);
+		return Objects.hash(archive, confidentiality, created, createdBy, description, documentData, id, metadata, municipalityId, registrationNumber, revision, type, validFrom, validTo);
 	}
 
 	@Override
@@ -261,15 +294,15 @@ public class DocumentEntity implements Serializable {
 		}
 		return archive == other.archive && Objects.equals(confidentiality, other.confidentiality) && Objects.equals(created, other.created) && Objects.equals(createdBy, other.createdBy) && Objects.equals(description, other.description) && Objects
 			.equals(documentData, other.documentData) && Objects.equals(id, other.id) && Objects.equals(metadata, other.metadata) && Objects.equals(municipalityId, other.municipalityId) && Objects.equals(registrationNumber, other.registrationNumber)
-			&& revision == other.revision && Objects.equals(type, other.type);
+			&& revision == other.revision && Objects.equals(type, other.type) && Objects.equals(validFrom, other.validFrom) && Objects.equals(validTo, other.validTo);
 	}
 
 	@Override
 	public String toString() {
 		final var builder = new StringBuilder();
 		builder.append("DocumentEntity [id=").append(id).append(", revision=").append(revision).append(", municipalityId=").append(municipalityId).append(", registrationNumber=").append(registrationNumber).append(", type=").append(type).append(
-			", description=").append(description).append(", confidentiality=").append(confidentiality).append(", archive=").append(archive).append(", createdBy=").append(createdBy).append(", created=").append(created).append(", documentData=")
-			.append(documentData).append(", metadata=").append(metadata).append("]");
+			", description=").append(description).append(", confidentiality=").append(confidentiality).append(", archive=").append(archive).append(", createdBy=").append(createdBy).append(", created=").append(created).append(", validFrom=").append(
+				validFrom).append(", validTo=").append(validTo).append(", documentData=").append(documentData).append(", metadata=").append(metadata).append("]");
 		return builder.toString();
 	}
 }

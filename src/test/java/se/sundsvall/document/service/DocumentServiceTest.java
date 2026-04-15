@@ -10,6 +10,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
+import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
@@ -102,6 +103,8 @@ class DocumentServiceTest {
 	private static final String DOCUMENT_TYPE = "documentType";
 	private static final String DOCUMENT_TYPE_DISPLAYNAME = "documentTypeDisplayname";
 	private static final int REVISION = 1;
+	private static final LocalDate VALID_FROM = LocalDate.of(2026, 4, 15);
+	private static final LocalDate VALID_TO = LocalDate.of(2027, 4, 15);
 
 	@Mock
 	private EventLogClient eventLogClientMock;
@@ -159,7 +162,9 @@ class DocumentServiceTest {
 		final var documentCreateRequest = DocumentCreateRequest.create()
 			.withCreatedBy(CREATED_BY)
 			.withMetadataList(List.of(DocumentMetadata.create().withKey(METADATA_KEY).withValue(METADATA_VALUE)))
-			.withType(DOCUMENT_TYPE);
+			.withType(DOCUMENT_TYPE)
+			.withValidFrom(VALID_FROM)
+			.withValidTo(VALID_TO);
 
 		final var file = new File("src/test/resources/files/image.png");
 		final var multipartFile = (MultipartFile) new MockMultipartFile("file", file.getName(), "text/plain", toByteArray(new FileInputStream(file)));
@@ -195,6 +200,8 @@ class DocumentServiceTest {
 		assertThat(capturedDocumentEntity.getType()).isNotNull().satisfies(type -> {
 			assertThat(type.getType()).isEqualTo(DOCUMENT_TYPE);
 		});
+		assertThat(capturedDocumentEntity.getValidFrom()).isEqualTo(VALID_FROM);
+		assertThat(capturedDocumentEntity.getValidTo()).isEqualTo(VALID_TO);
 	}
 
 	@Test

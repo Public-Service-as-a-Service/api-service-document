@@ -1136,6 +1136,18 @@ components:
           examples:
             - EMPLOYMENT_CERTIFICATE
           minLength: 1
+        validFrom:
+          type: string
+          format: date
+          description: Start of validity period (inclusive). ISO date (yyyy-MM-dd).
+          examples:
+            - 2026-04-15
+        validTo:
+          type: string
+          format: date
+          description: End of validity period (inclusive). ISO date (yyyy-MM-dd).
+          examples:
+            - 2027-04-15
       required:
         - createdBy
         - description
@@ -1311,6 +1323,18 @@ components:
           description: Document type
           examples:
             - Type for the document.
+        validFrom:
+          type: string
+          format: date
+          description: Start of validity period (inclusive). ISO date (yyyy-MM-dd).
+          examples:
+            - 2026-04-15
+        validTo:
+          type: string
+          format: date
+          description: End of validity period (inclusive). ISO date (yyyy-MM-dd).
+          examples:
+            - 2027-04-15
       readOnly: true
     DocumentData:
       type: object

@@ -5,8 +5,11 @@ import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.Size;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Objects;
+import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.format.annotation.DateTimeFormat.ISO;
 
 import static io.swagger.v3.oas.annotations.media.Schema.RequiredMode.REQUIRED;
 
@@ -35,6 +38,14 @@ public class DocumentCreateRequest {
 	@NotBlank
 	@Schema(description = "The type of document (validated against a defined list of document types).", examples = "EMPLOYMENT_CERTIFICATE", requiredMode = REQUIRED)
 	private String type;
+
+	@DateTimeFormat(iso = ISO.DATE)
+	@Schema(description = "Start of validity period (inclusive). ISO date (yyyy-MM-dd).", examples = "2026-04-15")
+	private LocalDate validFrom;
+
+	@DateTimeFormat(iso = ISO.DATE)
+	@Schema(description = "End of validity period (inclusive). ISO date (yyyy-MM-dd).", examples = "2027-04-15")
+	private LocalDate validTo;
 
 	public static DocumentCreateRequest create() {
 		return new DocumentCreateRequest();
@@ -118,9 +129,35 @@ public class DocumentCreateRequest {
 		return this;
 	}
 
+	public LocalDate getValidFrom() {
+		return validFrom;
+	}
+
+	public void setValidFrom(LocalDate validFrom) {
+		this.validFrom = validFrom;
+	}
+
+	public DocumentCreateRequest withValidFrom(LocalDate validFrom) {
+		this.validFrom = validFrom;
+		return this;
+	}
+
+	public LocalDate getValidTo() {
+		return validTo;
+	}
+
+	public void setValidTo(LocalDate validTo) {
+		this.validTo = validTo;
+	}
+
+	public DocumentCreateRequest withValidTo(LocalDate validTo) {
+		this.validTo = validTo;
+		return this;
+	}
+
 	@Override
 	public int hashCode() {
-		return Objects.hash(archive, confidentiality, createdBy, description, metadataList, type);
+		return Objects.hash(archive, confidentiality, createdBy, description, metadataList, type, validFrom, validTo);
 	}
 
 	@Override
@@ -132,14 +169,14 @@ public class DocumentCreateRequest {
 			return false;
 		}
 		return archive == other.archive && Objects.equals(confidentiality, other.confidentiality) && Objects.equals(createdBy, other.createdBy) && Objects.equals(description, other.description) && Objects.equals(metadataList, other.metadataList)
-			&& Objects.equals(type, other.type);
+			&& Objects.equals(type, other.type) && Objects.equals(validFrom, other.validFrom) && Objects.equals(validTo, other.validTo);
 	}
 
 	@Override
 	public String toString() {
 		final var builder = new StringBuilder();
 		builder.append("DocumentCreateRequest [createdBy=").append(createdBy).append(", confidentiality=").append(confidentiality).append(", archive=").append(archive).append(", description=").append(description).append(", metadataList=").append(
-			metadataList).append(", type=").append(type).append("]");
+			metadataList).append(", type=").append(type).append(", validFrom=").append(validFrom).append(", validTo=").append(validTo).append("]");
 		return builder.toString();
 	}
 }

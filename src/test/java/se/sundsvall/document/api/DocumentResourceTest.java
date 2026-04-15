@@ -1,6 +1,7 @@
 package se.sundsvall.document.api;
 
 import jakarta.servlet.http.HttpServletResponse;
+import java.time.LocalDate;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -70,7 +71,9 @@ class DocumentResourceTest {
 			.withMetadataList(List.of(DocumentMetadata.create()
 				.withKey("key")
 				.withValue("value")))
-			.withType("type");
+			.withType("type")
+			.withValidFrom(LocalDate.of(2026, 4, 15))
+			.withValidTo(LocalDate.of(2027, 4, 15));
 
 		final var multipartBodyBuilder = new MultipartBodyBuilder();
 		multipartBodyBuilder.part("documentFiles", "file-content").filename("test1.txt").contentType(TEXT_PLAIN);

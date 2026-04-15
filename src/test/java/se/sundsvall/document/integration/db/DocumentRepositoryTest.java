@@ -19,6 +19,8 @@ import org.springframework.test.context.jdbc.Sql;
 import org.springframework.transaction.annotation.Transactional;
 import se.sundsvall.dept44.problem.Problem;
 import se.sundsvall.document.api.model.DocumentParameters;
+import se.sundsvall.document.api.model.DocumentResponsibility;
+import se.sundsvall.document.api.model.PrincipalType;
 import se.sundsvall.document.integration.db.model.ConfidentialityEmbeddable;
 import se.sundsvall.document.integration.db.model.DocumentDataEntity;
 import se.sundsvall.document.integration.db.model.DocumentEntity;
@@ -497,6 +499,48 @@ class DocumentRepositoryTest {
 				tuple("2024-2281-603", "User5"),
 				tuple("2024-2281-666", "User5"));
 		assertThat(result.getTotalElements()).isEqualTo(4);
+	}
+
+	@Test
+	void searchByParametersWithResponsibilities() {
+		var parameters = new DocumentParameters()
+			.withMunicipalityId(MUNICIPALITY_ID)
+			.withIncludeConfidential(true)
+			.withOnlyLatestRevision(true)
+			.withResponsibilities(List.of(
+				DocumentResponsibility.create().withPrincipalType(PrincipalType.USER).withPrincipalId("User3"),
+				DocumentResponsibility.create().withPrincipalType(PrincipalType.GROUP).withPrincipalId("group-hr")));
+		var pageable = PageRequest.of(0, 10, Sort.by(ASC, "registrationNumber"));
+
+		var result = documentRepository.searchByParameters(parameters, pageable);
+
+		assertThat(result).isNotNull();
+		assertThat(result.getContent())
+			.extracting(DocumentEntity::getRegistrationNumber, DocumentEntity::getRevision)
+			.containsExactly(
+				tuple("2023-2281-123", 3),
+				tuple("2024-2281-601", 1),
+				tuple("2024-2281-603", 1));
+		assertThat(result.getTotalElements()).isEqualTo(3);
+	}
+
+	@Test
+	void searchByParametersWithResponsibilitiesAndMetadata() {
+		var parameters = new DocumentParameters()
+			.withMunicipalityId(MUNICIPALITY_ID)
+			.withIncludeConfidential(true)
+			.withOnlyLatestRevision(true)
+			.withResponsibilities(List.of(DocumentResponsibility.create().withPrincipalType(PrincipalType.GROUP).withPrincipalId("group-hr")))
+			.withMetaData(List.of(DocumentParameters.MetaData.create().withKey("EMPLOYEE_UNIT").withMatchesAny(List.of("Sidsjö skola"))));
+		var pageable = PageRequest.of(0, 10, Sort.by(ASC, "registrationNumber"));
+
+		var result = documentRepository.searchByParameters(parameters, pageable);
+
+		assertThat(result).isNotNull();
+		assertThat(result.getContent())
+			.extracting(DocumentEntity::getRegistrationNumber, DocumentEntity::getRevision)
+			.containsExactly(tuple("2024-2281-601", 1));
+		assertThat(result.getTotalElements()).isEqualTo(1);
 	}
 
 	private DocumentEntity createDocumentEntity(String registrationNumber) {

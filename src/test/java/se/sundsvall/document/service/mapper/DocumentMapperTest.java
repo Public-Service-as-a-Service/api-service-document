@@ -245,6 +245,36 @@ class DocumentMapperTest {
 	}
 
 	@Test
+	void toDocumentEntityFromDocumentUpdateRequestOverridesValidityWhenSupplied() {
+
+		// Arrange
+		final var newValidFrom = VALID_FROM.plusYears(1);
+		final var newValidTo = VALID_TO.plusYears(1);
+
+		final var documentUpdateRequest = DocumentUpdateRequest.create()
+			.withCreatedBy("Updated user")
+			.withValidFrom(newValidFrom)
+			.withValidTo(newValidTo);
+
+		final var existingDocumentEntity = DocumentEntity.create()
+			.withCreatedBy(CREATED_BY)
+			.withMunicipalityId(MUNICIPALITY_ID)
+			.withRegistrationNumber(REGISTRATION_NUMBER)
+			.withRevision(REVISION)
+			.withType(DocumentTypeEntity.create().withType(DOCUMENT_TYPE))
+			.withValidFrom(VALID_FROM)
+			.withValidTo(VALID_TO);
+
+		// Act
+		final var result = DocumentMapper.toDocumentEntity(documentUpdateRequest, existingDocumentEntity, binaryStoreMock);
+
+		// Assert
+		assertThat(result).isNotNull();
+		assertThat(result.getValidFrom()).isEqualTo(newValidFrom);
+		assertThat(result.getValidTo()).isEqualTo(newValidTo);
+	}
+
+	@Test
 	void toConfidentialityEmbeddableFromConfidentiality() {
 
 		// Arrange

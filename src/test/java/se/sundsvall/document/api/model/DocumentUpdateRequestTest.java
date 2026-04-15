@@ -1,5 +1,6 @@
 package se.sundsvall.document.api.model;
 
+import java.time.LocalDate;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 
@@ -32,13 +33,17 @@ class DocumentUpdateRequestTest {
 		final var description = "description";
 		final var metadataList = List.of(DocumentMetadata.create());
 		final var type = "type";
+		final var validFrom = LocalDate.of(2026, 4, 15);
+		final var validTo = LocalDate.of(2027, 4, 15);
 
 		final var bean = DocumentUpdateRequest.create()
 			.withArchive(archive)
 			.withCreatedBy(createdBy)
 			.withDescription(description)
 			.withMetadataList(metadataList)
-			.withType(type);
+			.withType(type)
+			.withValidFrom(validFrom)
+			.withValidTo(validTo);
 
 		assertThat(bean).isNotNull().hasNoNullFieldsOrProperties();
 		assertThat(bean.getArchive()).isEqualTo(archive);
@@ -46,6 +51,8 @@ class DocumentUpdateRequestTest {
 		assertThat(bean.getDescription()).isEqualTo(description);
 		assertThat(bean.getMetadataList()).isEqualTo(metadataList);
 		assertThat(bean.getType()).isEqualTo(type);
+		assertThat(bean.getValidFrom()).isEqualTo(validFrom);
+		assertThat(bean.getValidTo()).isEqualTo(validTo);
 	}
 
 	@Test

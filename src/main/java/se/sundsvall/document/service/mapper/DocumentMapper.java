@@ -121,8 +121,8 @@ public class DocumentMapper {
 				.orElse(copyDocumentMetadataEmbeddableList(existingDocumentEntity.getMetadata())))
 			.withDocumentData(copyDocumentDataEntities(existingDocumentEntity.getDocumentData(), binaryStore))
 			.withType(existingDocumentEntity.getType())
-			.withValidFrom(existingDocumentEntity.getValidFrom())
-			.withValidTo(existingDocumentEntity.getValidTo());
+			.withValidFrom(Optional.ofNullable(documentUpdateRequest.getValidFrom()).orElse(existingDocumentEntity.getValidFrom()))
+			.withValidTo(Optional.ofNullable(documentUpdateRequest.getValidTo()).orElse(existingDocumentEntity.getValidTo()));
 	}
 
 	public static ConfidentialityEmbeddable toConfidentialityEmbeddable(Confidentiality confidentiality) {

@@ -1,13 +1,10 @@
 package se.sundsvall.document.service.storage;
 
-import jakarta.persistence.EntityManager;
-import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.sql.Blob;
 import java.sql.SQLException;
 import java.util.Optional;
-import org.hibernate.Session;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -20,9 +17,7 @@ import se.sundsvall.document.integration.db.model.DocumentDataBinaryEntity;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
-import static org.springframework.http.HttpStatus.INTERNAL_SERVER_ERROR;
 import static org.springframework.http.HttpStatus.NOT_FOUND;
 
 /**
@@ -37,9 +32,6 @@ import static org.springframework.http.HttpStatus.NOT_FOUND;
 class JdbcBinaryStoreTest {
 
 	@Mock
-	private EntityManager entityManagerMock;
-
-	@Mock
 	private DocumentDataBinaryRepository repositoryMock;
 
 	@InjectMocks
@@ -52,7 +44,6 @@ class JdbcBinaryStoreTest {
 		store.delete(ref);
 
 		verify(repositoryMock).deleteById("some-id");
-		verifyNoInteractions(entityManagerMock);
 	}
 
 	@Test
@@ -85,21 +76,6 @@ class JdbcBinaryStoreTest {
 			});
 
 		verify(repositoryMock).findById("missing-id");
-	}
-
-	@Test
-	void put_whenSessionUnwrapFails_throwsInternalServerError() {
-		when(entityManagerMock.unwrap(Session.class)).thenThrow(new RuntimeException("unwrap failed"));
-
-		assertThatThrownBy(() -> store.put(new ByteArrayInputStream(new byte[] {
-			1
-		}), 1L, "application/octet-stream", java.util.Map.of()))
-			.isInstanceOf(ThrowableProblem.class)
-			.satisfies(ex -> {
-				final var problem = (ThrowableProblem) ex;
-				assertThat(problem.getStatus()).isEqualTo(INTERNAL_SERVER_ERROR);
-				assertThat(problem.getMessage()).contains("unwrap failed");
-			});
 	}
 
 	@Test

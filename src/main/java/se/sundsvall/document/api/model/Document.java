@@ -50,6 +50,9 @@ public class Document {
 	@Schema(description = "Document data")
 	private List<DocumentData> documentData;
 
+	@Schema(description = "Document responsibilities.")
+	private List<DocumentResponsibility> responsibilities;
+
 	@Schema(description = "Document type", examples = "Type for the document.")
 	private String type;
 
@@ -221,6 +224,19 @@ public class Document {
 		return this;
 	}
 
+	public List<DocumentResponsibility> getResponsibilities() {
+		return responsibilities;
+	}
+
+	public void setResponsibilities(final List<DocumentResponsibility> responsibilities) {
+		this.responsibilities = responsibilities;
+	}
+
+	public Document withResponsibilities(final List<DocumentResponsibility> responsibilities) {
+		this.responsibilities = responsibilities;
+		return this;
+	}
+
 	public String getType() {
 		return type;
 	}
@@ -262,7 +278,7 @@ public class Document {
 
 	@Override
 	public int hashCode() {
-		return Objects.hash(archive, confidentiality, created, createdBy, description, documentData, id, metadataList, municipalityId, registrationNumber, revision, type, updatedBy, validFrom, validTo);
+		return Objects.hash(archive, confidentiality, created, createdBy, description, documentData, id, metadataList, municipalityId, registrationNumber, responsibilities, revision, type, updatedBy, validFrom, validTo);
 	}
 
 	@Override
@@ -275,7 +291,8 @@ public class Document {
 		}
 		return archive == other.archive && Objects.equals(confidentiality, other.confidentiality) && Objects.equals(created, other.created) && Objects.equals(createdBy, other.createdBy) && Objects.equals(description, other.description) && Objects
 			.equals(documentData, other.documentData) && Objects.equals(id, other.id) && Objects.equals(metadataList, other.metadataList) && Objects.equals(municipalityId, other.municipalityId) && Objects.equals(registrationNumber,
-				other.registrationNumber) && revision == other.revision && Objects.equals(type, other.type) && Objects.equals(updatedBy, other.updatedBy) && Objects.equals(validFrom, other.validFrom) && Objects.equals(validTo, other.validTo);
+				other.registrationNumber) && Objects.equals(responsibilities, other.responsibilities) && revision == other.revision && Objects.equals(type, other.type) && Objects.equals(updatedBy, other.updatedBy) && Objects.equals(validFrom,
+					other.validFrom) && Objects.equals(validTo, other.validTo);
 	}
 
 	@Override
@@ -283,7 +300,8 @@ public class Document {
 		final var builder = new StringBuilder();
 		builder.append("Document [id=").append(id).append(", municipalityId=").append(municipalityId).append(", registrationNumber=").append(registrationNumber).append(", revision=").append(revision).append(", confidentiality=").append(
 			confidentiality).append(", description=").append(description).append(", created=").append(created).append(", createdBy=").append(createdBy).append(", updatedBy=").append(updatedBy).append(", archive=").append(archive).append(
-				", metadataList=").append(metadataList).append(", documentData=").append(documentData).append(", type=").append(type).append(", validFrom=").append(validFrom).append(", validTo=").append(validTo).append("]");
+				", metadataList=").append(metadataList).append(", documentData=").append(documentData).append(", responsibilities=").append(responsibilities).append(", type=").append(type).append(", validFrom=").append(validFrom).append(
+					", validTo=").append(validTo).append("]");
 		return builder.toString();
 	}
 }

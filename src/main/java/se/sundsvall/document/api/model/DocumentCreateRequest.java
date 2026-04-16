@@ -8,6 +8,7 @@ import jakarta.validation.constraints.Size;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Objects;
+import org.hibernate.validator.constraints.UniqueElements;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.format.annotation.DateTimeFormat.ISO;
 
@@ -34,6 +35,11 @@ public class DocumentCreateRequest {
 	@NotEmpty
 	@Schema(description = "List of DocumentMetadata objects.", requiredMode = REQUIRED)
 	private List<@Valid DocumentMetadata> metadataList;
+
+	@Valid
+	@UniqueElements
+	@Schema(description = "Document responsibilities.")
+	private List<DocumentResponsibility> responsibilities;
 
 	@NotBlank
 	@Schema(description = "The type of document (validated against a defined list of document types).", examples = "EMPLOYMENT_CERTIFICATE", requiredMode = REQUIRED)
@@ -116,6 +122,19 @@ public class DocumentCreateRequest {
 		return this;
 	}
 
+	public List<DocumentResponsibility> getResponsibilities() {
+		return responsibilities;
+	}
+
+	public void setResponsibilities(final List<DocumentResponsibility> responsibilities) {
+		this.responsibilities = responsibilities;
+	}
+
+	public DocumentCreateRequest withResponsibilities(final List<DocumentResponsibility> responsibilities) {
+		this.responsibilities = responsibilities;
+		return this;
+	}
+
 	public String getType() {
 		return type;
 	}
@@ -157,7 +176,7 @@ public class DocumentCreateRequest {
 
 	@Override
 	public int hashCode() {
-		return Objects.hash(archive, confidentiality, createdBy, description, metadataList, type, validFrom, validTo);
+		return Objects.hash(archive, confidentiality, createdBy, description, metadataList, responsibilities, type, validFrom, validTo);
 	}
 
 	@Override
@@ -169,14 +188,14 @@ public class DocumentCreateRequest {
 			return false;
 		}
 		return archive == other.archive && Objects.equals(confidentiality, other.confidentiality) && Objects.equals(createdBy, other.createdBy) && Objects.equals(description, other.description) && Objects.equals(metadataList, other.metadataList)
-			&& Objects.equals(type, other.type) && Objects.equals(validFrom, other.validFrom) && Objects.equals(validTo, other.validTo);
+			&& Objects.equals(responsibilities, other.responsibilities) && Objects.equals(type, other.type) && Objects.equals(validFrom, other.validFrom) && Objects.equals(validTo, other.validTo);
 	}
 
 	@Override
 	public String toString() {
 		final var builder = new StringBuilder();
 		builder.append("DocumentCreateRequest [createdBy=").append(createdBy).append(", confidentiality=").append(confidentiality).append(", archive=").append(archive).append(", description=").append(description).append(", metadataList=").append(
-			metadataList).append(", type=").append(type).append(", validFrom=").append(validFrom).append(", validTo=").append(validTo).append("]");
+			metadataList).append(", responsibilities=").append(responsibilities).append(", type=").append(type).append(", validFrom=").append(validFrom).append(", validTo=").append(validTo).append("]");
 		return builder.toString();
 	}
 }

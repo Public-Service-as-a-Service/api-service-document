@@ -62,6 +62,8 @@ public interface DocumentRepository extends JpaRepository<DocumentEntity, String
 	 */
 	Optional<DocumentEntity> findByMunicipalityIdAndRegistrationNumberAndRevisionAndConfidentialityConfidentialIn(String municipalityId, String registrationNumber, int revision, List<Boolean> confidentialValues);
 
+	boolean existsByMunicipalityIdAndRegistrationNumber(String municipalityId, String registrationNumber);
+
 	/**
 	 * Performs a search in DocumentEntities.
 	 *

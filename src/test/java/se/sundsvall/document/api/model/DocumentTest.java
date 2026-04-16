@@ -52,6 +52,7 @@ class DocumentTest {
 		final var metadataList = List.of(DocumentMetadata.create());
 		final var municipalityId = "municipalityId";
 		final var registrationNumber = "12345";
+		final var responsibilities = List.of(DocumentResponsibility.create().withUsername(createdBy));
 		final var revision = 5;
 		final var type = "type";
 		final var validFrom = LocalDate.of(2026, 4, 15);
@@ -69,6 +70,7 @@ class DocumentTest {
 			.withMetadataList(metadataList)
 			.withMunicipalityId(municipalityId)
 			.withRegistrationNumber(registrationNumber)
+			.withResponsibilities(responsibilities)
 			.withRevision(revision)
 			.withType(type)
 			.withValidFrom(validFrom)
@@ -86,6 +88,7 @@ class DocumentTest {
 		assertThat(bean.getMetadataList()).isEqualTo(metadataList);
 		assertThat(bean.getMunicipalityId()).isEqualTo(municipalityId);
 		assertThat(bean.getRegistrationNumber()).isEqualTo(registrationNumber);
+		assertThat(bean.getResponsibilities()).isEqualTo(responsibilities);
 		assertThat(bean.getRevision()).isEqualTo(revision);
 		assertThat(bean.getType()).isEqualTo(type);
 		assertThat(bean.getValidFrom()).isEqualTo(validFrom);

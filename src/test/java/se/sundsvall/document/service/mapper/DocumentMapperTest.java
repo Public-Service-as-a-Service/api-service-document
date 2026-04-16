@@ -29,17 +29,20 @@ import se.sundsvall.document.api.model.DocumentCreateRequest;
 import se.sundsvall.document.api.model.DocumentData;
 import se.sundsvall.document.api.model.DocumentFiles;
 import se.sundsvall.document.api.model.DocumentMetadata;
+import se.sundsvall.document.api.model.DocumentResponsibility;
 import se.sundsvall.document.api.model.DocumentUpdateRequest;
 import se.sundsvall.document.integration.db.model.ConfidentialityEmbeddable;
 import se.sundsvall.document.integration.db.model.DocumentDataEntity;
 import se.sundsvall.document.integration.db.model.DocumentEntity;
 import se.sundsvall.document.integration.db.model.DocumentMetadataEmbeddable;
+import se.sundsvall.document.integration.db.model.DocumentResponsibilityEntity;
 import se.sundsvall.document.integration.db.model.DocumentTypeEntity;
 import se.sundsvall.document.service.storage.BinaryStore;
 import se.sundsvall.document.service.storage.StorageRef;
 
 import static java.time.OffsetDateTime.now;
 import static java.time.ZoneId.systemDefault;
+import static java.util.Collections.emptyList;
 import static java.util.UUID.randomUUID;
 import static org.apache.commons.io.IOUtils.toByteArray;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -396,6 +399,7 @@ class DocumentMapperTest {
 					.withValue(METADATA_VALUE)))
 				.withMunicipalityId(MUNICIPALITY_ID)
 				.withRegistrationNumber(REGISTRATION_NUMBER)
+				.withResponsibilities(emptyList())
 				.withRevision(REVISION)
 				.withType(DOCUMENT_TYPE));
 	}
@@ -471,6 +475,7 @@ class DocumentMapperTest {
 					.withValue(METADATA_VALUE)))
 				.withMunicipalityId(MUNICIPALITY_ID)
 				.withRegistrationNumber(REGISTRATION_NUMBER)
+				.withResponsibilities(emptyList())
 				.withRevision(REVISION)
 				.withType(DOCUMENT_TYPE)
 				.withValidFrom(VALID_FROM)
@@ -478,8 +483,45 @@ class DocumentMapperTest {
 	}
 
 	@Test
+	void toDocumentWithResponsibilities() {
+
+		// Arrange
+		final var documentEntity = DocumentEntity.create()
+			.withType(DocumentTypeEntity.create().withType(DOCUMENT_TYPE));
+		final var responsibilityEntity = DocumentResponsibilityEntity.create()
+			.withUsername(CREATED_BY);
+
+		// Act
+		final var result = DocumentMapper.toDocument(documentEntity, List.of(responsibilityEntity));
+
+		// Assert
+		assertThat(result).isNotNull();
+		assertThat(result.getResponsibilities())
+			.containsExactly(DocumentResponsibility.create()
+				.withUsername(CREATED_BY));
+	}
+
+	@Test
 	void toDocumentWhenInputIsNull() {
 		assertThat(DocumentMapper.toDocument(null)).isNull();
+	}
+
+	@Test
+	void toDocumentResponsibilityEntities() {
+
+		// Arrange
+		final var responsibilities = List.of(DocumentResponsibility.create()
+			.withUsername(" Username123 "));
+
+		// Act
+		final var result = DocumentMapper.toDocumentResponsibilityEntities(responsibilities, MUNICIPALITY_ID, REGISTRATION_NUMBER, CREATED_BY);
+
+		// Assert
+		assertThat(result)
+			.hasSize(1)
+			.extracting(DocumentResponsibilityEntity::getMunicipalityId, DocumentResponsibilityEntity::getRegistrationNumber, DocumentResponsibilityEntity::getUsername,
+				DocumentResponsibilityEntity::getCreatedBy)
+			.containsExactly(tuple(MUNICIPALITY_ID, REGISTRATION_NUMBER, "username123", CREATED_BY));
 	}
 
 	@Test
@@ -701,6 +743,7 @@ class DocumentMapperTest {
 					.withValue(METADATA_VALUE)))
 				.withMunicipalityId(MUNICIPALITY_ID)
 				.withRegistrationNumber(REGISTRATION_NUMBER)
+				.withResponsibilities(emptyList())
 				.withRevision(REVISION)
 				.withType(DOCUMENT_TYPE));
 	}

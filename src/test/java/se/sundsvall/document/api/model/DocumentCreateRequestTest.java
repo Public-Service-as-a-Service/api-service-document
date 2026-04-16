@@ -33,6 +33,7 @@ class DocumentCreateRequestTest {
 		final var createdBy = "user";
 		final var description = "description";
 		final var metadataList = List.of(DocumentMetadata.create());
+		final var responsibilities = List.of(DocumentResponsibility.create().withUsername(createdBy));
 		final var type = "type";
 		final var validFrom = LocalDate.of(2026, 4, 15);
 		final var validTo = LocalDate.of(2027, 4, 15);
@@ -43,6 +44,7 @@ class DocumentCreateRequestTest {
 			.withCreatedBy(createdBy)
 			.withDescription(description)
 			.withMetadataList(metadataList)
+			.withResponsibilities(responsibilities)
 			.withType(type)
 			.withValidFrom(validFrom)
 			.withValidTo(validTo);
@@ -53,6 +55,7 @@ class DocumentCreateRequestTest {
 		assertThat(bean.getCreatedBy()).isEqualTo(createdBy);
 		assertThat(bean.getDescription()).isEqualTo(description);
 		assertThat(bean.getMetadataList()).isEqualTo(metadataList);
+		assertThat(bean.getResponsibilities()).isEqualTo(responsibilities);
 		assertThat(bean.getType()).isEqualTo(type);
 		assertThat(bean.getValidFrom()).isEqualTo(validFrom);
 		assertThat(bean.getValidTo()).isEqualTo(validTo);

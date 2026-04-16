@@ -2,6 +2,7 @@ package se.sundsvall.document.api.model;
 
 import io.swagger.v3.oas.annotations.media.ArraySchema;
 import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.validation.Valid;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Objects;
@@ -28,6 +29,9 @@ public class DocumentParameters extends AbstractParameterPagingAndSortingBase {
 
 	@ArraySchema(schema = @Schema(description = "List of metadata", implementation = MetaData.class))
 	private List<MetaData> metaData;
+
+	@ArraySchema(schema = @Schema(description = "List of document responsibilities. Documents match if at least one responsibility matches.", implementation = DocumentResponsibility.class))
+	private List<@Valid DocumentResponsibility> responsibilities;
 
 	@DateTimeFormat(iso = ISO.DATE)
 	@Schema(description = "Only include documents whose validity window covers this date. "
@@ -172,6 +176,19 @@ public class DocumentParameters extends AbstractParameterPagingAndSortingBase {
 		this.metaData = metaData;
 	}
 
+	public DocumentParameters withResponsibilities(final List<DocumentResponsibility> responsibilities) {
+		this.responsibilities = responsibilities;
+		return this;
+	}
+
+	public List<DocumentResponsibility> getResponsibilities() {
+		return responsibilities;
+	}
+
+	public void setResponsibilities(final List<DocumentResponsibility> responsibilities) {
+		this.responsibilities = responsibilities;
+	}
+
 	public DocumentParameters withValidOn(final LocalDate validOn) {
 		this.validOn = validOn;
 		return this;
@@ -194,6 +211,7 @@ public class DocumentParameters extends AbstractParameterPagingAndSortingBase {
 			", onlyLatestRevision=" + onlyLatestRevision +
 			", documentTypes=" + documentTypes +
 			", metaData=" + metaData +
+			", responsibilities=" + responsibilities +
 			", validOn=" + validOn +
 			", sortBy=" + sortBy +
 			", sortDirection=" + sortDirection +
@@ -212,11 +230,11 @@ public class DocumentParameters extends AbstractParameterPagingAndSortingBase {
 			return false;
 		DocumentParameters that = (DocumentParameters) o;
 		return includeConfidential == that.includeConfidential && onlyLatestRevision == that.onlyLatestRevision && Objects.equals(municipalityId, that.municipalityId) && Objects.equals(createdBy, that.createdBy)
-			&& Objects.equals(documentTypes, that.documentTypes) && Objects.equals(metaData, that.metaData) && Objects.equals(validOn, that.validOn);
+			&& Objects.equals(documentTypes, that.documentTypes) && Objects.equals(metaData, that.metaData) && Objects.equals(responsibilities, that.responsibilities) && Objects.equals(validOn, that.validOn);
 	}
 
 	@Override
 	public int hashCode() {
-		return Objects.hash(super.hashCode(), municipalityId, createdBy, includeConfidential, onlyLatestRevision, documentTypes, metaData, validOn);
+		return Objects.hash(super.hashCode(), municipalityId, createdBy, includeConfidential, onlyLatestRevision, documentTypes, metaData, responsibilities, validOn);
 	}
 }

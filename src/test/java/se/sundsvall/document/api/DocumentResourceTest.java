@@ -25,6 +25,8 @@ import se.sundsvall.document.api.model.DocumentCreateRequest;
 import se.sundsvall.document.api.model.DocumentDataCreateRequest;
 import se.sundsvall.document.api.model.DocumentFiles;
 import se.sundsvall.document.api.model.DocumentMetadata;
+import se.sundsvall.document.api.model.DocumentResponsibilitiesUpdateRequest;
+import se.sundsvall.document.api.model.DocumentResponsibility;
 import se.sundsvall.document.api.model.DocumentUpdateRequest;
 import se.sundsvall.document.api.model.PagedDocumentResponse;
 import se.sundsvall.document.api.validation.DocumentTypeValidator;
@@ -71,6 +73,8 @@ class DocumentResourceTest {
 			.withMetadataList(List.of(DocumentMetadata.create()
 				.withKey("key")
 				.withValue("value")))
+			.withResponsibilities(List.of(DocumentResponsibility.create()
+				.withUsername("username123")))
 			.withType("type")
 			.withValidFrom(LocalDate.of(2026, 4, 15))
 			.withValidTo(LocalDate.of(2027, 4, 15));
@@ -151,6 +155,30 @@ class DocumentResourceTest {
 
 		// Assert
 		verify(documentServiceMock).updateConfidentiality(registrationNumber, confidentialityUpdateRequest, "2281");
+	}
+
+	@Test
+	void updateResponsibilities() {
+
+		// Arrange
+		final var registrationNumber = "2023-1337";
+		final var responsibilitiesUpdateRequest = DocumentResponsibilitiesUpdateRequest.create()
+			.withChangedBy("user")
+			.withResponsibilities(List.of(DocumentResponsibility.create()
+				.withUsername("username123")));
+
+		// Act
+		webTestClient.put()
+			.uri("/2281/documents/" + registrationNumber + "/responsibilities")
+			.contentType(APPLICATION_JSON)
+			.bodyValue(responsibilitiesUpdateRequest)
+			.exchange()
+			.expectStatus().isNoContent()
+			.expectBody()
+			.isEmpty();
+
+		// Assert
+		verify(documentServiceMock).updateResponsibilities(registrationNumber, responsibilitiesUpdateRequest, "2281");
 	}
 
 	@Test

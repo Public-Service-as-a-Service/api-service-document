@@ -263,6 +263,8 @@ public class DocumentService {
 		final var newResponsibilities = toDocumentResponsibilityEntities(request.getResponsibilities(), municipalityId, registrationNumber, request.getChangedBy());
 
 		documentResponsibilityRepository.deleteByMunicipalityIdAndRegistrationNumber(municipalityId, registrationNumber);
+		// Force DELETE before INSERT so the (municipality_id, registration_number, username) unique constraint
+		// isn't violated when a username is both removed and re-added in the same call.
 		documentResponsibilityRepository.flush();
 		documentResponsibilityRepository.saveAll(newResponsibilities);
 

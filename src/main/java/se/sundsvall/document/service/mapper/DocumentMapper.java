@@ -145,7 +145,6 @@ public class DocumentMapper {
 	public static List<DocumentResponsibilityEntity> toDocumentResponsibilityEntities(final List<DocumentResponsibility> responsibilities, final String municipalityId, final String registrationNumber, final String createdBy) {
 		return Optional.ofNullable(responsibilities).orElse(emptyList()).stream()
 			.map(responsibility -> toDocumentResponsibilityEntity(responsibility, municipalityId, registrationNumber, createdBy))
-			.distinct()
 			.toList();
 	}
 

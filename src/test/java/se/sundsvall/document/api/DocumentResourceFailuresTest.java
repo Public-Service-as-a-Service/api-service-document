@@ -391,7 +391,7 @@ class DocumentResourceFailuresTest {
 
 		// Arrange
 		final var requestBody = DocumentUpdateRequest.create()
-			.withCreatedBy("user")
+			.withUpdatedBy("user")
 			.withDescription("description")
 			.withMetadataList(List.of(
 				DocumentMetadata.create()
@@ -424,7 +424,7 @@ class DocumentResourceFailuresTest {
 
 		// Arrange
 		final var requestBody = DocumentUpdateRequest.create()
-			.withCreatedBy("user")
+			.withUpdatedBy("user")
 			.withDescription("description")
 			.withMetadataList(List.of(
 				DocumentMetadata.create()
@@ -453,43 +453,11 @@ class DocumentResourceFailuresTest {
 	}
 
 	@Test
-	void updateWithMissingCreatedBy() {
-
-		// Arrange
-		final var requestBody = DocumentUpdateRequest.create()
-			.withDescription("description")
-			.withMetadataList(List.of(
-				DocumentMetadata.create()
-					.withKey("key")
-					.withValue("value")));
-
-		// Act
-		final var response = webTestClient.patch()
-			.uri("/2281/documents/2023-1337")
-			.contentType(APPLICATION_JSON)
-			.bodyValue(requestBody)
-			.exchange()
-			.expectStatus().isBadRequest()
-			.expectHeader().contentType(APPLICATION_PROBLEM_JSON)
-			.expectBody(ConstraintViolationProblem.class)
-			.returnResult()
-			.getResponseBody();
-
-		// Assert
-		assertThat(response).isNotNull();
-		assertThat(response.getViolations())
-			.extracting(Violation::field, Violation::message)
-			.containsExactlyInAnyOrder(tuple("createdBy", "must not be blank"));
-
-		verifyNoInteractions(documentServiceMock);
-	}
-
-	@Test
 	void updateWithTooLongDescription() {
 
 		// Arrange
 		final var requestBody = DocumentUpdateRequest.create()
-			.withCreatedBy("user")
+			.withUpdatedBy("user")
 			.withDescription(repeat("x", 8193)) // 8192 is max length on description.
 			.withMetadataList(List.of(
 				DocumentMetadata.create()
@@ -521,7 +489,7 @@ class DocumentResourceFailuresTest {
 	void updateWithInvalidType() {
 		doThrow(new ConstraintViolationProblem(BAD_REQUEST, List.of(new Violation("type", "error")))).when(validationUtilityMock).validate(any(), any());
 		final var requestBody = DocumentUpdateRequest.create()
-			.withCreatedBy("user")
+			.withUpdatedBy("user")
 			.withType("type")
 			.withMetadataList(List.of(DocumentMetadata.create()
 				.withKey("key")

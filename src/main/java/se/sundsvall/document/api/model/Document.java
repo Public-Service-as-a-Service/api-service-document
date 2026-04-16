@@ -38,6 +38,9 @@ public class Document {
 	@Schema(description = "Actor that created this revision.", examples = "username123")
 	private String createdBy;
 
+	@Schema(description = "Actor that last updated this document.", examples = "username456")
+	private String updatedBy;
+
 	@Schema(description = "Tells if the document is eligible for archiving", examples = "false")
 	private boolean archive;
 
@@ -166,6 +169,19 @@ public class Document {
 		return this;
 	}
 
+	public String getUpdatedBy() {
+		return updatedBy;
+	}
+
+	public void setUpdatedBy(String updatedBy) {
+		this.updatedBy = updatedBy;
+	}
+
+	public Document withUpdatedBy(String updatedBy) {
+		this.updatedBy = updatedBy;
+		return this;
+	}
+
 	public boolean isArchive() {
 		return archive;
 	}
@@ -246,7 +262,7 @@ public class Document {
 
 	@Override
 	public int hashCode() {
-		return Objects.hash(archive, confidentiality, created, createdBy, description, documentData, id, metadataList, municipalityId, registrationNumber, revision, type, validFrom, validTo);
+		return Objects.hash(archive, confidentiality, created, createdBy, description, documentData, id, metadataList, municipalityId, registrationNumber, revision, type, updatedBy, validFrom, validTo);
 	}
 
 	@Override
@@ -259,15 +275,15 @@ public class Document {
 		}
 		return archive == other.archive && Objects.equals(confidentiality, other.confidentiality) && Objects.equals(created, other.created) && Objects.equals(createdBy, other.createdBy) && Objects.equals(description, other.description) && Objects
 			.equals(documentData, other.documentData) && Objects.equals(id, other.id) && Objects.equals(metadataList, other.metadataList) && Objects.equals(municipalityId, other.municipalityId) && Objects.equals(registrationNumber,
-				other.registrationNumber) && revision == other.revision && Objects.equals(type, other.type) && Objects.equals(validFrom, other.validFrom) && Objects.equals(validTo, other.validTo);
+				other.registrationNumber) && revision == other.revision && Objects.equals(type, other.type) && Objects.equals(updatedBy, other.updatedBy) && Objects.equals(validFrom, other.validFrom) && Objects.equals(validTo, other.validTo);
 	}
 
 	@Override
 	public String toString() {
 		final var builder = new StringBuilder();
 		builder.append("Document [id=").append(id).append(", municipalityId=").append(municipalityId).append(", registrationNumber=").append(registrationNumber).append(", revision=").append(revision).append(", confidentiality=").append(
-			confidentiality).append(", description=").append(description).append(", created=").append(created).append(", createdBy=").append(createdBy).append(", archive=").append(archive).append(", metadataList=").append(metadataList).append(
-				", documentData=").append(documentData).append(", type=").append(type).append(", validFrom=").append(validFrom).append(", validTo=").append(validTo).append("]");
+			confidentiality).append(", description=").append(description).append(", created=").append(created).append(", createdBy=").append(createdBy).append(", updatedBy=").append(updatedBy).append(", archive=").append(archive).append(
+				", metadataList=").append(metadataList).append(", documentData=").append(documentData).append(", type=").append(type).append(", validFrom=").append(validFrom).append(", validTo=").append(validTo).append("]");
 		return builder.toString();
 	}
 }

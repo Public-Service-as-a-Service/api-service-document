@@ -6,6 +6,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
@@ -130,16 +131,28 @@ class DocumentMapperTest {
 		true, false
 	})
 	@NullSource
-	void toDocumentEntityFromDocumentUpdateRequest(Boolean archive) {
+	void applyUpdateMutatesEntityInPlace(Boolean archive) {
 
 		// Arrange
 		final var mimeType = "image/png";
 		final var fileName1 = "image1.png";
 		final var fileName2 = "image2.png";
+		final var originalDocumentData = List.of(
+			DocumentDataEntity.create()
+				.withFileName(fileName1)
+				.withFileSizeInBytes(1000)
+				.withMimeType(mimeType)
+				.withStorageBackend(STORAGE_BACKEND)
+				.withStorageLocator(STORAGE_LOCATOR_1),
+			DocumentDataEntity.create()
+				.withFileName(fileName2)
+				.withFileSizeInBytes(2000)
+				.withMimeType(mimeType)
+				.withStorageBackend(STORAGE_BACKEND)
+				.withStorageLocator(STORAGE_LOCATOR_2));
 
 		final var documentUpdateRequest = DocumentUpdateRequest.create()
 			.withArchive(archive)
-			.withCreatedBy("Updated user")
 			.withDescription("Updated text")
 			.withMetadataList(List.of(DocumentMetadata.create()
 				.withKey("Updated-key")
@@ -152,22 +165,10 @@ class DocumentMapperTest {
 				.withLegalCitation(LEGAL_CITATION))
 			.withCreatedBy(CREATED_BY)
 			.withDescription(DESCRIPTION)
-			.withDocumentData(List.of(
-				DocumentDataEntity.create()
-					.withFileName(fileName1)
-					.withFileSizeInBytes(1000)
-					.withMimeType(mimeType)
-					.withStorageBackend(STORAGE_BACKEND)
-					.withStorageLocator(STORAGE_LOCATOR_1),
-				DocumentDataEntity.create()
-					.withFileName(fileName2)
-					.withFileSizeInBytes(2000)
-					.withMimeType(mimeType)
-					.withStorageBackend(STORAGE_BACKEND)
-					.withStorageLocator(STORAGE_LOCATOR_2)))
-			.withMetadata(List.of(DocumentMetadataEmbeddable.create()
+			.withDocumentData(originalDocumentData)
+			.withMetadata(new ArrayList<>(List.of(DocumentMetadataEmbeddable.create()
 				.withKey(METADATA_KEY)
-				.withValue(METADATA_VALUE)))
+				.withValue(METADATA_VALUE))))
 			.withMunicipalityId(MUNICIPALITY_ID)
 			.withRegistrationNumber(REGISTRATION_NUMBER)
 			.withRevision(REVISION)
@@ -183,65 +184,37 @@ class DocumentMapperTest {
 			.withValidFrom(VALID_FROM)
 			.withValidTo(VALID_TO);
 
-		when(binaryStoreMock.copy(any(StorageRef.class))).thenAnswer(invocation -> invocation.getArgument(0));
-
 		// Act
-		final var result = DocumentMapper.toDocumentEntity(documentUpdateRequest, existingDocumentEntity, binaryStoreMock);
+		DocumentMapper.applyUpdate(documentUpdateRequest, existingDocumentEntity);
 
-		// Assert
-		assertThat(result)
-			.isNotNull()
-			.isEqualTo(DocumentEntity.create()
-				.withArchive(archive == null ? existingDocumentEntity.isArchive() : archive)
-				.withConfidentiality(ConfidentialityEmbeddable.create()
-					.withConfidential(CONFIDENTIAL)
-					.withLegalCitation(LEGAL_CITATION))
-				.withCreatedBy("Updated user")
-				.withDescription("Updated text")
-				.withDocumentData(List.of(
-					DocumentDataEntity.create()
-						.withFileName(fileName1)
-						.withFileSizeInBytes(1000)
-						.withMimeType(mimeType)
-						.withStorageBackend(STORAGE_BACKEND)
-						.withStorageLocator(STORAGE_LOCATOR_1),
-					DocumentDataEntity.create()
-						.withFileName(fileName2)
-						.withFileSizeInBytes(2000)
-						.withMimeType(mimeType)
-						.withStorageBackend(STORAGE_BACKEND)
-						.withStorageLocator(STORAGE_LOCATOR_2)))
-				.withMetadata(List.of(DocumentMetadataEmbeddable.create()
-					.withKey("Updated-key")
-					.withValue("Updated-value")))
-				.withMunicipalityId(MUNICIPALITY_ID)
-				.withRegistrationNumber(REGISTRATION_NUMBER)
-				.withRevision(REVISION + 1)
-				.withType(DocumentTypeEntity.create()
-					.withCreated(DOCUMENT_TYPE_CREATED)
-					.withCreatedBy(DOCUMENT_TYPE_CREATED_BY)
-					.withDisplayName(DOCUMENT_TYPE_DISPLAY_NAME)
-					.withId(DOCUMENT_TYPE_ID)
-					.withLastUpdated(DOCUMENT_TYPE_UPDATED)
-					.withLastUpdatedBy(DOCUMENT_TYPE_UPDATED_BY)
-					.withMunicipalityId(MUNICIPALITY_ID)
-					.withType(DOCUMENT_TYPE))
-				.withValidFrom(VALID_FROM)
-				.withValidTo(VALID_TO));
+		// Assert — fields from request are applied
+		assertThat(existingDocumentEntity.isArchive()).isEqualTo(archive == null ? ARCHIVE : archive);
+		assertThat(existingDocumentEntity.getDescription()).isEqualTo("Updated text");
+		assertThat(existingDocumentEntity.getMetadata()).isEqualTo(List.of(DocumentMetadataEmbeddable.create()
+			.withKey("Updated-key")
+			.withValue("Updated-value")));
 
-		verify(binaryStoreMock).copy(new StorageRef(STORAGE_BACKEND, STORAGE_LOCATOR_1));
-		verify(binaryStoreMock).copy(new StorageRef(STORAGE_BACKEND, STORAGE_LOCATOR_2));
+		// Assert — revision, createdBy, documentData, and other fields are NOT changed
+		assertThat(existingDocumentEntity.getRevision()).isEqualTo(REVISION);
+		assertThat(existingDocumentEntity.getCreatedBy()).isEqualTo(CREATED_BY);
+		assertThat(existingDocumentEntity.getDocumentData()).isSameAs(originalDocumentData);
+		assertThat(existingDocumentEntity.getMunicipalityId()).isEqualTo(MUNICIPALITY_ID);
+		assertThat(existingDocumentEntity.getRegistrationNumber()).isEqualTo(REGISTRATION_NUMBER);
+		assertThat(existingDocumentEntity.getConfidentiality()).isEqualTo(ConfidentialityEmbeddable.create()
+			.withConfidential(CONFIDENTIAL)
+			.withLegalCitation(LEGAL_CITATION));
+		assertThat(existingDocumentEntity.getValidFrom()).isEqualTo(VALID_FROM);
+		assertThat(existingDocumentEntity.getValidTo()).isEqualTo(VALID_TO);
 	}
 
 	@Test
-	void toDocumentEntityFromDocumentUpdateRequestOverridesValidityWhenSupplied() {
+	void applyUpdateOverridesValidityWhenSupplied() {
 
 		// Arrange
 		final var newValidFrom = VALID_FROM.plusYears(1);
 		final var newValidTo = VALID_TO.plusYears(1);
 
 		final var documentUpdateRequest = DocumentUpdateRequest.create()
-			.withCreatedBy("Updated user")
 			.withValidFrom(newValidFrom)
 			.withValidTo(newValidTo);
 
@@ -255,12 +228,12 @@ class DocumentMapperTest {
 			.withValidTo(VALID_TO);
 
 		// Act
-		final var result = DocumentMapper.toDocumentEntity(documentUpdateRequest, existingDocumentEntity, binaryStoreMock);
+		DocumentMapper.applyUpdate(documentUpdateRequest, existingDocumentEntity);
 
 		// Assert
-		assertThat(result).isNotNull();
-		assertThat(result.getValidFrom()).isEqualTo(newValidFrom);
-		assertThat(result.getValidTo()).isEqualTo(newValidTo);
+		assertThat(existingDocumentEntity.getValidFrom()).isEqualTo(newValidFrom);
+		assertThat(existingDocumentEntity.getValidTo()).isEqualTo(newValidTo);
+		assertThat(existingDocumentEntity.getRevision()).isEqualTo(REVISION);
 	}
 
 	@Test

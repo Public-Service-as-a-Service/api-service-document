@@ -1,6 +1,7 @@
 {
 	"municipalityId": "2281",
-	"createdBy": "user-x",
+	"createdBy": "User3",
+	"updatedBy": "user-x",
 	"registrationNumber": "2023-2281-123",
 	"created": "${json-unit.any-string}",
 	"confidentiality": {
@@ -18,7 +19,7 @@
 		}
 	],
 	"type": "EMPLOYEE_CERTIFICATE",
-	"revision": 4,
+	"revision": 3,
 	"metadataList": [
 		{
 			"value": "Updated value",

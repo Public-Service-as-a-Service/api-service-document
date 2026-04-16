@@ -100,22 +100,27 @@ public class DocumentMapper {
 		return PUBLIC.getValue();
 	}
 
-	public static DocumentEntity toDocumentEntity(DocumentUpdateRequest documentUpdateRequest, DocumentEntity existingDocumentEntity, BinaryStore binaryStore) {
-		return DocumentEntity.create()
-			.withCreatedBy(documentUpdateRequest.getCreatedBy())
-			.withMunicipalityId(existingDocumentEntity.getMunicipalityId())
-			.withRegistrationNumber(existingDocumentEntity.getRegistrationNumber())
-			.withRevision(existingDocumentEntity.getRevision() + 1)
-			.withConfidentiality(existingDocumentEntity.getConfidentiality())
-			.withArchive(Optional.ofNullable(documentUpdateRequest.getArchive()).orElse(existingDocumentEntity.isArchive()))
-			.withDescription(Optional.ofNullable(documentUpdateRequest.getDescription()).orElse(existingDocumentEntity.getDescription()))
-			.withMetadata(Optional.ofNullable(documentUpdateRequest.getMetadataList())
-				.map(DocumentMapper::toDocumentMetadataEmbeddableList)
-				.orElse(copyDocumentMetadataEmbeddableList(existingDocumentEntity.getMetadata())))
-			.withDocumentData(copyDocumentDataEntities(existingDocumentEntity.getDocumentData(), binaryStore))
-			.withType(existingDocumentEntity.getType())
-			.withValidFrom(Optional.ofNullable(documentUpdateRequest.getValidFrom()).orElse(existingDocumentEntity.getValidFrom()))
-			.withValidTo(Optional.ofNullable(documentUpdateRequest.getValidTo()).orElse(existingDocumentEntity.getValidTo()));
+	public static void applyUpdate(DocumentUpdateRequest request, DocumentEntity entity) {
+		Optional.ofNullable(request.getArchive()).ifPresent(entity::setArchive);
+		Optional.ofNullable(request.getDescription()).ifPresent(entity::setDescription);
+		Optional.ofNullable(request.getUpdatedBy()).ifPresent(entity::setUpdatedBy);
+		Optional.ofNullable(request.getValidFrom()).ifPresent(entity::setValidFrom);
+		Optional.ofNullable(request.getValidTo()).ifPresent(entity::setValidTo);
+		Optional.ofNullable(request.getMetadataList())
+			.map(DocumentMapper::toDocumentMetadataEmbeddableList)
+			.ifPresent(newMetadata -> replaceMetadata(entity, newMetadata));
+	}
+
+	// Hibernate tracks @ElementCollection lists on managed entities. Replacing the reference
+	// (setMetadata) causes "collection was no longer referenced". Instead, clear and refill the
+	// existing list so Hibernate's proxy stays intact.
+	private static void replaceMetadata(DocumentEntity entity, List<DocumentMetadataEmbeddable> newMetadata) {
+		if (entity.getMetadata() != null) {
+			entity.getMetadata().clear();
+			entity.getMetadata().addAll(newMetadata);
+		} else {
+			entity.setMetadata(new ArrayList<>(newMetadata));
+		}
 	}
 
 	public static ConfidentialityEmbeddable toConfidentialityEmbeddable(Confidentiality confidentiality) {
@@ -164,6 +169,7 @@ public class DocumentMapper {
 				.withArchive(docEntity.isArchive())
 				.withCreated(docEntity.getCreated())
 				.withCreatedBy(docEntity.getCreatedBy())
+				.withUpdatedBy(docEntity.getUpdatedBy())
 				.withDescription(docEntity.getDescription())
 				.withDocumentData(toDocumentDataList(docEntity.getDocumentData()))
 				.withId(docEntity.getId())

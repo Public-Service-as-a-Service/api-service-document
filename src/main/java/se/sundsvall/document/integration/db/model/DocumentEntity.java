@@ -70,6 +70,9 @@ public class DocumentEntity {
 	@Column(name = "created_by")
 	private String createdBy;
 
+	@Column(name = "updated_by")
+	private String updatedBy;
+
 	@Column(name = "created")
 	@TimeZoneStorage(NORMALIZE)
 	private OffsetDateTime created;
@@ -211,6 +214,19 @@ public class DocumentEntity {
 		return this;
 	}
 
+	public String getUpdatedBy() {
+		return updatedBy;
+	}
+
+	public void setUpdatedBy(String updatedBy) {
+		this.updatedBy = updatedBy;
+	}
+
+	public DocumentEntity withUpdatedBy(String updatedBy) {
+		this.updatedBy = updatedBy;
+		return this;
+	}
+
 	public OffsetDateTime getCreated() {
 		return created;
 	}
@@ -278,7 +294,7 @@ public class DocumentEntity {
 
 	@Override
 	public int hashCode() {
-		return Objects.hash(archive, confidentiality, created, createdBy, description, documentData, id, metadata, municipalityId, registrationNumber, revision, type, validFrom, validTo);
+		return Objects.hash(archive, confidentiality, created, createdBy, description, documentData, id, metadata, municipalityId, registrationNumber, revision, type, updatedBy, validFrom, validTo);
 	}
 
 	@Override
@@ -291,15 +307,15 @@ public class DocumentEntity {
 		}
 		return archive == other.archive && Objects.equals(confidentiality, other.confidentiality) && Objects.equals(created, other.created) && Objects.equals(createdBy, other.createdBy) && Objects.equals(description, other.description) && Objects
 			.equals(documentData, other.documentData) && Objects.equals(id, other.id) && Objects.equals(metadata, other.metadata) && Objects.equals(municipalityId, other.municipalityId) && Objects.equals(registrationNumber, other.registrationNumber)
-			&& revision == other.revision && Objects.equals(type, other.type) && Objects.equals(validFrom, other.validFrom) && Objects.equals(validTo, other.validTo);
+			&& revision == other.revision && Objects.equals(type, other.type) && Objects.equals(updatedBy, other.updatedBy) && Objects.equals(validFrom, other.validFrom) && Objects.equals(validTo, other.validTo);
 	}
 
 	@Override
 	public String toString() {
 		final var builder = new StringBuilder();
 		builder.append("DocumentEntity [id=").append(id).append(", revision=").append(revision).append(", municipalityId=").append(municipalityId).append(", registrationNumber=").append(registrationNumber).append(", type=").append(type).append(
-			", description=").append(description).append(", confidentiality=").append(confidentiality).append(", archive=").append(archive).append(", createdBy=").append(createdBy).append(", created=").append(created).append(", validFrom=").append(
-				validFrom).append(", validTo=").append(validTo).append(", documentData=").append(documentData).append(", metadata=").append(metadata).append("]");
+			", description=").append(description).append(", confidentiality=").append(confidentiality).append(", archive=").append(archive).append(", createdBy=").append(createdBy).append(", updatedBy=").append(updatedBy).append(", created=").append(
+				created).append(", validFrom=").append(validFrom).append(", validTo=").append(validTo).append(", documentData=").append(documentData).append(", metadata=").append(metadata).append("]");
 		return builder.toString();
 	}
 }

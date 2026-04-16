@@ -103,6 +103,7 @@ public class DocumentMapper {
 	public static void applyUpdate(DocumentUpdateRequest request, DocumentEntity entity) {
 		Optional.ofNullable(request.getArchive()).ifPresent(entity::setArchive);
 		Optional.ofNullable(request.getDescription()).ifPresent(entity::setDescription);
+		Optional.ofNullable(request.getUpdatedBy()).ifPresent(entity::setUpdatedBy);
 		Optional.ofNullable(request.getValidFrom()).ifPresent(entity::setValidFrom);
 		Optional.ofNullable(request.getValidTo()).ifPresent(entity::setValidTo);
 		Optional.ofNullable(request.getMetadataList())
@@ -168,6 +169,7 @@ public class DocumentMapper {
 				.withArchive(docEntity.isArchive())
 				.withCreated(docEntity.getCreated())
 				.withCreatedBy(docEntity.getCreatedBy())
+				.withUpdatedBy(docEntity.getUpdatedBy())
 				.withDescription(docEntity.getDescription())
 				.withDocumentData(toDocumentDataList(docEntity.getDocumentData()))
 				.withId(docEntity.getId())

@@ -1,6 +1,7 @@
 {
 	"municipalityId": "2281",
 	"createdBy": "User3",
+	"updatedBy": "user-x",
 	"registrationNumber": "2023-2281-123",
 	"created": "${json-unit.any-string}",
 	"confidentiality": {

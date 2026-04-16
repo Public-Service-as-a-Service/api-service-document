@@ -711,7 +711,7 @@ class DocumentServiceTest {
 		// Arrange
 		final var includeConfidential = false;
 		final var documentUpdateRequest = DocumentUpdateRequest.create()
-			.withCreatedBy("changedUser")
+			.withUpdatedBy("changedUser")
 			.withMetadataList(List.of(DocumentMetadata.create().withKey("changedKey").withValue("changedValue")));
 
 		when(documentRepositoryMock.findTopByMunicipalityIdAndRegistrationNumberAndConfidentialityConfidentialInOrderByRevisionDesc(MUNICIPALITY_ID, REGISTRATION_NUMBER, PUBLIC.getValue())).thenReturn(empty());

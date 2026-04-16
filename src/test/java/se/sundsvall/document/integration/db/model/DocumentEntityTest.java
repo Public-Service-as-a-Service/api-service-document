@@ -45,6 +45,7 @@ class DocumentEntityTest {
 		final var confidentiality = ConfidentialityEmbeddable.create().withConfidential(true).withLegalCitation("legalCitation");
 		final var created = now(systemDefault());
 		final var createdBy = "user";
+		final var updatedBy = "updater";
 		final var description = "description";
 		final var documentDatas = List.of(DocumentDataEntity.create());
 		final var id = randomUUID().toString();
@@ -61,6 +62,7 @@ class DocumentEntityTest {
 			.withConfidentiality(confidentiality)
 			.withCreated(created)
 			.withCreatedBy(createdBy)
+			.withUpdatedBy(updatedBy)
 			.withDescription(description)
 			.withDocumentData(documentDatas)
 			.withId(id)
@@ -77,6 +79,7 @@ class DocumentEntityTest {
 		assertThat(bean.getConfidentiality()).isEqualTo(confidentiality);
 		assertThat(bean.getCreated()).isEqualTo(created);
 		assertThat(bean.getCreatedBy()).isEqualTo(createdBy);
+		assertThat(bean.getUpdatedBy()).isEqualTo(updatedBy);
 		assertThat(bean.getDescription()).isEqualTo(description);
 		assertThat(bean.getDocumentData()).isEqualTo(documentDatas);
 		assertThat(bean.getId()).isEqualTo(id);

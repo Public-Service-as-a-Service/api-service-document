@@ -391,7 +391,7 @@ class DocumentResourceFailuresTest {
 
 		// Arrange
 		final var requestBody = DocumentUpdateRequest.create()
-			.withCreatedBy("user")
+			.withUpdatedBy("user")
 			.withDescription("description")
 			.withMetadataList(List.of(
 				DocumentMetadata.create()
@@ -424,7 +424,7 @@ class DocumentResourceFailuresTest {
 
 		// Arrange
 		final var requestBody = DocumentUpdateRequest.create()
-			.withCreatedBy("user")
+			.withUpdatedBy("user")
 			.withDescription("description")
 			.withMetadataList(List.of(
 				DocumentMetadata.create()
@@ -457,7 +457,7 @@ class DocumentResourceFailuresTest {
 
 		// Arrange
 		final var requestBody = DocumentUpdateRequest.create()
-			.withCreatedBy("user")
+			.withUpdatedBy("user")
 			.withDescription(repeat("x", 8193)) // 8192 is max length on description.
 			.withMetadataList(List.of(
 				DocumentMetadata.create()
@@ -489,7 +489,7 @@ class DocumentResourceFailuresTest {
 	void updateWithInvalidType() {
 		doThrow(new ConstraintViolationProblem(BAD_REQUEST, List.of(new Violation("type", "error")))).when(validationUtilityMock).validate(any(), any());
 		final var requestBody = DocumentUpdateRequest.create()
-			.withCreatedBy("user")
+			.withUpdatedBy("user")
 			.withType("type")
 			.withMetadataList(List.of(DocumentMetadata.create()
 				.withKey("key")

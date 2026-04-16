@@ -1311,6 +1311,11 @@ components:
           description: Actor that created this revision.
           examples:
             - username123
+        updatedBy:
+          type: string
+          description: Actor that last updated this document.
+          examples:
+            - username456
         archive:
           type: boolean
           description: Tells if the document is eligible for archiving
@@ -1449,7 +1454,7 @@ components:
       type: object
       description: DocumentUpdateRequest model.
       properties:
-        createdBy:
+        updatedBy:
           type: string
           description: Actor that performed the update.
           examples:

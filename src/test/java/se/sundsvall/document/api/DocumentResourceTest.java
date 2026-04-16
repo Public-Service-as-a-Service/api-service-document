@@ -16,7 +16,6 @@ import org.springframework.http.client.MultipartBodyBuilder;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.reactive.server.WebTestClient;
-import org.springframework.web.multipart.MultipartFile;
 import se.sundsvall.document.Application;
 import se.sundsvall.document.api.model.Confidentiality;
 import se.sundsvall.document.api.model.ConfidentialityUpdateRequest;
@@ -418,7 +417,7 @@ class DocumentResourceTest {
 		multipartBodyBuilder.part("documentFile", "file-content").filename("test1.txt").contentType(TEXT_PLAIN);
 		multipartBodyBuilder.part("document", documentDataCreateRequest);
 
-		when(documentServiceMock.addOrReplaceFile(any(), any(), any(), any())).thenReturn(Document.create());
+		when(documentServiceMock.addOrReplaceFiles(any(), any(), any(), any())).thenReturn(Document.create());
 
 		// Act
 		webTestClient.put()
@@ -430,8 +429,38 @@ class DocumentResourceTest {
 			.expectBody()
 			.isEmpty();
 
-		// Assert
-		verify(documentServiceMock).addOrReplaceFile(eq(registrationNumber), eq(documentDataCreateRequest), ArgumentMatchers.<MultipartFile>any(), eq("2281"));
+		// Assert — backwards-compatible singular upload is wrapped into a one-element DocumentFiles.
+		verify(documentServiceMock).addOrReplaceFiles(eq(registrationNumber), eq(documentDataCreateRequest), ArgumentMatchers.<DocumentFiles>any(), eq("2281"));
+	}
+
+	@Test
+	void addMultipleFiles() {
+
+		// Arrange
+		final var registrationNumber = "2023-1337";
+
+		final var documentDataCreateRequest = DocumentDataCreateRequest.create()
+			.withCreatedBy("user");
+		final var multipartBodyBuilder = new MultipartBodyBuilder();
+		multipartBodyBuilder.part("documentFiles", "file-content-1").filename("test1.txt").contentType(TEXT_PLAIN);
+		multipartBodyBuilder.part("documentFiles", "file-content-2").filename("test2.txt").contentType(TEXT_PLAIN);
+		multipartBodyBuilder.part("documentFiles", "file-content-3").filename("test3.txt").contentType(TEXT_PLAIN);
+		multipartBodyBuilder.part("document", documentDataCreateRequest);
+
+		when(documentServiceMock.addOrReplaceFiles(any(), any(), any(), any())).thenReturn(Document.create());
+
+		// Act
+		webTestClient.put()
+			.uri("/2281/documents/" + registrationNumber + "/files")
+			.contentType(MULTIPART_FORM_DATA)
+			.body(fromMultipartData(multipartBodyBuilder.build()))
+			.exchange()
+			.expectStatus().isNoContent()
+			.expectBody()
+			.isEmpty();
+
+		// Assert — resource delegates to the batch service method; the service is responsible for single-revision semantics.
+		verify(documentServiceMock).addOrReplaceFiles(eq(registrationNumber), eq(documentDataCreateRequest), ArgumentMatchers.<DocumentFiles>any(), eq("2281"));
 	}
 
 	@Test

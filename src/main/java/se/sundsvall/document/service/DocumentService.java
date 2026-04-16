@@ -4,8 +4,8 @@ import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.List;
+import java.util.Comparator;
 import java.util.Optional;
 import java.util.stream.Collectors;
 import org.apache.commons.lang3.Strings;
@@ -60,7 +60,6 @@ import static se.sundsvall.document.service.mapper.DocumentMapper.copyDocumentEn
 import static se.sundsvall.document.service.mapper.DocumentMapper.toConfidentialityEmbeddable;
 import static se.sundsvall.document.service.mapper.DocumentMapper.toDocument;
 import static se.sundsvall.document.service.mapper.DocumentMapper.toDocumentDataEntities;
-import static se.sundsvall.document.service.mapper.DocumentMapper.toDocumentDataEntity;
 import static se.sundsvall.document.service.mapper.DocumentMapper.toDocumentEntity;
 import static se.sundsvall.document.service.mapper.DocumentMapper.toDocumentResponsibilities;
 import static se.sundsvall.document.service.mapper.DocumentMapper.toDocumentResponsibilityEntities;
@@ -178,20 +177,24 @@ public class DocumentService {
 	}
 
 	public Document addOrReplaceFile(String registrationNumber, DocumentDataCreateRequest documentDataCreateRequest, MultipartFile documentFile, String municipalityId) {
+		return addOrReplaceFiles(registrationNumber, documentDataCreateRequest, DocumentFiles.create().withFiles(List.of(documentFile)), municipalityId);
+	}
+
+	public Document addOrReplaceFiles(String registrationNumber, DocumentDataCreateRequest documentDataCreateRequest, DocumentFiles documentFiles, String municipalityId) {
 
 		final var documentEntity = documentRepository.findTopByMunicipalityIdAndRegistrationNumberAndConfidentialityConfidentialInOrderByRevisionDesc(municipalityId, registrationNumber, CONFIDENTIAL_AND_PUBLIC.getValue())
 			.orElseThrow(() -> Problem.valueOf(NOT_FOUND, ERROR_DOCUMENT_BY_REGISTRATION_NUMBER_NOT_FOUND.formatted(registrationNumber)));
 
-		// Create documentData element to add/replace.
-		final var newDocumentDataEntity = toDocumentDataEntity(documentFile, binaryStore, municipalityId);
+		// Materialize all incoming files into documentData entities up front — one storage write per file.
+		final var newDocumentDataEntities = toDocumentDataEntities(documentFiles, binaryStore, municipalityId);
 
 		// Do not update existing entity, create a new revision instead.
 		final var newDocumentEntity = copyDocumentEntity(documentEntity, binaryStore)
 			.withRevision(documentEntity.getRevision() + 1)
 			.withCreatedBy(documentDataCreateRequest.getCreatedBy());
 
-		// Adds the new documentData element if the file name doesn't exist already, otherwise the old element is replaced.
-		addOrReplaceDocumentDataEntity(newDocumentEntity, newDocumentDataEntity);
+		// Add/replace each new documentData element against the single new revision so N files produce 1 revision.
+		newDocumentDataEntities.forEach(entity -> addOrReplaceDocumentDataEntity(newDocumentEntity, entity));
 
 		return toDocumentWithResponsibilities(documentRepository.save(newDocumentEntity));
 	}

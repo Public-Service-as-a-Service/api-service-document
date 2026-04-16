@@ -1,12 +1,15 @@
 package se.sundsvall.document.service;
 
+import java.time.OffsetDateTime;
 import java.time.Year;
+import java.time.ZoneId;
+import java.util.UUID;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import se.sundsvall.document.integration.db.RegistrationNumberSequenceRepository;
 import se.sundsvall.document.integration.db.model.RegistrationNumberSequenceEntity;
 
-import static java.time.ZoneId.systemDefault;
+import static java.time.temporal.ChronoUnit.MILLIS;
 import static se.sundsvall.document.service.Constants.TEMPLATE_REGISTRATION_NUMBER;
 
 /**
@@ -26,6 +29,11 @@ public class RegistrationNumberService {
 
 	private static final int SEQUENCE_START = 1;
 
+	// Year rollover is decided in the service's canonical zone so behavior is independent of the
+	// JVM's default zone. Picking Stockholm explicitly avoids off-by-one resets around Dec 31 / Jan 1
+	// when instances run with different TZ environments.
+	private static final ZoneId CANONICAL_ZONE = ZoneId.of("Europe/Stockholm");
+
 	private final RegistrationNumberSequenceRepository registrationNumberSequenceRepository;
 
 	public RegistrationNumberService(RegistrationNumberSequenceRepository registrationNumberSequenceRepository) {
@@ -33,20 +41,23 @@ public class RegistrationNumberService {
 	}
 
 	public String generateRegistrationNumber(String municipalityId) {
-		final var currentYear = Year.now(systemDefault()).getValue();
+		final var currentYear = Year.now(CANONICAL_ZONE).getValue();
 
-		final var sequenceEntity = registrationNumberSequenceRepository.findByMunicipalityId(municipalityId)
-			.map(existing -> existing.withSequenceNumber(nextSequenceNumber(existing, currentYear)))
-			.orElseGet(() -> RegistrationNumberSequenceEntity.create()
-				.withMunicipalityId(municipalityId)
-				.withSequenceNumber(SEQUENCE_START));
+		// Guarantee a row exists before the pessimistic lock. Without this, concurrent first-time
+		// callers both observe empty, both INSERT, and the unique constraint fails one of them.
+		registrationNumberSequenceRepository.insertIfMissing(UUID.randomUUID().toString(), municipalityId, OffsetDateTime.now(CANONICAL_ZONE).truncatedTo(MILLIS));
 
-		final var saved = registrationNumberSequenceRepository.save(sequenceEntity);
-		return TEMPLATE_REGISTRATION_NUMBER.formatted(currentYear, saved.getMunicipalityId(), saved.getSequenceNumber());
+		final var existing = registrationNumberSequenceRepository.findByMunicipalityId(municipalityId)
+			.orElseThrow(() -> new IllegalStateException("Sequence row missing for municipalityId=" + municipalityId + " after seed"));
+
+		final var updated = registrationNumberSequenceRepository.save(existing.withSequenceNumber(nextSequenceNumber(existing, currentYear)));
+
+		return TEMPLATE_REGISTRATION_NUMBER.formatted(currentYear, updated.getMunicipalityId(), updated.getSequenceNumber());
 	}
 
 	private static int nextSequenceNumber(RegistrationNumberSequenceEntity existing, int currentYear) {
 		final var lastTouched = existing.getModified() != null ? existing.getModified() : existing.getCreated();
-		return lastTouched.getYear() < currentYear ? SEQUENCE_START : existing.getSequenceNumber() + 1;
+		final var lastTouchedYear = lastTouched.atZoneSameInstant(CANONICAL_ZONE).getYear();
+		return lastTouchedYear < currentYear ? SEQUENCE_START : existing.getSequenceNumber() + 1;
 	}
 }

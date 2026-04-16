@@ -13,6 +13,7 @@
         legal_citation varchar(255),
         municipality_id varchar(255),
         registration_number varchar(255) not null,
+        updated_by varchar(255),
         primary key (id)
     ) engine=InnoDB;
 

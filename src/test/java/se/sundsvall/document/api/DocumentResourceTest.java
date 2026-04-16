@@ -109,7 +109,7 @@ class DocumentResourceTest {
 		// Arrange
 		final var registrationNumber = "2023-1337";
 		final var documentUpdateRequest = DocumentUpdateRequest.create()
-			.withCreatedBy("user")
+			.withUpdatedBy("user")
 			.withMetadataList(List.of(DocumentMetadata.create()
 				.withKey("key")
 				.withValue("value")));
@@ -188,7 +188,7 @@ class DocumentResourceTest {
 		final var includeConfidential = true;
 		final var registrationNumber = "2023-1337";
 		final var documentUpdateRequest = DocumentUpdateRequest.create()
-			.withCreatedBy("user")
+			.withUpdatedBy("user")
 			.withMetadataList(List.of(DocumentMetadata.create()
 				.withKey("key")
 				.withValue("value")));

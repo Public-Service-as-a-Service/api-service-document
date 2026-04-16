@@ -55,6 +55,7 @@ import static se.sundsvall.document.service.Constants.ERROR_DOCUMENT_FILE_BY_REG
 import static se.sundsvall.document.service.Constants.TEMPLATE_EVENTLOG_MESSAGE_CONFIDENTIALITY_UPDATED_ON_DOCUMENT;
 import static se.sundsvall.document.service.Constants.TEMPLATE_EVENTLOG_MESSAGE_RESPONSIBILITIES_UPDATED_ON_DOCUMENT;
 import static se.sundsvall.document.service.InclusionFilter.CONFIDENTIAL_AND_PUBLIC;
+import static se.sundsvall.document.service.mapper.DocumentMapper.applyUpdate;
 import static se.sundsvall.document.service.mapper.DocumentMapper.copyDocumentEntity;
 import static se.sundsvall.document.service.mapper.DocumentMapper.toConfidentialityEmbeddable;
 import static se.sundsvall.document.service.mapper.DocumentMapper.toDocument;
@@ -225,16 +226,16 @@ public class DocumentService {
 		final var existingDocumentEntity = documentRepository.findTopByMunicipalityIdAndRegistrationNumberAndConfidentialityConfidentialInOrderByRevisionDesc(municipalityId, registrationNumber, toInclusionFilter(includeConfidential))
 			.orElseThrow(() -> Problem.valueOf(NOT_FOUND, ERROR_DOCUMENT_BY_REGISTRATION_NUMBER_NOT_FOUND.formatted(registrationNumber)));
 
-		// Do not update existing entity, create a new revision instead.
-		final var newDocumentEntity = toDocumentEntity(documentUpdateRequest, existingDocumentEntity, binaryStore);
+		applyUpdate(documentUpdateRequest, existingDocumentEntity);
+
 		if (nonNull(documentUpdateRequest.getType())) {
 			final var documentTypeEntity = documentTypeRepository.findByMunicipalityIdAndType(municipalityId, documentUpdateRequest.getType())
 				.orElseThrow(() -> Problem.valueOf(NOT_FOUND, ERROR_DOCUMENT_TYPE_NOT_FOUND.formatted(documentUpdateRequest.getType(), municipalityId)));
 
-			newDocumentEntity.setType(documentTypeEntity);
+			existingDocumentEntity.setType(documentTypeEntity);
 		}
 
-		return toDocumentWithResponsibilities(documentRepository.save(newDocumentEntity));
+		return toDocumentWithResponsibilities(documentRepository.save(existingDocumentEntity));
 	}
 
 	public void updateConfidentiality(String registrationNumber, ConfidentialityUpdateRequest confidentialityUpdateRequest, String municipalityId) {

@@ -2,7 +2,6 @@ package se.sundsvall.document.api.model;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.Valid;
-import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 import java.time.LocalDate;
 import java.util.List;
@@ -10,14 +9,11 @@ import java.util.Objects;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.format.annotation.DateTimeFormat.ISO;
 
-import static io.swagger.v3.oas.annotations.media.Schema.RequiredMode.REQUIRED;
-
 @Schema(description = "DocumentUpdateRequest model.")
 public class DocumentUpdateRequest {
 
-	@NotBlank
-	@Schema(description = "Actor that created this revision (all modifications will create new revisions).", examples = "username123", requiredMode = REQUIRED)
-	private String createdBy;
+	@Schema(description = "Actor that performed the update.", examples = "username123")
+	private String updatedBy;
 
 	@Size(max = 8192)
 	@Schema(description = "Document description", examples = "A brief description of this object. Maximum 8192 characters.")
@@ -44,16 +40,16 @@ public class DocumentUpdateRequest {
 		return new DocumentUpdateRequest();
 	}
 
-	public String getCreatedBy() {
-		return createdBy;
+	public String getUpdatedBy() {
+		return updatedBy;
 	}
 
-	public void setCreatedBy(String createdBy) {
-		this.createdBy = createdBy;
+	public void setUpdatedBy(String updatedBy) {
+		this.updatedBy = updatedBy;
 	}
 
-	public DocumentUpdateRequest withCreatedBy(String createdBy) {
-		this.createdBy = createdBy;
+	public DocumentUpdateRequest withUpdatedBy(String updatedBy) {
+		this.updatedBy = updatedBy;
 		return this;
 	}
 
@@ -137,7 +133,7 @@ public class DocumentUpdateRequest {
 
 	@Override
 	public int hashCode() {
-		return Objects.hash(archive, createdBy, description, metadataList, type, validFrom, validTo);
+		return Objects.hash(archive, updatedBy, description, metadataList, type, validFrom, validTo);
 	}
 
 	@Override
@@ -148,14 +144,14 @@ public class DocumentUpdateRequest {
 		if (!(obj instanceof final DocumentUpdateRequest other)) {
 			return false;
 		}
-		return Objects.equals(archive, other.archive) && Objects.equals(createdBy, other.createdBy) && Objects.equals(description, other.description) && Objects.equals(metadataList, other.metadataList) && Objects.equals(type, other.type)
+		return Objects.equals(archive, other.archive) && Objects.equals(updatedBy, other.updatedBy) && Objects.equals(description, other.description) && Objects.equals(metadataList, other.metadataList) && Objects.equals(type, other.type)
 			&& Objects.equals(validFrom, other.validFrom) && Objects.equals(validTo, other.validTo);
 	}
 
 	@Override
 	public String toString() {
 		final var builder = new StringBuilder();
-		builder.append("DocumentUpdateRequest [createdBy=").append(createdBy).append(", description=").append(description).append(", archive=").append(archive).append(", metadataList=").append(metadataList).append(", type=").append(type).append(
+		builder.append("DocumentUpdateRequest [updatedBy=").append(updatedBy).append(", description=").append(description).append(", archive=").append(archive).append(", metadataList=").append(metadataList).append(", type=").append(type).append(
 			", validFrom=").append(validFrom).append(", validTo=").append(validTo).append("]");
 		return builder.toString();
 	}

@@ -45,6 +45,7 @@ class DocumentTest {
 		final var confidentiality = Confidentiality.create().withConfidential(true).withLegalCitation("legalCitation");
 		final var created = now(systemDefault());
 		final var createdBy = "user";
+		final var updatedBy = "updater";
 		final var description = "description";
 		final var documentData = List.of(DocumentData.create());
 		final var id = randomUUID().toString();
@@ -62,6 +63,7 @@ class DocumentTest {
 			.withConfidentiality(confidentiality)
 			.withCreated(created)
 			.withCreatedBy(createdBy)
+			.withUpdatedBy(updatedBy)
 			.withDescription(description)
 			.withDocumentData(documentData)
 			.withId(id)
@@ -79,6 +81,7 @@ class DocumentTest {
 		assertThat(bean.getConfidentiality()).isEqualTo(confidentiality);
 		assertThat(bean.getCreated()).isEqualTo(created);
 		assertThat(bean.getCreatedBy()).isEqualTo(createdBy);
+		assertThat(bean.getUpdatedBy()).isEqualTo(updatedBy);
 		assertThat(bean.getDescription()).isEqualTo(description);
 		assertThat(bean.getDocumentData()).isEqualTo(documentData);
 		assertThat(bean.getId()).isEqualTo(id);

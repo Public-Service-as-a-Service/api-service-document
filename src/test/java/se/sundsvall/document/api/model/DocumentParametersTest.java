@@ -46,7 +46,7 @@ class DocumentParametersTest {
 				.withKey("key1")
 				.withMatchesAny(List.of("value1", "value2"))
 				.withMatchesAll(List.of("value1", "value2")));
-		var responsibilities = List.of(DocumentResponsibility.create().withPrincipalType(PrincipalType.USER).withPrincipalId(createdBy));
+		var responsibilities = List.of(DocumentResponsibility.create().withUsername(createdBy));
 		var validOn = LocalDate.of(2026, 4, 15);
 
 		final var bean = DocumentParameters.create()

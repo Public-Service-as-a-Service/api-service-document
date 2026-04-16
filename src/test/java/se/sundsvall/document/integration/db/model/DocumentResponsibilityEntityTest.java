@@ -4,7 +4,6 @@ import java.time.OffsetDateTime;
 import java.util.Random;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
-import se.sundsvall.document.api.model.PrincipalType;
 
 import static com.google.code.beanmatchers.BeanMatchers.hasValidBeanConstructor;
 import static com.google.code.beanmatchers.BeanMatchers.hasValidBeanEquals;
@@ -42,8 +41,7 @@ class DocumentResponsibilityEntityTest {
 		final var id = randomUUID().toString();
 		final var municipalityId = "2281";
 		final var registrationNumber = "2026-2281-1";
-		final var principalType = PrincipalType.USER;
-		final var principalId = "username123";
+		final var username = "username123";
 		final var createdBy = "createdBy";
 		final var created = now(systemDefault());
 		final var updatedBy = "updatedBy";
@@ -53,8 +51,7 @@ class DocumentResponsibilityEntityTest {
 			.withId(id)
 			.withMunicipalityId(municipalityId)
 			.withRegistrationNumber(registrationNumber)
-			.withPrincipalType(principalType)
-			.withPrincipalId(principalId)
+			.withUsername(username)
 			.withCreatedBy(createdBy)
 			.withCreated(created)
 			.withUpdatedBy(updatedBy)
@@ -64,8 +61,7 @@ class DocumentResponsibilityEntityTest {
 		assertThat(bean.getId()).isEqualTo(id);
 		assertThat(bean.getMunicipalityId()).isEqualTo(municipalityId);
 		assertThat(bean.getRegistrationNumber()).isEqualTo(registrationNumber);
-		assertThat(bean.getPrincipalType()).isEqualTo(principalType);
-		assertThat(bean.getPrincipalId()).isEqualTo(principalId);
+		assertThat(bean.getUsername()).isEqualTo(username);
 		assertThat(bean.getCreatedBy()).isEqualTo(createdBy);
 		assertThat(bean.getCreated()).isEqualTo(created);
 		assertThat(bean.getUpdatedBy()).isEqualTo(updatedBy);

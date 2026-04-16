@@ -29,7 +29,6 @@ import se.sundsvall.document.api.model.DocumentResponsibilitiesUpdateRequest;
 import se.sundsvall.document.api.model.DocumentResponsibility;
 import se.sundsvall.document.api.model.DocumentUpdateRequest;
 import se.sundsvall.document.api.model.PagedDocumentResponse;
-import se.sundsvall.document.api.model.PrincipalType;
 import se.sundsvall.document.api.validation.DocumentTypeValidator;
 import se.sundsvall.document.service.DocumentService;
 
@@ -75,8 +74,7 @@ class DocumentResourceTest {
 				.withKey("key")
 				.withValue("value")))
 			.withResponsibilities(List.of(DocumentResponsibility.create()
-				.withPrincipalType(PrincipalType.USER)
-				.withPrincipalId("user")))
+				.withUsername("username123")))
 			.withType("type")
 			.withValidFrom(LocalDate.of(2026, 4, 15))
 			.withValidTo(LocalDate.of(2027, 4, 15));
@@ -167,8 +165,7 @@ class DocumentResourceTest {
 		final var responsibilitiesUpdateRequest = DocumentResponsibilitiesUpdateRequest.create()
 			.withChangedBy("user")
 			.withResponsibilities(List.of(DocumentResponsibility.create()
-				.withPrincipalType(PrincipalType.USER)
-				.withPrincipalId("user")));
+				.withUsername("username123")));
 
 		// Act
 		webTestClient.put()

@@ -43,7 +43,6 @@ import se.sundsvall.document.api.model.DocumentMetadata;
 import se.sundsvall.document.api.model.DocumentResponsibilitiesUpdateRequest;
 import se.sundsvall.document.api.model.DocumentResponsibility;
 import se.sundsvall.document.api.model.DocumentUpdateRequest;
-import se.sundsvall.document.api.model.PrincipalType;
 import se.sundsvall.document.integration.db.DocumentRepository;
 import se.sundsvall.document.integration.db.DocumentResponsibilityRepository;
 import se.sundsvall.document.integration.db.DocumentTypeRepository;
@@ -172,7 +171,7 @@ class DocumentServiceTest {
 		final var documentCreateRequest = DocumentCreateRequest.create()
 			.withCreatedBy(CREATED_BY)
 			.withMetadataList(List.of(DocumentMetadata.create().withKey(METADATA_KEY).withValue(METADATA_VALUE)))
-			.withResponsibilities(List.of(DocumentResponsibility.create().withPrincipalType(PrincipalType.USER).withPrincipalId(CREATED_BY)))
+			.withResponsibilities(List.of(DocumentResponsibility.create().withUsername(CREATED_BY)))
 			.withType(DOCUMENT_TYPE)
 			.withValidFrom(VALID_FROM)
 			.withValidTo(VALID_TO);
@@ -193,7 +192,7 @@ class DocumentServiceTest {
 
 		// Assert
 		assertThat(result).isNotNull();
-		assertThat(result.getResponsibilities()).containsExactly(DocumentResponsibility.create().withPrincipalType(PrincipalType.USER).withPrincipalId(CREATED_BY.toLowerCase()));
+		assertThat(result.getResponsibilities()).containsExactly(DocumentResponsibility.create().withUsername("user"));
 
 		verify(documentTypeRepositoryMock).findByMunicipalityIdAndType(MUNICIPALITY_ID, DOCUMENT_TYPE);
 		verify(registrationNumberServiceMock).generateRegistrationNumber(MUNICIPALITY_ID);
@@ -218,9 +217,9 @@ class DocumentServiceTest {
 		assertThat(capturedDocumentEntity.getValidTo()).isEqualTo(VALID_TO);
 
 		assertThat(responsibilityEntitiesCaptor.getValue())
-			.extracting(DocumentResponsibilityEntity::getMunicipalityId, DocumentResponsibilityEntity::getRegistrationNumber, DocumentResponsibilityEntity::getPrincipalType, DocumentResponsibilityEntity::getPrincipalId,
+			.extracting(DocumentResponsibilityEntity::getMunicipalityId, DocumentResponsibilityEntity::getRegistrationNumber, DocumentResponsibilityEntity::getUsername,
 				DocumentResponsibilityEntity::getCreatedBy)
-			.containsExactly(tuple(MUNICIPALITY_ID, REGISTRATION_NUMBER, PrincipalType.USER, CREATED_BY.toLowerCase(), CREATED_BY));
+			.containsExactly(tuple(MUNICIPALITY_ID, REGISTRATION_NUMBER, "user", CREATED_BY));
 	}
 
 	@Test
@@ -808,41 +807,41 @@ class DocumentServiceTest {
 		final var request = DocumentResponsibilitiesUpdateRequest.create()
 			.withChangedBy(CREATED_BY)
 			.withResponsibilities(List.of(
-				DocumentResponsibility.create().withPrincipalType(PrincipalType.USER).withPrincipalId(CREATED_BY),
-				DocumentResponsibility.create().withPrincipalType(PrincipalType.GROUP).withPrincipalId("group")));
+				DocumentResponsibility.create().withUsername(CREATED_BY),
+				DocumentResponsibility.create().withUsername("other-username123")));
 		final var oldResponsibilities = List.of(DocumentResponsibilityEntity.create()
 			.withMunicipalityId(MUNICIPALITY_ID)
 			.withRegistrationNumber(REGISTRATION_NUMBER)
-			.withPrincipalType(PrincipalType.USER)
-			.withPrincipalId("oldUser"));
+			.withUsername("old-username123"));
 
 		when(eventlogPropertiesMock.logKeyUuid()).thenReturn(eventLogKey);
 		when(documentRepositoryMock.existsByMunicipalityIdAndRegistrationNumber(MUNICIPALITY_ID, REGISTRATION_NUMBER)).thenReturn(true);
-		when(documentResponsibilityRepositoryMock.findByMunicipalityIdAndRegistrationNumberOrderByPrincipalTypeAscPrincipalIdAsc(MUNICIPALITY_ID, REGISTRATION_NUMBER)).thenReturn(oldResponsibilities);
+		when(documentResponsibilityRepositoryMock.findByMunicipalityIdAndRegistrationNumberOrderByUsernameAsc(MUNICIPALITY_ID, REGISTRATION_NUMBER)).thenReturn(oldResponsibilities);
 
 		// Act
 		documentService.updateResponsibilities(REGISTRATION_NUMBER, request, MUNICIPALITY_ID);
 
 		// Assert
 		verify(documentRepositoryMock).existsByMunicipalityIdAndRegistrationNumber(MUNICIPALITY_ID, REGISTRATION_NUMBER);
-		verify(documentResponsibilityRepositoryMock).findByMunicipalityIdAndRegistrationNumberOrderByPrincipalTypeAscPrincipalIdAsc(MUNICIPALITY_ID, REGISTRATION_NUMBER);
+		verify(documentResponsibilityRepositoryMock).findByMunicipalityIdAndRegistrationNumberOrderByUsernameAsc(MUNICIPALITY_ID, REGISTRATION_NUMBER);
 		verify(documentResponsibilityRepositoryMock).deleteByMunicipalityIdAndRegistrationNumber(MUNICIPALITY_ID, REGISTRATION_NUMBER);
+		verify(documentResponsibilityRepositoryMock).flush();
 		verify(documentResponsibilityRepositoryMock).saveAll(responsibilityEntitiesCaptor.capture());
 		assertThat(eventLogClient.requests).hasSize(1);
 		verifyNoInteractions(registrationNumberServiceMock, documentTypeRepositoryMock, binaryStoreMock);
 
 		assertThat(responsibilityEntitiesCaptor.getValue())
-			.extracting(DocumentResponsibilityEntity::getMunicipalityId, DocumentResponsibilityEntity::getRegistrationNumber, DocumentResponsibilityEntity::getPrincipalType, DocumentResponsibilityEntity::getPrincipalId,
+			.extracting(DocumentResponsibilityEntity::getMunicipalityId, DocumentResponsibilityEntity::getRegistrationNumber, DocumentResponsibilityEntity::getUsername,
 				DocumentResponsibilityEntity::getCreatedBy)
 			.containsExactly(
-				tuple(MUNICIPALITY_ID, REGISTRATION_NUMBER, PrincipalType.USER, CREATED_BY.toLowerCase(), CREATED_BY),
-				tuple(MUNICIPALITY_ID, REGISTRATION_NUMBER, PrincipalType.GROUP, "group", CREATED_BY));
+				tuple(MUNICIPALITY_ID, REGISTRATION_NUMBER, "user", CREATED_BY),
+				tuple(MUNICIPALITY_ID, REGISTRATION_NUMBER, "other-username123", CREATED_BY));
 
 		final var capturedEvent = eventLogClient.requests.getFirst().event();
 		assertThat(eventLogClient.requests.getFirst().municipalityId()).isEqualTo(MUNICIPALITY_ID);
 		assertThat(eventLogClient.requests.getFirst().logKey()).isEqualTo(eventLogKey);
 		assertThat(capturedEvent.getType()).isEqualTo(UPDATE);
-		assertThat(capturedEvent.getMessage()).contains("Responsibilities updated from:", "oldUser", CREATED_BY, "group", REGISTRATION_NUMBER);
+		assertThat(capturedEvent.getMessage()).contains("Responsibilities updated from:", "old-username123", CREATED_BY, "other-username123", REGISTRATION_NUMBER);
 		assertThat(capturedEvent.getMetadata())
 			.extracting(Metadata::getKey, Metadata::getValue)
 			.containsExactlyInAnyOrder(
@@ -856,7 +855,7 @@ class DocumentServiceTest {
 		// Arrange
 		final var request = DocumentResponsibilitiesUpdateRequest.create()
 			.withChangedBy(CREATED_BY)
-			.withResponsibilities(List.of(DocumentResponsibility.create().withPrincipalType(PrincipalType.USER).withPrincipalId(CREATED_BY)));
+			.withResponsibilities(List.of(DocumentResponsibility.create().withUsername(CREATED_BY)));
 
 		when(documentRepositoryMock.existsByMunicipalityIdAndRegistrationNumber(MUNICIPALITY_ID, REGISTRATION_NUMBER)).thenReturn(false);
 

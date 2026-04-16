@@ -26,16 +26,13 @@ class DocumentResponsibilityTest {
 	@Test
 	void testBuilderMethods() {
 
-		final var principalType = PrincipalType.USER;
-		final var principalId = "username123";
+		final var username = "username123";
 
 		final var bean = DocumentResponsibility.create()
-			.withPrincipalType(principalType)
-			.withPrincipalId(principalId);
+			.withUsername(username);
 
 		assertThat(bean).isNotNull().hasNoNullFieldsOrProperties();
-		assertThat(bean.getPrincipalType()).isEqualTo(principalType);
-		assertThat(bean.getPrincipalId()).isEqualTo(principalId);
+		assertThat(bean.getUsername()).isEqualTo(username);
 	}
 
 	@Test

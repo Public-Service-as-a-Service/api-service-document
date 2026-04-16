@@ -30,7 +30,6 @@ import se.sundsvall.document.api.model.DocumentFiles;
 import se.sundsvall.document.api.model.DocumentMetadata;
 import se.sundsvall.document.api.model.DocumentResponsibility;
 import se.sundsvall.document.api.model.DocumentUpdateRequest;
-import se.sundsvall.document.api.model.PrincipalType;
 import se.sundsvall.document.integration.db.model.ConfidentialityEmbeddable;
 import se.sundsvall.document.integration.db.model.DocumentDataEntity;
 import se.sundsvall.document.integration.db.model.DocumentEntity;
@@ -517,8 +516,7 @@ class DocumentMapperTest {
 		final var documentEntity = DocumentEntity.create()
 			.withType(DocumentTypeEntity.create().withType(DOCUMENT_TYPE));
 		final var responsibilityEntity = DocumentResponsibilityEntity.create()
-			.withPrincipalType(PrincipalType.USER)
-			.withPrincipalId(CREATED_BY);
+			.withUsername(CREATED_BY);
 
 		// Act
 		final var result = DocumentMapper.toDocument(documentEntity, List.of(responsibilityEntity));
@@ -527,8 +525,7 @@ class DocumentMapperTest {
 		assertThat(result).isNotNull();
 		assertThat(result.getResponsibilities())
 			.containsExactly(DocumentResponsibility.create()
-				.withPrincipalType(PrincipalType.USER)
-				.withPrincipalId(CREATED_BY));
+				.withUsername(CREATED_BY));
 	}
 
 	@Test
@@ -541,8 +538,7 @@ class DocumentMapperTest {
 
 		// Arrange
 		final var responsibilities = List.of(DocumentResponsibility.create()
-			.withPrincipalType(PrincipalType.GROUP)
-			.withPrincipalId("group"));
+			.withUsername(" Username123 "));
 
 		// Act
 		final var result = DocumentMapper.toDocumentResponsibilityEntities(responsibilities, MUNICIPALITY_ID, REGISTRATION_NUMBER, CREATED_BY);
@@ -550,9 +546,9 @@ class DocumentMapperTest {
 		// Assert
 		assertThat(result)
 			.hasSize(1)
-			.extracting(DocumentResponsibilityEntity::getMunicipalityId, DocumentResponsibilityEntity::getRegistrationNumber, DocumentResponsibilityEntity::getPrincipalType, DocumentResponsibilityEntity::getPrincipalId,
+			.extracting(DocumentResponsibilityEntity::getMunicipalityId, DocumentResponsibilityEntity::getRegistrationNumber, DocumentResponsibilityEntity::getUsername,
 				DocumentResponsibilityEntity::getCreatedBy)
-			.containsExactly(tuple(MUNICIPALITY_ID, REGISTRATION_NUMBER, PrincipalType.GROUP, "group", CREATED_BY));
+			.containsExactly(tuple(MUNICIPALITY_ID, REGISTRATION_NUMBER, "username123", CREATED_BY));
 	}
 
 	@Test

@@ -7,6 +7,7 @@ import jakarta.persistence.criteria.Root;
 import jakarta.persistence.criteria.Subquery;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Locale;
 import java.util.Objects;
 import java.util.Optional;
 import org.springframework.data.jpa.domain.Specification;
@@ -58,16 +59,13 @@ public interface SearchSpecification {
 			final var subQuery = query.subquery(Long.class);
 			final var responsibilityRoot = subQuery.from(DocumentResponsibilityEntity.class);
 
-			final var principalPredicates = responsibilities.stream()
+			final var usernamePredicates = responsibilities.stream()
 				.filter(Objects::nonNull)
-				.filter(responsibility -> responsibility.getPrincipalType() != null)
-				.filter(responsibility -> responsibility.getPrincipalId() != null && !responsibility.getPrincipalId().isBlank())
-				.map(responsibility -> cb.and(
-					cb.equal(responsibilityRoot.get("principalType"), responsibility.getPrincipalType()),
-					cb.equal(responsibilityRoot.get("principalId"), responsibility.getPrincipalId().trim().toLowerCase())))
+				.filter(responsibility -> responsibility.getUsername() != null && !responsibility.getUsername().isBlank())
+				.map(responsibility -> cb.equal(responsibilityRoot.get("username"), normalizeUsername(responsibility.getUsername())))
 				.toList();
 
-			if (principalPredicates.isEmpty()) {
+			if (usernamePredicates.isEmpty()) {
 				return cb.disjunction();
 			}
 
@@ -75,10 +73,14 @@ public interface SearchSpecification {
 				.where(
 					cb.equal(responsibilityRoot.get("municipalityId"), root.get(MUNICIPALITY_ID)),
 					cb.equal(responsibilityRoot.get("registrationNumber"), root.get(REGISTRATION_NUMBER)),
-					cb.or(principalPredicates.toArray(new Predicate[0])));
+					cb.or(usernamePredicates.toArray(new Predicate[0])));
 
 			return cb.exists(subQuery);
 		};
+	}
+
+	private static String normalizeUsername(final String username) {
+		return username.trim().toLowerCase(Locale.ROOT);
 	}
 
 	private static Specification<DocumentEntity> matchesValidOn(LocalDate validOn) {

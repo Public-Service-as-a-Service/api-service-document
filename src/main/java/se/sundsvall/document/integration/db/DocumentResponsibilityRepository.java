@@ -9,7 +9,7 @@ import se.sundsvall.document.integration.db.model.DocumentResponsibilityEntity;
 @CircuitBreaker(name = "documentResponsibilityRepository")
 public interface DocumentResponsibilityRepository extends JpaRepository<DocumentResponsibilityEntity, String> {
 
-	List<DocumentResponsibilityEntity> findByMunicipalityIdAndRegistrationNumberOrderByPrincipalTypeAscPrincipalIdAsc(String municipalityId, String registrationNumber);
+	List<DocumentResponsibilityEntity> findByMunicipalityIdAndRegistrationNumberOrderByUsernameAsc(String municipalityId, String registrationNumber);
 
 	List<DocumentResponsibilityEntity> findByMunicipalityIdAndRegistrationNumberIn(String municipalityId, Collection<String> registrationNumbers);
 

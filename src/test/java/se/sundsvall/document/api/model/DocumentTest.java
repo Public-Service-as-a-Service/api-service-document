@@ -51,7 +51,7 @@ class DocumentTest {
 		final var metadataList = List.of(DocumentMetadata.create());
 		final var municipalityId = "municipalityId";
 		final var registrationNumber = "12345";
-		final var responsibilities = List.of(DocumentResponsibility.create().withPrincipalType(PrincipalType.USER).withPrincipalId(createdBy));
+		final var responsibilities = List.of(DocumentResponsibility.create().withUsername(createdBy));
 		final var revision = 5;
 		final var type = "type";
 		final var validFrom = LocalDate.of(2026, 4, 15);

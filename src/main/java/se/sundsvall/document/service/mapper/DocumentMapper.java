@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import org.springframework.data.domain.Page;
@@ -139,6 +140,7 @@ public class DocumentMapper {
 	public static List<DocumentResponsibilityEntity> toDocumentResponsibilityEntities(final List<DocumentResponsibility> responsibilities, final String municipalityId, final String registrationNumber, final String createdBy) {
 		return Optional.ofNullable(responsibilities).orElse(emptyList()).stream()
 			.map(responsibility -> toDocumentResponsibilityEntity(responsibility, municipalityId, registrationNumber, createdBy))
+			.distinct()
 			.toList();
 	}
 
@@ -147,14 +149,13 @@ public class DocumentMapper {
 			.map(value -> DocumentResponsibilityEntity.create()
 				.withMunicipalityId(municipalityId)
 				.withRegistrationNumber(registrationNumber)
-				.withPrincipalType(value.getPrincipalType())
-				.withPrincipalId(normalizePrincipalId(value.getPrincipalId()))
+				.withUsername(normalizeUsername(value.getUsername()))
 				.withCreatedBy(createdBy))
 			.orElse(null);
 	}
 
-	private static String normalizePrincipalId(final String principalId) {
-		return principalId == null ? null : principalId.trim().toLowerCase();
+	private static String normalizeUsername(final String username) {
+		return username == null ? null : username.trim().toLowerCase(Locale.ROOT);
 	}
 
 	/**
@@ -222,8 +223,7 @@ public class DocumentMapper {
 	public static DocumentResponsibility toDocumentResponsibility(final DocumentResponsibilityEntity responsibility) {
 		return Optional.ofNullable(responsibility)
 			.map(value -> DocumentResponsibility.create()
-				.withPrincipalType(value.getPrincipalType())
-				.withPrincipalId(value.getPrincipalId()))
+				.withUsername(value.getUsername()))
 			.orElse(null);
 	}
 

@@ -33,7 +33,7 @@ class DocumentCreateRequestTest {
 		final var createdBy = "user";
 		final var description = "description";
 		final var metadataList = List.of(DocumentMetadata.create());
-		final var responsibilities = List.of(DocumentResponsibility.create().withPrincipalType(PrincipalType.USER).withPrincipalId(createdBy));
+		final var responsibilities = List.of(DocumentResponsibility.create().withUsername(createdBy));
 		final var type = "type";
 		final var validFrom = LocalDate.of(2026, 4, 15);
 		final var validTo = LocalDate.of(2027, 4, 15);

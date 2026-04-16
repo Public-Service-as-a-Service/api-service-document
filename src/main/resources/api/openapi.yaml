@@ -242,7 +242,8 @@ paths:
         \ in the search. Datatype - List of Strings\n- metaData: Uses the metadata\
         \ object to search for documents with specific metadata. Datatype - List of\
         \ metadata objects.\n- responsibilities: Uses document responsibilities to\
-        \ search for documents where at least one principal matches. Datatype - List\
+        \ search for documents where at least one username matches. Usernames are\
+        \ case-insensitive and stored lowercased. Datatype - List\
         \ of DocumentResponsibility objects.\n- page: The page number to retrieve.\
         \ Datatype - integer (default: 1)\n- limit: The number of documents to retrieve\
         \ per page. Datatype - integer (default: 100)\n\nObjects:\n- MetaData: {\n\
@@ -255,9 +256,8 @@ paths:
         \ documents where metadata entry with the given key have at least one of the\
         \ matchesAny values (if key is present), or if the complete set of metadata\
         \ have at least one of the matchesAny (when no key is present). Datatype -\
-        \ List of Strings\n}\n- DocumentResponsibility: {\n\t- principalType: USER\
-        \ or GROUP. Datatype - String\n\t- principalId: Username for USER, group name\
-        \ for GROUP. Datatype - String\n}\n"
+        \ List of Strings\n}\n- DocumentResponsibility: {\n\t- username: Username.\
+        \ Case-insensitive; stored lowercased. Datatype - String\n}\n"
       operationId: searchByParameters
       parameters:
         - name: municipalityId
@@ -1238,31 +1238,19 @@ components:
       enum:
         - ASC
         - DESC
-    PrincipalType:
-      type: string
-      enum:
-        - USER
-        - GROUP
     DocumentResponsibility:
       type: object
       description: Document responsibility model.
       properties:
-        principalType:
-          $ref: "#/components/schemas/PrincipalType"
-          description: Principal type.
-          examples:
-            - USER
-        principalId:
+        username:
           type: string
-          description: "Principal identifier. Username for USER, group name for GROUP.\
-            \ Case-insensitive; stored lowercased."
+          description: Username. Case-insensitive; stored lowercased.
           examples:
             - username123
           maxLength: 255
           minLength: 1
       required:
-        - principalId
-        - principalType
+        - username
     DocumentParameters:
       type: object
       properties:

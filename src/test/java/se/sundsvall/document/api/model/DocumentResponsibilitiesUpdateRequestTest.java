@@ -28,7 +28,7 @@ class DocumentResponsibilitiesUpdateRequestTest {
 	void testBuilderMethods() {
 
 		final var changedBy = "username123";
-		final var responsibilities = List.of(DocumentResponsibility.create().withPrincipalType(PrincipalType.USER).withPrincipalId(changedBy));
+		final var responsibilities = List.of(DocumentResponsibility.create().withUsername(changedBy));
 
 		final var bean = DocumentResponsibilitiesUpdateRequest.create()
 			.withChangedBy(changedBy)

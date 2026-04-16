@@ -43,7 +43,7 @@ public final class Constants {
 		- onlyLatestRevision: Should the search include only the latest revision of the documents? Datatype - boolean (default: false)
 		- documentTypes: Which document types to include in the search. Datatype - List of Strings
 		- metaData: Uses the metadata object to search for documents with specific metadata. Datatype - List of metadata objects.
-		- responsibilities: Uses document responsibilities to search for documents where at least one principal matches. Datatype - List of DocumentResponsibility objects.
+		- responsibilities: Uses document responsibilities to search for documents where at least one username matches. Usernames are case-insensitive and stored lowercased. Datatype - List of DocumentResponsibility objects.
 		- page: The page number to retrieve. Datatype - integer (default: 1)
 		- limit: The number of documents to retrieve per page. Datatype - integer (default: 100)
 
@@ -54,8 +54,7 @@ public final class Constants {
 			- matchesAll: Returns documents where metadata entry with the given key have at least one of the matchesAny values (if key is present), or if the complete set of metadata have at least one of the matchesAny (when no key is present). Datatype - List of Strings
 		}
 		- DocumentResponsibility: {
-			- principalType: USER or GROUP. Datatype - String
-			- principalId: Username for USER, group name for GROUP. Datatype - String
+			- username: Username. Case-insensitive; stored lowercased. Datatype - String
 		}
 		""";
 }

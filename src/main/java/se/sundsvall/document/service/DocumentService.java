@@ -7,6 +7,7 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 import org.apache.commons.lang3.Strings;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -257,10 +258,11 @@ public class DocumentService {
 			throw Problem.valueOf(NOT_FOUND, ERROR_DOCUMENT_BY_REGISTRATION_NUMBER_NOT_FOUND.formatted(registrationNumber));
 		}
 
-		final var oldResponsibilities = documentResponsibilityRepository.findByMunicipalityIdAndRegistrationNumberOrderByPrincipalTypeAscPrincipalIdAsc(municipalityId, registrationNumber);
+		final var oldResponsibilities = documentResponsibilityRepository.findByMunicipalityIdAndRegistrationNumberOrderByUsernameAsc(municipalityId, registrationNumber);
 		final var newResponsibilities = toDocumentResponsibilityEntities(request.getResponsibilities(), municipalityId, registrationNumber, request.getChangedBy());
 
 		documentResponsibilityRepository.deleteByMunicipalityIdAndRegistrationNumber(municipalityId, registrationNumber);
+		documentResponsibilityRepository.flush();
 		documentResponsibilityRepository.saveAll(newResponsibilities);
 
 		eventLogForResponsibilities(registrationNumber, request.getChangedBy(), oldResponsibilities, newResponsibilities, municipalityId);
@@ -300,7 +302,7 @@ public class DocumentService {
 	}
 
 	private Document toDocumentWithResponsibilities(final DocumentEntity documentEntity) {
-		final var responsibilities = documentResponsibilityRepository.findByMunicipalityIdAndRegistrationNumberOrderByPrincipalTypeAscPrincipalIdAsc(documentEntity.getMunicipalityId(), documentEntity.getRegistrationNumber());
+		final var responsibilities = documentResponsibilityRepository.findByMunicipalityIdAndRegistrationNumberOrderByUsernameAsc(documentEntity.getMunicipalityId(), documentEntity.getRegistrationNumber());
 		return toDocument(documentEntity, responsibilities);
 	}
 
@@ -310,8 +312,16 @@ public class DocumentService {
 			return response;
 		}
 
-		response.getDocuments().forEach(document -> document.setResponsibilities(toDocumentResponsibilities(documentResponsibilityRepository.findByMunicipalityIdAndRegistrationNumberOrderByPrincipalTypeAscPrincipalIdAsc(document.getMunicipalityId(),
-			document.getRegistrationNumber()))));
+		final var documents = response.getDocuments();
+		final var responsibilitiesByRegistrationNumber = documentResponsibilityRepository.findByMunicipalityIdAndRegistrationNumberIn(
+			documents.get(0).getMunicipalityId(),
+			documents.stream()
+				.map(Document::getRegistrationNumber)
+				.distinct()
+				.toList()).stream()
+			.collect(Collectors.groupingBy(DocumentResponsibilityEntity::getRegistrationNumber));
+
+		documents.forEach(document -> document.setResponsibilities(toDocumentResponsibilities(responsibilitiesByRegistrationNumber.get(document.getRegistrationNumber()))));
 
 		return response;
 	}
@@ -328,8 +338,7 @@ public class DocumentService {
 	private void eventLogForResponsibilities(final String registrationNumber, final String changedBy, final List<DocumentResponsibilityEntity> oldResponsibilities, final List<DocumentResponsibilityEntity> newResponsibilities,
 		final String municipalityId) {
 		final var sortedNewResponsibilities = newResponsibilities.stream()
-			.sorted(Comparator.comparing((DocumentResponsibilityEntity r) -> r.getPrincipalType().name())
-				.thenComparing(DocumentResponsibilityEntity::getPrincipalId))
+			.sorted(Comparator.comparing(DocumentResponsibilityEntity::getUsername))
 			.toList();
 		eventLogProperties.ifPresent(props -> eventLogClient.ifPresent(client -> client.createEvent(municipalityId, props.logKeyUuid(), toEvent(
 			UPDATE,

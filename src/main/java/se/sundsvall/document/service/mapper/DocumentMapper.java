@@ -19,6 +19,7 @@ import se.sundsvall.document.api.model.DocumentData;
 import se.sundsvall.document.api.model.DocumentFiles;
 import se.sundsvall.document.api.model.DocumentMetadata;
 import se.sundsvall.document.api.model.DocumentResponsibility;
+import se.sundsvall.document.api.model.DocumentStatus;
 import se.sundsvall.document.api.model.DocumentUpdateRequest;
 import se.sundsvall.document.api.model.PagedDocumentResponse;
 import se.sundsvall.document.integration.db.model.ConfidentialityEmbeddable;
@@ -51,6 +52,7 @@ public class DocumentMapper {
 			.withDescription(documentCreateRequest.getDescription())
 			.withMetadata(toDocumentMetadataEmbeddableList(documentCreateRequest.getMetadataList()))
 			.withMunicipalityId(municipalityId)
+			.withStatus(DocumentStatus.DRAFT)
 			.withValidFrom(documentCreateRequest.getValidFrom())
 			.withValidTo(documentCreateRequest.getValidTo());
 	}
@@ -114,9 +116,6 @@ public class DocumentMapper {
 			.ifPresent(newMetadata -> replaceMetadata(entity, newMetadata));
 	}
 
-	// Hibernate tracks @ElementCollection lists on managed entities. Replacing the reference
-	// (setMetadata) causes "collection was no longer referenced". Instead, clear and refill the
-	// existing list so Hibernate's proxy stays intact.
 	private static void replaceMetadata(DocumentEntity entity, List<DocumentMetadataEmbeddable> newMetadata) {
 		if (entity.getMetadata() != null) {
 			entity.getMetadata().clear();
@@ -205,6 +204,7 @@ public class DocumentMapper {
 				.withRegistrationNumber(docEntity.getRegistrationNumber())
 				.withResponsibilities(toDocumentResponsibilities(responsibilities))
 				.withRevision(docEntity.getRevision())
+				.withStatus(docEntity.getStatus())
 				.withType(docEntity.getType().getType())
 				.withValidFrom(docEntity.getValidFrom())
 				.withValidTo(docEntity.getValidTo()))
@@ -248,6 +248,7 @@ public class DocumentMapper {
 				.withMunicipalityId(docEntity.getMunicipalityId())
 				.withRegistrationNumber(docEntity.getRegistrationNumber())
 				.withRevision(docEntity.getRevision())
+				.withStatus(DocumentStatus.DRAFT)
 				.withType(docEntity.getType())
 				.withValidFrom(docEntity.getValidFrom())
 				.withValidTo(docEntity.getValidTo()))

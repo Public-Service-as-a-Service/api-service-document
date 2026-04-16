@@ -137,6 +137,36 @@ class DocumentResource {
 		return ok(documentService.update(registrationNumber, includeConfidential, body, municipalityId));
 	}
 
+	@PostMapping(path = "/{registrationNumber}/publish", produces = APPLICATION_JSON_VALUE)
+	@Operation(summary = "Publish document.")
+	ResponseEntity<Document> publish(
+		@PathVariable @ValidMunicipalityId final String municipalityId,
+		@PathVariable final String registrationNumber,
+		@RequestParam("changedBy") @NotBlank final String changedBy) {
+
+		return ok(documentService.publish(registrationNumber, changedBy, municipalityId));
+	}
+
+	@PostMapping(path = "/{registrationNumber}/revoke", produces = APPLICATION_JSON_VALUE)
+	@Operation(summary = "Revoke document.")
+	ResponseEntity<Document> revoke(
+		@PathVariable @ValidMunicipalityId final String municipalityId,
+		@PathVariable final String registrationNumber,
+		@RequestParam("changedBy") @NotBlank final String changedBy) {
+
+		return ok(documentService.revoke(registrationNumber, changedBy, municipalityId));
+	}
+
+	@PostMapping(path = "/{registrationNumber}/unrevoke", produces = APPLICATION_JSON_VALUE)
+	@Operation(summary = "Unrevoke document.")
+	ResponseEntity<Document> unrevoke(
+		@PathVariable @ValidMunicipalityId final String municipalityId,
+		@PathVariable final String registrationNumber,
+		@RequestParam("changedBy") @NotBlank final String changedBy) {
+
+		return ok(documentService.unrevoke(registrationNumber, changedBy, municipalityId));
+	}
+
 	@PatchMapping(path = "/{registrationNumber}/confidentiality", produces = {
 		APPLICATION_JSON_VALUE
 	})
@@ -181,9 +211,10 @@ class DocumentResource {
 	ResponseEntity<Document> read(
 		@PathVariable @Parameter(name = "municipalityId", description = "Municipality ID", example = "2281") @ValidMunicipalityId final String municipalityId,
 		@PathVariable @Parameter(name = "registrationNumber", description = "Document registration number", example = "2023-2281-1337") final String registrationNumber,
-		@Parameter(name = "includeConfidential", description = "Include confidential records", example = "true") @RequestParam(name = "includeConfidential", defaultValue = "false") final boolean includeConfidential) {
+		@Parameter(name = "includeConfidential", description = "Include confidential records", example = "true") @RequestParam(name = "includeConfidential", defaultValue = "false") final boolean includeConfidential,
+		@Parameter(name = "includeNonPublic", description = "Admin flag: include DRAFT/REVOKED latest revision.", example = "false") @RequestParam(name = "includeNonPublic", defaultValue = "false") final boolean includeNonPublic) {
 
-		return ok(documentService.read(registrationNumber, includeConfidential, municipalityId));
+		return ok(documentService.read(registrationNumber, includeConfidential, includeNonPublic, municipalityId));
 	}
 
 	@GetMapping(path = "/{registrationNumber}/files/{documentDataId}", produces = {
@@ -198,9 +229,10 @@ class DocumentResource {
 		@PathVariable @Parameter(name = "municipalityId", description = "Municipality ID", example = "2281") @ValidMunicipalityId final String municipalityId,
 		@PathVariable @Parameter(name = "registrationNumber", description = "Document registration number", example = "2023-2281-1337") final String registrationNumber,
 		@PathVariable @Parameter(name = "documentDataId", description = "Document data ID", example = "082ba08f-03c7-409f-b8a6-940a1397ba38") @ValidUuid final String documentDataId,
-		@Parameter(name = "includeConfidential", description = "Include confidential records", example = "true") @RequestParam(name = "includeConfidential", defaultValue = "false") final boolean includeConfidential) {
+		@Parameter(name = "includeConfidential", description = "Include confidential records", example = "true") @RequestParam(name = "includeConfidential", defaultValue = "false") final boolean includeConfidential,
+		@Parameter(name = "includeNonPublic", description = "Admin flag: include DRAFT/REVOKED latest revision.", example = "false") @RequestParam(name = "includeNonPublic", defaultValue = "false") final boolean includeNonPublic) {
 
-		documentService.readFile(registrationNumber, documentDataId, includeConfidential, response, municipalityId);
+		documentService.readFile(registrationNumber, documentDataId, includeConfidential, includeNonPublic, response, municipalityId);
 		return ok().build();
 	}
 

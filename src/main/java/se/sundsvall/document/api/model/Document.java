@@ -64,6 +64,9 @@ public class Document {
 	@DateTimeFormat(iso = ISO.DATE)
 	private LocalDate validTo;
 
+	@Schema(description = "Lifecycle status of this revision.", examples = "ACTIVE")
+	private DocumentStatus status;
+
 	public static Document create() {
 		return new Document();
 	}
@@ -276,9 +279,22 @@ public class Document {
 		return this;
 	}
 
+	public DocumentStatus getStatus() {
+		return status;
+	}
+
+	public void setStatus(DocumentStatus status) {
+		this.status = status;
+	}
+
+	public Document withStatus(DocumentStatus status) {
+		this.status = status;
+		return this;
+	}
+
 	@Override
 	public int hashCode() {
-		return Objects.hash(archive, confidentiality, created, createdBy, description, documentData, id, metadataList, municipalityId, registrationNumber, responsibilities, revision, type, updatedBy, validFrom, validTo);
+		return Objects.hash(archive, confidentiality, created, createdBy, description, documentData, id, metadataList, municipalityId, registrationNumber, responsibilities, revision, status, type, updatedBy, validFrom, validTo);
 	}
 
 	@Override
@@ -291,8 +307,8 @@ public class Document {
 		}
 		return archive == other.archive && Objects.equals(confidentiality, other.confidentiality) && Objects.equals(created, other.created) && Objects.equals(createdBy, other.createdBy) && Objects.equals(description, other.description) && Objects
 			.equals(documentData, other.documentData) && Objects.equals(id, other.id) && Objects.equals(metadataList, other.metadataList) && Objects.equals(municipalityId, other.municipalityId) && Objects.equals(registrationNumber,
-				other.registrationNumber) && Objects.equals(responsibilities, other.responsibilities) && revision == other.revision && Objects.equals(type, other.type) && Objects.equals(updatedBy, other.updatedBy) && Objects.equals(validFrom,
-					other.validFrom) && Objects.equals(validTo, other.validTo);
+				other.registrationNumber) && Objects.equals(responsibilities, other.responsibilities) && revision == other.revision && status == other.status && Objects.equals(type, other.type) && Objects.equals(updatedBy, other.updatedBy) && Objects
+					.equals(validFrom, other.validFrom) && Objects.equals(validTo, other.validTo);
 	}
 
 	@Override
@@ -301,7 +317,7 @@ public class Document {
 		builder.append("Document [id=").append(id).append(", municipalityId=").append(municipalityId).append(", registrationNumber=").append(registrationNumber).append(", revision=").append(revision).append(", confidentiality=").append(
 			confidentiality).append(", description=").append(description).append(", created=").append(created).append(", createdBy=").append(createdBy).append(", updatedBy=").append(updatedBy).append(", archive=").append(archive).append(
 				", metadataList=").append(metadataList).append(", documentData=").append(documentData).append(", responsibilities=").append(responsibilities).append(", type=").append(type).append(", validFrom=").append(validFrom).append(
-					", validTo=").append(validTo).append("]");
+					", validTo=").append(validTo).append(", status=").append(status).append("]");
 		return builder.toString();
 	}
 }

@@ -11,9 +11,11 @@ import java.util.Objects;
 import org.hibernate.validator.constraints.UniqueElements;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.format.annotation.DateTimeFormat.ISO;
+import se.sundsvall.document.api.validation.ValidValidityWindow;
 
 import static io.swagger.v3.oas.annotations.media.Schema.RequiredMode.REQUIRED;
 
+@ValidValidityWindow
 @Schema(description = "DocumentCreateRequest model.")
 public class DocumentCreateRequest {
 

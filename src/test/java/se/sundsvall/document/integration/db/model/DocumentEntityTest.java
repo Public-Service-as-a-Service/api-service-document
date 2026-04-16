@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.Random;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+import se.sundsvall.document.api.model.DocumentStatus;
 
 import static com.google.code.beanmatchers.BeanMatchers.hasValidBeanConstructor;
 import static com.google.code.beanmatchers.BeanMatchers.hasValidBeanEquals;
@@ -56,6 +57,7 @@ class DocumentEntityTest {
 		final var type = DocumentTypeEntity.create();
 		final var validFrom = LocalDate.of(2026, 4, 15);
 		final var validTo = LocalDate.of(2027, 4, 15);
+		final var status = DocumentStatus.ACTIVE;
 
 		final var bean = DocumentEntity.create()
 			.withArchive(archive)
@@ -70,6 +72,7 @@ class DocumentEntityTest {
 			.withMunicipalityId(municipalityId)
 			.withRegistrationNumber(registrationNumber)
 			.withRevision(revision)
+			.withStatus(status)
 			.withType(type)
 			.withValidFrom(validFrom)
 			.withValidTo(validTo);
@@ -87,6 +90,7 @@ class DocumentEntityTest {
 		assertThat(bean.getMunicipalityId()).isEqualTo(municipalityId);
 		assertThat(bean.getRegistrationNumber()).isEqualTo(registrationNumber);
 		assertThat(bean.getRevision()).isEqualTo(revision);
+		assertThat(bean.getStatus()).isEqualTo(status);
 		assertThat(bean.getType()).isEqualTo(type);
 		assertThat(bean.getValidFrom()).isEqualTo(validFrom);
 		assertThat(bean.getValidTo()).isEqualTo(validTo);

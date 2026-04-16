@@ -8,7 +8,9 @@ import java.util.List;
 import java.util.Objects;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.format.annotation.DateTimeFormat.ISO;
+import se.sundsvall.document.api.validation.ValidValidityWindow;
 
+@ValidValidityWindow
 @Schema(description = "DocumentUpdateRequest model.")
 public class DocumentUpdateRequest {
 

@@ -6,6 +6,8 @@ import jakarta.persistence.ElementCollection;
 import jakarta.persistence.Embedded;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EntityListeners;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.ForeignKey;
 import jakarta.persistence.Id;
 import jakarta.persistence.Index;
@@ -20,6 +22,7 @@ import java.util.List;
 import java.util.Objects;
 import org.hibernate.annotations.TimeZoneStorage;
 import org.hibernate.annotations.UuidGenerator;
+import se.sundsvall.document.api.model.DocumentStatus;
 import se.sundsvall.document.integration.db.model.listener.DocumentEntityListener;
 
 import static jakarta.persistence.CascadeType.ALL;
@@ -36,6 +39,7 @@ import static org.hibernate.annotations.TimeZoneStorageType.NORMALIZE;
 	@Index(name = "ix_created_by", columnList = "created_by"),
 	@Index(name = "ix_municipality_id", columnList = "municipality_id"),
 	@Index(name = "ix_confidential", columnList = "confidential"),
+	@Index(name = "ix_status", columnList = "status"),
 })
 @EntityListeners(DocumentEntityListener.class)
 public class DocumentEntity {
@@ -82,6 +86,10 @@ public class DocumentEntity {
 
 	@Column(name = "valid_to", columnDefinition = "date")
 	private LocalDate validTo;
+
+	@Enumerated(EnumType.STRING)
+	@Column(name = "status", nullable = false, length = 20)
+	private DocumentStatus status;
 
 	@OneToMany(cascade = ALL, orphanRemoval = true)
 	@JoinColumn(name = "document_id", referencedColumnName = "id", nullable = false, foreignKey = @ForeignKey(name = "fk_document_data_document"))
@@ -266,6 +274,19 @@ public class DocumentEntity {
 		return this;
 	}
 
+	public DocumentStatus getStatus() {
+		return status;
+	}
+
+	public void setStatus(DocumentStatus status) {
+		this.status = status;
+	}
+
+	public DocumentEntity withStatus(DocumentStatus status) {
+		this.status = status;
+		return this;
+	}
+
 	public List<DocumentDataEntity> getDocumentData() {
 		return documentData;
 	}
@@ -294,7 +315,7 @@ public class DocumentEntity {
 
 	@Override
 	public int hashCode() {
-		return Objects.hash(archive, confidentiality, created, createdBy, description, documentData, id, metadata, municipalityId, registrationNumber, revision, type, updatedBy, validFrom, validTo);
+		return Objects.hash(archive, confidentiality, created, createdBy, description, documentData, id, metadata, municipalityId, registrationNumber, revision, status, type, updatedBy, validFrom, validTo);
 	}
 
 	@Override
@@ -307,7 +328,7 @@ public class DocumentEntity {
 		}
 		return archive == other.archive && Objects.equals(confidentiality, other.confidentiality) && Objects.equals(created, other.created) && Objects.equals(createdBy, other.createdBy) && Objects.equals(description, other.description) && Objects
 			.equals(documentData, other.documentData) && Objects.equals(id, other.id) && Objects.equals(metadata, other.metadata) && Objects.equals(municipalityId, other.municipalityId) && Objects.equals(registrationNumber, other.registrationNumber)
-			&& revision == other.revision && Objects.equals(type, other.type) && Objects.equals(updatedBy, other.updatedBy) && Objects.equals(validFrom, other.validFrom) && Objects.equals(validTo, other.validTo);
+			&& revision == other.revision && status == other.status && Objects.equals(type, other.type) && Objects.equals(updatedBy, other.updatedBy) && Objects.equals(validFrom, other.validFrom) && Objects.equals(validTo, other.validTo);
 	}
 
 	@Override
@@ -315,7 +336,7 @@ public class DocumentEntity {
 		final var builder = new StringBuilder();
 		builder.append("DocumentEntity [id=").append(id).append(", revision=").append(revision).append(", municipalityId=").append(municipalityId).append(", registrationNumber=").append(registrationNumber).append(", type=").append(type).append(
 			", description=").append(description).append(", confidentiality=").append(confidentiality).append(", archive=").append(archive).append(", createdBy=").append(createdBy).append(", updatedBy=").append(updatedBy).append(", created=").append(
-				created).append(", validFrom=").append(validFrom).append(", validTo=").append(validTo).append(", documentData=").append(documentData).append(", metadata=").append(metadata).append("]");
+				created).append(", validFrom=").append(validFrom).append(", validTo=").append(validTo).append(", status=").append(status).append(", documentData=").append(documentData).append(", metadata=").append(metadata).append("]");
 		return builder.toString();
 	}
 }

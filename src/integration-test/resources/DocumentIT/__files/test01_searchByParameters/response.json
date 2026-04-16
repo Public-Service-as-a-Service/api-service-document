@@ -27,7 +27,8 @@
 			],
 			"validFrom": "2024-02-05",
 			"validTo": "2025-02-05",
-			"responsibilities": []
+			"responsibilities": [],
+			"status": "ACTIVE"
 		},
 		{
 			"municipalityId": "2281",
@@ -66,7 +67,8 @@
 			],
 			"validFrom": "2023-06-28",
 			"validTo": "2026-06-28",
-			"responsibilities": []
+			"responsibilities": [],
+			"status": "ACTIVE"
 		},
 		{
 			"municipalityId": "2281",
@@ -95,7 +97,8 @@
 			],
 			"validFrom": "2023-12-07",
 			"validTo": "2026-12-07",
-			"responsibilities": []
+			"responsibilities": [],
+			"status": "ACTIVE"
 		}
 	],
 	"_meta": {

@@ -48,6 +48,7 @@ class DocumentParametersTest {
 				.withMatchesAll(List.of("value1", "value2")));
 		var responsibilities = List.of(DocumentResponsibility.create().withUsername(createdBy));
 		var validOn = LocalDate.of(2026, 4, 15);
+		var statuses = List.of(DocumentStatus.ACTIVE, DocumentStatus.SCHEDULED);
 
 		final var bean = DocumentParameters.create()
 			.withMunicipalityId(municipalityId)
@@ -57,7 +58,8 @@ class DocumentParametersTest {
 			.withDocumentTypes(documentTypes)
 			.withMetaData(metaData)
 			.withResponsibilities(responsibilities)
-			.withValidOn(validOn);
+			.withValidOn(validOn)
+			.withStatuses(statuses);
 
 		Assertions.assertThat(bean).isNotNull().hasNoNullFieldsOrPropertiesExcept("sortBy");
 		Assertions.assertThat(bean.getMunicipalityId()).isEqualTo(municipalityId);
@@ -68,6 +70,7 @@ class DocumentParametersTest {
 		Assertions.assertThat(bean.getMetaData()).isEqualTo(metaData);
 		Assertions.assertThat(bean.getResponsibilities()).isEqualTo(responsibilities);
 		Assertions.assertThat(bean.getValidOn()).isEqualTo(validOn);
+		Assertions.assertThat(bean.getStatuses()).isEqualTo(statuses);
 	}
 
 	@Test

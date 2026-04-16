@@ -16,7 +16,8 @@
 			"revision": 1,
 			"metadataList": [],
 			"validFrom": "2026-01-01",
-			"responsibilities": []
+			"responsibilities": [],
+			"status": "ACTIVE"
 		},
 		{
 			"municipalityId": "2999",
@@ -33,7 +34,8 @@
 			"type": "VALIDITY_TEST",
 			"revision": 1,
 			"metadataList": [],
-			"responsibilities": []
+			"responsibilities": [],
+			"status": "ACTIVE"
 		}
 	],
 	"_meta": {

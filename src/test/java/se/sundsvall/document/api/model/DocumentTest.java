@@ -57,6 +57,7 @@ class DocumentTest {
 		final var type = "type";
 		final var validFrom = LocalDate.of(2026, 4, 15);
 		final var validTo = LocalDate.of(2027, 4, 15);
+		final var status = DocumentStatus.ACTIVE;
 
 		final var bean = Document.create()
 			.withArchive(archive)
@@ -72,6 +73,7 @@ class DocumentTest {
 			.withRegistrationNumber(registrationNumber)
 			.withResponsibilities(responsibilities)
 			.withRevision(revision)
+			.withStatus(status)
 			.withType(type)
 			.withValidFrom(validFrom)
 			.withValidTo(validTo);
@@ -90,6 +92,7 @@ class DocumentTest {
 		assertThat(bean.getRegistrationNumber()).isEqualTo(registrationNumber);
 		assertThat(bean.getResponsibilities()).isEqualTo(responsibilities);
 		assertThat(bean.getRevision()).isEqualTo(revision);
+		assertThat(bean.getStatus()).isEqualTo(status);
 		assertThat(bean.getType()).isEqualTo(type);
 		assertThat(bean.getValidFrom()).isEqualTo(validFrom);
 		assertThat(bean.getValidTo()).isEqualTo(validTo);

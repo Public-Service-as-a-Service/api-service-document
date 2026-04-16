@@ -3,6 +3,7 @@ package se.sundsvall.document.service;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
@@ -25,6 +26,7 @@ import se.sundsvall.document.api.model.DocumentDataCreateRequest;
 import se.sundsvall.document.api.model.DocumentFiles;
 import se.sundsvall.document.api.model.DocumentParameters;
 import se.sundsvall.document.api.model.DocumentResponsibilitiesUpdateRequest;
+import se.sundsvall.document.api.model.DocumentStatus;
 import se.sundsvall.document.api.model.DocumentUpdateRequest;
 import se.sundsvall.document.api.model.PagedDocumentResponse;
 import se.sundsvall.document.integration.db.DocumentRepository;
@@ -43,6 +45,7 @@ import static generated.se.sundsvall.eventlog.EventType.UPDATE;
 import static java.util.Objects.nonNull;
 import static org.springframework.http.HttpHeaders.CONTENT_DISPOSITION;
 import static org.springframework.http.HttpHeaders.CONTENT_TYPE;
+import static org.springframework.http.HttpStatus.CONFLICT;
 import static org.springframework.http.HttpStatus.INTERNAL_SERVER_ERROR;
 import static org.springframework.http.HttpStatus.NOT_FOUND;
 import static org.springframework.util.CollectionUtils.isEmpty;
@@ -52,8 +55,11 @@ import static se.sundsvall.document.service.Constants.ERROR_DOCUMENT_FILE_BY_ID_
 import static se.sundsvall.document.service.Constants.ERROR_DOCUMENT_FILE_BY_REGISTRATION_NUMBER_AND_REVISION_NOT_FOUND;
 import static se.sundsvall.document.service.Constants.ERROR_DOCUMENT_FILE_BY_REGISTRATION_NUMBER_COULD_NOT_READ;
 import static se.sundsvall.document.service.Constants.ERROR_DOCUMENT_FILE_BY_REGISTRATION_NUMBER_NOT_FOUND;
+import static se.sundsvall.document.service.Constants.ERROR_STATUS_TRANSITION_NOT_ALLOWED;
+import static se.sundsvall.document.service.Constants.ERROR_VALID_FROM_AFTER_VALID_TO;
 import static se.sundsvall.document.service.Constants.TEMPLATE_EVENTLOG_MESSAGE_CONFIDENTIALITY_UPDATED_ON_DOCUMENT;
 import static se.sundsvall.document.service.Constants.TEMPLATE_EVENTLOG_MESSAGE_RESPONSIBILITIES_UPDATED_ON_DOCUMENT;
+import static se.sundsvall.document.service.Constants.TEMPLATE_EVENTLOG_MESSAGE_STATUS_UPDATED_ON_DOCUMENT;
 import static se.sundsvall.document.service.InclusionFilter.CONFIDENTIAL_AND_PUBLIC;
 import static se.sundsvall.document.service.mapper.DocumentMapper.applyUpdate;
 import static se.sundsvall.document.service.mapper.DocumentMapper.copyDocumentEntity;
@@ -79,6 +85,7 @@ public class DocumentService {
 	private final DocumentResponsibilityRepository documentResponsibilityRepository;
 	private final DocumentTypeRepository documentTypeRepository;
 	private final RegistrationNumberService registrationNumberService;
+	private final DocumentStatusPolicy statusPolicy;
 	private final Optional<EventLogClient> eventLogClient;
 	private final Optional<EventlogProperties> eventLogProperties;
 
@@ -88,6 +95,7 @@ public class DocumentService {
 		final DocumentResponsibilityRepository documentResponsibilityRepository,
 		final DocumentTypeRepository documentTypeRepository,
 		final RegistrationNumberService registrationNumberService,
+		final DocumentStatusPolicy statusPolicy,
 		final Optional<EventLogClient> eventLogClient,
 		final Optional<EventlogProperties> eventLogProperties) {
 
@@ -96,11 +104,14 @@ public class DocumentService {
 		this.documentResponsibilityRepository = documentResponsibilityRepository;
 		this.documentTypeRepository = documentTypeRepository;
 		this.registrationNumberService = registrationNumberService;
+		this.statusPolicy = statusPolicy;
 		this.eventLogClient = eventLogClient;
 		this.eventLogProperties = eventLogProperties;
 	}
 
 	public Document create(final DocumentCreateRequest documentCreateRequest, final DocumentFiles documentFiles, final String municipalityId) {
+
+		validateValidityWindow(documentCreateRequest.getValidFrom(), documentCreateRequest.getValidTo());
 
 		final var documentDataEntities = toDocumentDataEntities(documentFiles, binaryStore, municipalityId);
 		final var registrationNumber = registrationNumberService.generateRegistrationNumber(municipalityId);
@@ -118,10 +129,10 @@ public class DocumentService {
 		return toDocument(savedDocumentEntity, responsibilities);
 	}
 
-	public Document read(String registrationNumber, boolean includeConfidential, String municipalityId) {
+	public Document read(String registrationNumber, boolean includeConfidential, boolean includeNonPublic, String municipalityId) {
 
-		final var documentEntity = documentRepository.findTopByMunicipalityIdAndRegistrationNumberAndConfidentialityConfidentialInOrderByRevisionDesc(municipalityId, registrationNumber, toInclusionFilter(includeConfidential))
-			.orElseThrow(() -> Problem.valueOf(NOT_FOUND, ERROR_DOCUMENT_BY_REGISTRATION_NUMBER_NOT_FOUND.formatted(registrationNumber)));
+		final var documentEntity = findLatestRevisionForRead(municipalityId, registrationNumber, includeConfidential, includeNonPublic);
+		reconcileStatusIfStale(documentEntity);
 
 		return toDocumentWithResponsibilities(documentEntity);
 	}
@@ -139,13 +150,14 @@ public class DocumentService {
 	}
 
 	public PagedDocumentResponse search(String query, boolean includeConfidential, boolean onlyLatestRevision, Pageable pageable, String municipalityId) {
-		return toPagedDocumentResponseWithResponsibilities(documentRepository.search(query, includeConfidential, onlyLatestRevision, pageable, municipalityId));
+		final var effectiveStatuses = statusPolicy.effectivePublishedStatuses(null);
+		return toPagedDocumentResponseWithResponsibilities(documentRepository.search(query, includeConfidential, onlyLatestRevision, pageable, municipalityId, effectiveStatuses));
 	}
 
-	public void readFile(String registrationNumber, String documentDataId, boolean includeConfidential, HttpServletResponse response, String municipalityId) {
+	public void readFile(String registrationNumber, String documentDataId, boolean includeConfidential, boolean includeNonPublic, HttpServletResponse response, String municipalityId) {
 
-		final var documentEntity = documentRepository.findTopByMunicipalityIdAndRegistrationNumberAndConfidentialityConfidentialInOrderByRevisionDesc(municipalityId, registrationNumber, toInclusionFilter(includeConfidential))
-			.orElseThrow(() -> Problem.valueOf(NOT_FOUND, ERROR_DOCUMENT_BY_REGISTRATION_NUMBER_NOT_FOUND.formatted(registrationNumber)));
+		final var documentEntity = findLatestRevisionForRead(municipalityId, registrationNumber, includeConfidential, includeNonPublic);
+		reconcileStatusIfStale(documentEntity);
 
 		if (isEmpty(documentEntity.getDocumentData())) {
 			throw Problem.valueOf(NOT_FOUND, ERROR_DOCUMENT_FILE_BY_REGISTRATION_NUMBER_NOT_FOUND.formatted(registrationNumber));
@@ -230,6 +242,8 @@ public class DocumentService {
 			.orElseThrow(() -> Problem.valueOf(NOT_FOUND, ERROR_DOCUMENT_BY_REGISTRATION_NUMBER_NOT_FOUND.formatted(registrationNumber)));
 
 		applyUpdate(documentUpdateRequest, existingDocumentEntity);
+		validateValidityWindow(existingDocumentEntity.getValidFrom(), existingDocumentEntity.getValidTo());
+		existingDocumentEntity.setStatus(DocumentStatus.DRAFT);
 
 		if (nonNull(documentUpdateRequest.getType())) {
 			final var documentTypeEntity = documentTypeRepository.findByMunicipalityIdAndType(municipalityId, documentUpdateRequest.getType())
@@ -239,6 +253,33 @@ public class DocumentService {
 		}
 
 		return toDocumentWithResponsibilities(documentRepository.save(existingDocumentEntity));
+	}
+
+	public Document publish(String registrationNumber, String changedBy, String municipalityId) {
+		return transitionStatus(registrationNumber, changedBy, municipalityId, "publish", entity -> {
+			if (entity.getStatus() != DocumentStatus.DRAFT) {
+				throw Problem.valueOf(CONFLICT, ERROR_STATUS_TRANSITION_NOT_ALLOWED.formatted(entity.getStatus(), "publish", registrationNumber));
+			}
+			return statusPolicy.resolvePublishedStatus(entity.getValidFrom(), entity.getValidTo(), registrationNumber);
+		});
+	}
+
+	public Document revoke(String registrationNumber, String changedBy, String municipalityId) {
+		return transitionStatus(registrationNumber, changedBy, municipalityId, "revoke", entity -> {
+			if (entity.getStatus() != DocumentStatus.ACTIVE && entity.getStatus() != DocumentStatus.SCHEDULED) {
+				throw Problem.valueOf(CONFLICT, ERROR_STATUS_TRANSITION_NOT_ALLOWED.formatted(entity.getStatus(), "revoke", registrationNumber));
+			}
+			return DocumentStatus.REVOKED;
+		});
+	}
+
+	public Document unrevoke(String registrationNumber, String changedBy, String municipalityId) {
+		return transitionStatus(registrationNumber, changedBy, municipalityId, "unrevoke", entity -> {
+			if (entity.getStatus() != DocumentStatus.REVOKED) {
+				throw Problem.valueOf(CONFLICT, ERROR_STATUS_TRANSITION_NOT_ALLOWED.formatted(entity.getStatus(), "unrevoke", registrationNumber));
+			}
+			return statusPolicy.resolvePublishedStatus(entity.getValidFrom(), entity.getValidTo(), registrationNumber);
+		});
 	}
 
 	public void updateConfidentiality(String registrationNumber, ConfidentialityUpdateRequest confidentialityUpdateRequest, String municipalityId) {
@@ -276,7 +317,8 @@ public class DocumentService {
 
 	public PagedDocumentResponse searchByParameters(final DocumentParameters parameters) {
 		var pageable = PageRequest.of(parameters.getPage() - 1, parameters.getLimit(), parameters.sort());
-		return toPagedDocumentResponseWithResponsibilities(documentRepository.searchByParameters(parameters, pageable));
+		final var effectiveStatuses = statusPolicy.effectivePublishedStatuses(parameters.getStatuses());
+		return toPagedDocumentResponseWithResponsibilities(documentRepository.searchByParameters(parameters, pageable, effectiveStatuses));
 	}
 
 	private void addFileContentToResponse(DocumentDataEntity documentDataEntity, HttpServletResponse response) {
@@ -351,6 +393,55 @@ public class DocumentService {
 			registrationNumber,
 			TEMPLATE_EVENTLOG_MESSAGE_RESPONSIBILITIES_UPDATED_ON_DOCUMENT.formatted(toDocumentResponsibilities(oldResponsibilities), toDocumentResponsibilities(sortedNewResponsibilities), registrationNumber, changedBy),
 			changedBy))));
+	}
+
+	private void eventLogForStatusChange(String registrationNumber, DocumentStatus from, DocumentStatus to, String changedBy, String municipalityId) {
+		eventLogProperties.ifPresent(props -> eventLogClient.ifPresent(client -> client.createEvent(municipalityId, props.logKeyUuid(), toEvent(
+			UPDATE,
+			registrationNumber,
+			TEMPLATE_EVENTLOG_MESSAGE_STATUS_UPDATED_ON_DOCUMENT.formatted(from, to, registrationNumber, changedBy),
+			changedBy))));
+	}
+
+	private Document transitionStatus(String registrationNumber, String changedBy, String municipalityId, String action,
+		java.util.function.Function<DocumentEntity, DocumentStatus> nextStatusResolver) {
+
+		final var documentEntity = documentRepository.findTopByMunicipalityIdAndRegistrationNumberAndConfidentialityConfidentialInOrderByRevisionDesc(municipalityId, registrationNumber, CONFIDENTIAL_AND_PUBLIC.getValue())
+			.orElseThrow(() -> Problem.valueOf(NOT_FOUND, ERROR_DOCUMENT_BY_REGISTRATION_NUMBER_NOT_FOUND.formatted(registrationNumber)));
+
+		final var previousStatus = documentEntity.getStatus();
+		final var newStatus = nextStatusResolver.apply(documentEntity);
+		documentEntity.setStatus(newStatus);
+
+		eventLogForStatusChange(registrationNumber, previousStatus, newStatus, changedBy, municipalityId);
+
+		return toDocumentWithResponsibilities(documentRepository.save(documentEntity));
+	}
+
+	private DocumentEntity findLatestRevisionForRead(String municipalityId, String registrationNumber, boolean includeConfidential, boolean includeNonPublic) {
+
+		if (includeNonPublic) {
+			return documentRepository.findTopByMunicipalityIdAndRegistrationNumberAndConfidentialityConfidentialInOrderByRevisionDesc(municipalityId, registrationNumber, toInclusionFilter(includeConfidential))
+				.orElseThrow(() -> Problem.valueOf(NOT_FOUND, ERROR_DOCUMENT_BY_REGISTRATION_NUMBER_NOT_FOUND.formatted(registrationNumber)));
+		}
+
+		return documentRepository.findTopByMunicipalityIdAndRegistrationNumberAndConfidentialityConfidentialInAndStatusNotInOrderByRevisionDesc(
+			municipalityId, registrationNumber, toInclusionFilter(includeConfidential), DocumentStatusPolicy.nonPublicStatuses())
+			.orElseThrow(() -> Problem.valueOf(NOT_FOUND, ERROR_DOCUMENT_BY_REGISTRATION_NUMBER_NOT_FOUND.formatted(registrationNumber)));
+	}
+
+	private void reconcileStatusIfStale(DocumentEntity documentEntity) {
+		statusPolicy.reconcile(documentEntity.getStatus(), documentEntity.getValidFrom(), documentEntity.getValidTo())
+			.ifPresent(newStatus -> {
+				documentEntity.setStatus(newStatus);
+				documentRepository.save(documentEntity);
+			});
+	}
+
+	private static void validateValidityWindow(LocalDate validFrom, LocalDate validTo) {
+		if (validFrom != null && validTo != null && validFrom.isAfter(validTo)) {
+			throw Problem.valueOf(CONFLICT, ERROR_VALID_FROM_AFTER_VALID_TO.formatted(validFrom, validTo));
+		}
 	}
 
 	private void addOrReplaceDocumentDataEntity(DocumentEntity documentEntity, DocumentDataEntity documentDataEntity) {

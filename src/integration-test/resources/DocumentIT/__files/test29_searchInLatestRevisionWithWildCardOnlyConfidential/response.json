@@ -41,7 +41,8 @@
 			],
 			"validFrom": "2023-06-28",
 			"validTo": "2026-06-28",
-			"responsibilities": []
+			"responsibilities": [],
+			"status": "ACTIVE"
 		},
 		{
 			"municipalityId": "2281",
@@ -67,7 +68,8 @@
 			"revision": 2,
 			"metadataList": [],
 			"validFrom": "2024-04-06",
-			"responsibilities": []
+			"responsibilities": [],
+			"status": "ACTIVE"
 		},
 		{
 			"municipalityId": "2281",
@@ -111,7 +113,8 @@
 			],
 			"validFrom": "2023-06-28",
 			"validTo": "2024-06-28",
-			"responsibilities": []
+			"responsibilities": [],
+			"status": "ACTIVE"
 		},
 		{
 			"municipalityId": "2281",
@@ -140,7 +143,8 @@
 			],
 			"validFrom": "2024-02-05",
 			"validTo": "2025-02-05",
-			"responsibilities": []
+			"responsibilities": [],
+			"status": "ACTIVE"
 		},
 		{
 			"municipalityId": "2281",
@@ -169,7 +173,8 @@
 			],
 			"validFrom": "2023-12-07",
 			"validTo": "2026-12-07",
-			"responsibilities": []
+			"responsibilities": [],
+			"status": "ACTIVE"
 		},
 		{
 			"municipalityId": "2281",
@@ -197,7 +202,8 @@
 				}
 			],
 			"validFrom": "2024-01-23",
-			"responsibilities": []
+			"responsibilities": [],
+			"status": "ACTIVE"
 		},
 		{
 			"municipalityId": "2281",
@@ -217,7 +223,8 @@
 			"metadataList": [],
 			"validFrom": "2024-03-08",
 			"validTo": "2027-03-08",
-			"responsibilities": []
+			"responsibilities": [],
+			"status": "ACTIVE"
 		},
 		{
 			"municipalityId": "2281",
@@ -243,7 +250,8 @@
 					"key": "EMPLOYEE_TYPE"
 				}
 			],
-			"responsibilities": []
+			"responsibilities": [],
+			"status": "ACTIVE"
 		},
 		{
 			"municipalityId": "2281",
@@ -272,7 +280,8 @@
 			],
 			"validFrom": "2024-06-28",
 			"validTo": "2027-06-28",
-			"responsibilities": []
+			"responsibilities": [],
+			"status": "ACTIVE"
 		},
 		{
 			"municipalityId": "2281",
@@ -299,7 +308,8 @@
 					"key": "EMPLOYEE_TYPE"
 				}
 			],
-			"responsibilities": []
+			"responsibilities": [],
+			"status": "ACTIVE"
 		},
 		{
 			"municipalityId": "2281",
@@ -327,7 +337,8 @@
 			],
 			"validFrom": "2027-01-01",
 			"validTo": "2028-12-31",
-			"responsibilities": []
+			"responsibilities": [],
+			"status": "ACTIVE"
 		},
 		{
 			"municipalityId": "2281",
@@ -356,7 +367,8 @@
 			],
 			"validFrom": "2024-06-23",
 			"validTo": "2027-06-23",
-			"responsibilities": []
+			"responsibilities": [],
+			"status": "ACTIVE"
 		},
 		{
 			"municipalityId": "2281",
@@ -385,7 +397,8 @@
 			],
 			"validFrom": "2027-01-01",
 			"validTo": "2028-12-31",
-			"responsibilities": []
+			"responsibilities": [],
+			"status": "ACTIVE"
 		},
 		{
 			"municipalityId": "2281",
@@ -404,7 +417,8 @@
 			"revision": 2,
 			"metadataList": [],
 			"validFrom": "2024-08-31",
-			"responsibilities": []
+			"responsibilities": [],
+			"status": "ACTIVE"
 		},
 		{
 			"municipalityId": "2281",
@@ -432,7 +446,8 @@
 			],
 			"validFrom": "2024-08-29",
 			"validTo": "2027-08-29",
-			"responsibilities": []
+			"responsibilities": [],
+			"status": "ACTIVE"
 		},
 		{
 			"municipalityId": "2281",
@@ -460,7 +475,8 @@
 			],
 			"validFrom": "2024-09-10",
 			"validTo": "2027-09-10",
-			"responsibilities": []
+			"responsibilities": [],
+			"status": "ACTIVE"
 		},
 		{
 			"municipalityId": "2281",
@@ -479,7 +495,8 @@
 			"revision": 2,
 			"metadataList": [],
 			"validFrom": "2024-08-27",
-			"responsibilities": []
+			"responsibilities": [],
+			"status": "ACTIVE"
 		},
 		{
 			"municipalityId": "2281",
@@ -507,7 +524,8 @@
 				}
 			],
 			"validFrom": "2024-06-02",
-			"responsibilities": []
+			"responsibilities": [],
+			"status": "ACTIVE"
 		},
 		{
 			"municipalityId": "2281",
@@ -536,7 +554,8 @@
 			],
 			"validFrom": "2027-01-01",
 			"validTo": "2028-12-31",
-			"responsibilities": []
+			"responsibilities": [],
+			"status": "ACTIVE"
 		},
 		{
 			"municipalityId": "2281",
@@ -562,7 +581,8 @@
 					"key": "EMPLOYEE_TYPE"
 				}
 			],
-			"responsibilities": []
+			"responsibilities": [],
+			"status": "ACTIVE"
 		}
 	],
 	"_meta": {

@@ -1,6 +1,6 @@
 {
 	"municipalityId": "2282",
-	"createdBy": "user-x",
+	"createdBy": "User6",
 	"registrationNumber": "2024-2282-666",
 	"created": "${json-unit.any-string}",
 	"confidentiality": {
@@ -18,7 +18,7 @@
 		}
 	],
 	"type": "CONFIDENTIALITY_AGREEMENT",
-	"revision": 2,
+	"revision": 1,
 	"metadataList": [
 		{
 			"value": "value-1",

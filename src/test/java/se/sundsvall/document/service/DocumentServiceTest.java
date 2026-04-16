@@ -13,6 +13,7 @@ import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -665,14 +666,12 @@ class DocumentServiceTest {
 		final var includeConfidential = false;
 		final var existingEntity = createDocumentEntity();
 		final var documentUpdateRequest = DocumentUpdateRequest.create()
-			.withCreatedBy("changedUser")
 			.withDescription("changedDescription")
 			.withType("changedDocumentType")
 			.withMetadataList(List.of(DocumentMetadata.create().withKey("changedKey").withValue("changedValue")));
 
 		when(documentTypeRepositoryMock.findByMunicipalityIdAndType(MUNICIPALITY_ID, "changedDocumentType")).thenReturn(Optional.of(DocumentTypeEntity.create().withType("changedDocumentType")));
 		when(documentRepositoryMock.findTopByMunicipalityIdAndRegistrationNumberAndConfidentialityConfidentialInOrderByRevisionDesc(MUNICIPALITY_ID, REGISTRATION_NUMBER, PUBLIC.getValue())).thenReturn(Optional.of(existingEntity));
-		when(binaryStoreMock.copy(any(StorageRef.class))).thenAnswer(invocation -> StorageRef.jdbc(randomUUID().toString()));
 		when(documentRepositoryMock.save(any(DocumentEntity.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
 		// Act
@@ -683,21 +682,20 @@ class DocumentServiceTest {
 
 		verify(documentTypeRepositoryMock).findByMunicipalityIdAndType(MUNICIPALITY_ID, "changedDocumentType");
 		verify(documentRepositoryMock).save(documentEntityCaptor.capture());
-		verify(binaryStoreMock).copy(new StorageRef("jdbc", STORAGE_LOCATOR));
-		verifyNoInteractions(registrationNumberServiceMock);
+		verifyNoInteractions(registrationNumberServiceMock, binaryStoreMock);
 
 		final var capturedDocumentEntity = documentEntityCaptor.getValue();
 		assertThat(capturedDocumentEntity).isNotNull();
-		assertThat(capturedDocumentEntity.getRevision()).isEqualTo(REVISION + 1);
+		assertThat(capturedDocumentEntity.getRevision()).isEqualTo(REVISION); // Revision unchanged — no file modification
 		assertThat(capturedDocumentEntity.getConfidentiality()).isEqualTo(ConfidentialityEmbeddable.create().withConfidential(CONFIDENTIAL).withLegalCitation(LEGAL_CITATION));
-		assertThat(capturedDocumentEntity.getCreatedBy()).isEqualTo("changedUser");
+		assertThat(capturedDocumentEntity.getCreatedBy()).isEqualTo(CREATED_BY); // createdBy unchanged
 		assertThat(capturedDocumentEntity.getDescription()).isEqualTo("changedDescription");
 		assertThat(capturedDocumentEntity.getDocumentData())
 			.hasSize(1)
 			.allSatisfy(data -> {
 				assertThat(data.getFileName()).isEqualTo(FILE_NAME);
 				assertThat(data.getStorageBackend()).isEqualTo("jdbc");
-				assertThat(data.getStorageLocator()).isNotEqualTo(STORAGE_LOCATOR); // copy produces a fresh locator
+				assertThat(data.getStorageLocator()).isEqualTo(STORAGE_LOCATOR); // same locator — no file copy
 			});
 		assertThat(capturedDocumentEntity.getMetadata()).isEqualTo(List.of(DocumentMetadataEmbeddable.create().withKey("changedKey").withValue("changedValue")));
 		assertThat(capturedDocumentEntity.getMunicipalityId()).isEqualTo(existingEntity.getMunicipalityId());
@@ -984,7 +982,7 @@ class DocumentServiceTest {
 				.withDescription(DESCRIPTION)
 				.withDocumentData(List.of(createDocumentDataEntity()))
 				.withId(ID)
-				.withMetadata(List.of(DocumentMetadataEmbeddable.create().withKey(METADATA_KEY).withValue(METADATA_VALUE)))
+				.withMetadata(new ArrayList<>(List.of(DocumentMetadataEmbeddable.create().withKey(METADATA_KEY).withValue(METADATA_VALUE))))
 				.withMunicipalityId(MUNICIPALITY_ID)
 				.withRegistrationNumber(REGISTRATION_NUMBER)
 				.withRevision(REVISION)

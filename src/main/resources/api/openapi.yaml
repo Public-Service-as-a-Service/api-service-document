@@ -1451,11 +1451,9 @@ components:
       properties:
         createdBy:
           type: string
-          description: Actor that created this revision (all modifications will create
-            new revisions).
+          description: Actor that performed the update.
           examples:
             - username123
-          minLength: 1
         description:
           type: string
           description: Document description
@@ -1493,8 +1491,6 @@ components:
             to leave unchanged.
           examples:
             - 2027-04-15
-      required:
-        - createdBy
     ConfidentialityUpdateRequest:
       type: object
       description: ConfidentialityUpdateRequest model.

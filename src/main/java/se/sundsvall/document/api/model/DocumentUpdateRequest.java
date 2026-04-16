@@ -2,7 +2,6 @@ package se.sundsvall.document.api.model;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.Valid;
-import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 import java.time.LocalDate;
 import java.util.List;
@@ -10,13 +9,10 @@ import java.util.Objects;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.format.annotation.DateTimeFormat.ISO;
 
-import static io.swagger.v3.oas.annotations.media.Schema.RequiredMode.REQUIRED;
-
 @Schema(description = "DocumentUpdateRequest model.")
 public class DocumentUpdateRequest {
 
-	@NotBlank
-	@Schema(description = "Actor that created this revision (all modifications will create new revisions).", examples = "username123", requiredMode = REQUIRED)
+	@Schema(description = "Actor that performed the update.", examples = "username123")
 	private String createdBy;
 
 	@Size(max = 8192)

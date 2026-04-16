@@ -48,6 +48,37 @@ class RegistrationNumberSequenceRepositoryTest {
 		assertThat(result.getSequenceNumber()).isEqualTo(665);
 	}
 
+	@Test
+	void insertIfMissingCreatesRowWhenAbsent() {
+
+		// Arrange
+		final var newMunicipalityId = "9999";
+		assertThat(registrationNumberSequenceRepository.findByMunicipalityId(newMunicipalityId)).isEmpty();
+
+		// Act
+		final var inserted = registrationNumberSequenceRepository.insertIfMissing(UUID.randomUUID().toString(), newMunicipalityId, OffsetDateTime.now());
+
+		// Assert
+		assertThat(inserted).isEqualTo(1);
+		final var seeded = registrationNumberSequenceRepository.findByMunicipalityId(newMunicipalityId).orElseThrow();
+		assertThat(seeded.getSequenceNumber()).isZero();
+		assertThat(seeded.getMunicipalityId()).isEqualTo(newMunicipalityId);
+	}
+
+	@Test
+	void insertIfMissingIsIdempotentWhenRowAlreadyExists() {
+
+		// Arrange: MUNICIPALITY_ID (2321) is pre-seeded with sequenceNumber=665 from testdata-junit.sql.
+
+		// Act
+		final var inserted = registrationNumberSequenceRepository.insertIfMissing(UUID.randomUUID().toString(), MUNICIPALITY_ID, OffsetDateTime.now());
+
+		// Assert
+		assertThat(inserted).isZero(); // INSERT IGNORE silently skipped.
+		final var untouched = registrationNumberSequenceRepository.findByMunicipalityId(MUNICIPALITY_ID).orElseThrow();
+		assertThat(untouched.getSequenceNumber()).isEqualTo(665); // unchanged.
+	}
+
 	private boolean isValidUUID(final String value) {
 		try {
 			UUID.fromString(String.valueOf(value));

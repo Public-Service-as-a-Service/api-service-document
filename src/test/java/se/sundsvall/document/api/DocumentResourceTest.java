@@ -247,6 +247,114 @@ class DocumentResourceTest {
 	}
 
 	@Test
+	void publishLatestRevision() {
+
+		// Arrange
+		final var registrationNumber = "2023-1337";
+		when(documentServiceMock.publish(any(), any(), any(), any())).thenReturn(Document.create());
+
+		// Act
+		webTestClient.post()
+			.uri("/2281/documents/" + registrationNumber + "/publish?changedBy=user")
+			.exchange()
+			.expectStatus().isOk()
+			.expectHeader().contentType(APPLICATION_JSON);
+
+		// Assert
+		verify(documentServiceMock).publish(registrationNumber, "user", "2281", null);
+	}
+
+	@Test
+	void publishSpecificRevision() {
+
+		// Arrange
+		final var registrationNumber = "2023-1337";
+		when(documentServiceMock.publish(any(), any(), any(), any())).thenReturn(Document.create());
+
+		// Act
+		webTestClient.post()
+			.uri("/2281/documents/" + registrationNumber + "/publish?changedBy=user&revision=5")
+			.exchange()
+			.expectStatus().isOk()
+			.expectHeader().contentType(APPLICATION_JSON);
+
+		// Assert
+		verify(documentServiceMock).publish(registrationNumber, "user", "2281", 5);
+	}
+
+	@Test
+	void revokeLatestRevision() {
+
+		// Arrange
+		final var registrationNumber = "2023-1337";
+		when(documentServiceMock.revoke(any(), any(), any(), any())).thenReturn(Document.create());
+
+		// Act
+		webTestClient.post()
+			.uri("/2281/documents/" + registrationNumber + "/revoke?changedBy=user")
+			.exchange()
+			.expectStatus().isOk()
+			.expectHeader().contentType(APPLICATION_JSON);
+
+		// Assert
+		verify(documentServiceMock).revoke(registrationNumber, "user", "2281", null);
+	}
+
+	@Test
+	void revokeSpecificRevision() {
+
+		// Arrange
+		final var registrationNumber = "2023-1337";
+		when(documentServiceMock.revoke(any(), any(), any(), any())).thenReturn(Document.create());
+
+		// Act
+		webTestClient.post()
+			.uri("/2281/documents/" + registrationNumber + "/revoke?changedBy=user&revision=5")
+			.exchange()
+			.expectStatus().isOk()
+			.expectHeader().contentType(APPLICATION_JSON);
+
+		// Assert
+		verify(documentServiceMock).revoke(registrationNumber, "user", "2281", 5);
+	}
+
+	@Test
+	void unrevokeLatestRevision() {
+
+		// Arrange
+		final var registrationNumber = "2023-1337";
+		when(documentServiceMock.unrevoke(any(), any(), any(), any())).thenReturn(Document.create());
+
+		// Act
+		webTestClient.post()
+			.uri("/2281/documents/" + registrationNumber + "/unrevoke?changedBy=user")
+			.exchange()
+			.expectStatus().isOk()
+			.expectHeader().contentType(APPLICATION_JSON);
+
+		// Assert
+		verify(documentServiceMock).unrevoke(registrationNumber, "user", "2281", null);
+	}
+
+	@Test
+	void unrevokeSpecificRevision() {
+
+		// Arrange
+		final var registrationNumber = "2023-1337";
+		when(documentServiceMock.unrevoke(any(), any(), any(), any())).thenReturn(Document.create());
+
+		// Act
+		webTestClient.post()
+			.uri("/2281/documents/" + registrationNumber + "/unrevoke?changedBy=user&revision=5")
+			.exchange()
+			.expectStatus().isOk()
+			.expectHeader().contentType(APPLICATION_JSON);
+
+		// Assert
+		verify(documentServiceMock).unrevoke(registrationNumber, "user", "2281", 5);
+	}
+
+	@Test
 	void updateWithIncludeConfidential() {
 
 		// Arrange

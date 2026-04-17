@@ -189,7 +189,7 @@ class DocumentServiceTest {
 
 		when(documentTypeRepositoryMock.findByMunicipalityIdAndType(MUNICIPALITY_ID, DOCUMENT_TYPE)).thenReturn(Optional.of(DocumentTypeEntity.create().withType(DOCUMENT_TYPE)));
 		when(registrationNumberServiceMock.generateRegistrationNumber(MUNICIPALITY_ID)).thenReturn(REGISTRATION_NUMBER);
-		when(binaryStoreMock.put(any(InputStream.class), anyLong(), anyString(), anyMap())).thenReturn(StorageRef.jdbc(newLocator));
+		when(binaryStoreMock.put(any(InputStream.class), anyLong(), anyString(), anyMap())).thenReturn(StorageRef.s3(newLocator));
 		when(documentRepositoryMock.save(any(DocumentEntity.class))).thenAnswer(invocation -> invocation.getArgument(0));
 		when(documentResponsibilityRepositoryMock.saveAll(any())).thenAnswer(invocation -> invocation.getArgument(0));
 
@@ -211,8 +211,8 @@ class DocumentServiceTest {
 		assertThat(capturedDocumentEntity.getCreatedBy()).isEqualTo(CREATED_BY);
 		assertThat(capturedDocumentEntity.getDocumentData())
 			.hasSize(1)
-			.extracting(DocumentDataEntity::getStorageBackend, DocumentDataEntity::getStorageLocator, DocumentDataEntity::getFileSizeInBytes)
-			.containsExactly(tuple("jdbc", newLocator, file.length()));
+			.extracting(DocumentDataEntity::getStorageLocator, DocumentDataEntity::getFileSizeInBytes)
+			.containsExactly(tuple(newLocator, file.length()));
 		assertThat(capturedDocumentEntity.getMetadata()).isEqualTo(List.of(DocumentMetadataEmbeddable.create().withKey(METADATA_KEY).withValue(METADATA_VALUE)));
 		assertThat(capturedDocumentEntity.getMunicipalityId()).isEqualTo(MUNICIPALITY_ID);
 		assertThat(capturedDocumentEntity.getRegistrationNumber()).isEqualTo(REGISTRATION_NUMBER);
@@ -245,7 +245,7 @@ class DocumentServiceTest {
 
 		when(documentTypeRepositoryMock.findByMunicipalityIdAndType(MUNICIPALITY_ID, DOCUMENT_TYPE)).thenReturn(Optional.of(DocumentTypeEntity.create().withType(DOCUMENT_TYPE)));
 		when(registrationNumberServiceMock.generateRegistrationNumber(MUNICIPALITY_ID)).thenReturn(REGISTRATION_NUMBER);
-		when(binaryStoreMock.put(any(InputStream.class), anyLong(), anyString(), anyMap())).thenAnswer(invocation -> StorageRef.jdbc(randomUUID().toString()));
+		when(binaryStoreMock.put(any(InputStream.class), anyLong(), anyString(), anyMap())).thenAnswer(invocation -> StorageRef.s3(randomUUID().toString()));
 		when(documentRepositoryMock.save(any(DocumentEntity.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
 		// Act
@@ -264,10 +264,10 @@ class DocumentServiceTest {
 		assertThat(capturedDocumentEntity).isNotNull();
 		assertThat(capturedDocumentEntity.getDocumentData())
 			.hasSize(2)
-			.extracting(DocumentDataEntity::getMimeType, DocumentDataEntity::getFileName, DocumentDataEntity::getFileSizeInBytes, DocumentDataEntity::getStorageBackend)
+			.extracting(DocumentDataEntity::getMimeType, DocumentDataEntity::getFileName, DocumentDataEntity::getFileSizeInBytes)
 			.containsExactlyInAnyOrder(
-				tuple("text/plain", "readme.txt", 17L, "jdbc"),
-				tuple("image/png", "image.png", 227546L, "jdbc"));
+				tuple("text/plain", "readme.txt", 17L),
+				tuple("image/png", "image.png", 227546L));
 		assertThat(capturedDocumentEntity.getDocumentData())
 			.extracting(DocumentDataEntity::getStorageLocator)
 			.doesNotContainNull();
@@ -429,7 +429,7 @@ class DocumentServiceTest {
 		verify(httpServletResponseMock).addHeader(CONTENT_DISPOSITION, ContentDisposition.attachment().filename(FILE_NAME, StandardCharsets.UTF_8).build().toString());
 		verify(httpServletResponseMock).setContentLength((int) FILE_SIZE_IN_BYTES);
 		verify(httpServletResponseMock).getOutputStream();
-		verify(binaryStoreMock).streamTo(eq(new StorageRef("jdbc", STORAGE_LOCATOR)), any(OutputStream.class));
+		verify(binaryStoreMock).streamTo(eq(StorageRef.s3(STORAGE_LOCATOR)), any(OutputStream.class));
 	}
 
 	@Test
@@ -541,7 +541,7 @@ class DocumentServiceTest {
 		verify(httpServletResponseMock).addHeader(CONTENT_DISPOSITION, ContentDisposition.attachment().filename(FILE_NAME, StandardCharsets.UTF_8).build().toString());
 		verify(httpServletResponseMock).setContentLength((int) FILE_SIZE_IN_BYTES);
 		verify(httpServletResponseMock).getOutputStream();
-		verify(binaryStoreMock).streamTo(eq(new StorageRef("jdbc", STORAGE_LOCATOR)), any(OutputStream.class));
+		verify(binaryStoreMock).streamTo(eq(StorageRef.s3(STORAGE_LOCATOR)), any(OutputStream.class));
 	}
 
 	@Test
@@ -563,7 +563,7 @@ class DocumentServiceTest {
 		verify(httpServletResponseMock).addHeader(CONTENT_DISPOSITION, ContentDisposition.attachment().filename(FILE_NAME, StandardCharsets.UTF_8).build().toString());
 		verify(httpServletResponseMock).setContentLength((int) FILE_SIZE_IN_BYTES);
 		verify(httpServletResponseMock).getOutputStream();
-		verify(binaryStoreMock).streamTo(eq(new StorageRef("jdbc", STORAGE_LOCATOR)), any(OutputStream.class));
+		verify(binaryStoreMock).streamTo(eq(StorageRef.s3(STORAGE_LOCATOR)), any(OutputStream.class));
 	}
 
 	@Test
@@ -719,7 +719,6 @@ class DocumentServiceTest {
 			.hasSize(1)
 			.allSatisfy(data -> {
 				assertThat(data.getFileName()).isEqualTo(FILE_NAME);
-				assertThat(data.getStorageBackend()).isEqualTo("jdbc");
 				assertThat(data.getStorageLocator()).isEqualTo(STORAGE_LOCATOR); // same locator — no file copy
 			});
 		assertThat(capturedDocumentEntity.getMetadata()).isEqualTo(List.of(DocumentMetadataEmbeddable.create().withKey("changedKey").withValue("changedValue")));
@@ -887,8 +886,8 @@ class DocumentServiceTest {
 		final var multipartFile = (MultipartFile) new MockMultipartFile("file", file.getName(), "image/png", toByteArray(new FileInputStream(file)));
 
 		when(documentRepositoryMock.findTopByMunicipalityIdAndRegistrationNumberAndConfidentialityConfidentialInOrderByRevisionDesc(MUNICIPALITY_ID, REGISTRATION_NUMBER, CONFIDENTIAL_AND_PUBLIC.getValue())).thenReturn(Optional.of(existingEntity));
-		when(binaryStoreMock.put(any(InputStream.class), anyLong(), anyString(), anyMap())).thenReturn(StorageRef.jdbc(randomUUID().toString()));
-		when(binaryStoreMock.copy(any(StorageRef.class))).thenAnswer(invocation -> StorageRef.jdbc(randomUUID().toString()));
+		when(binaryStoreMock.put(any(InputStream.class), anyLong(), anyString(), anyMap())).thenReturn(StorageRef.s3(randomUUID().toString()));
+		when(binaryStoreMock.copy(any(StorageRef.class))).thenAnswer(invocation -> StorageRef.s3(randomUUID().toString()));
 		when(documentRepositoryMock.save(any(DocumentEntity.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
 		// Act
@@ -931,8 +930,8 @@ class DocumentServiceTest {
 		final var multipartFile = (MultipartFile) new MockMultipartFile("file", FILE_NAME, "image/png", toByteArray(new FileInputStream(file))); // Same name as in "existingEntity"
 
 		when(documentRepositoryMock.findTopByMunicipalityIdAndRegistrationNumberAndConfidentialityConfidentialInOrderByRevisionDesc(MUNICIPALITY_ID, REGISTRATION_NUMBER, CONFIDENTIAL_AND_PUBLIC.getValue())).thenReturn(Optional.of(existingEntity));
-		when(binaryStoreMock.put(any(InputStream.class), anyLong(), anyString(), anyMap())).thenReturn(StorageRef.jdbc(randomUUID().toString()));
-		when(binaryStoreMock.copy(any(StorageRef.class))).thenAnswer(invocation -> StorageRef.jdbc(randomUUID().toString()));
+		when(binaryStoreMock.put(any(InputStream.class), anyLong(), anyString(), anyMap())).thenReturn(StorageRef.s3(randomUUID().toString()));
+		when(binaryStoreMock.copy(any(StorageRef.class))).thenAnswer(invocation -> StorageRef.s3(randomUUID().toString()));
 		when(documentRepositoryMock.save(any(DocumentEntity.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
 		// Act
@@ -997,8 +996,8 @@ class DocumentServiceTest {
 		final var documentFiles = DocumentFiles.create().withFiles(List.of(multipartFile2, multipartFile3));
 
 		when(documentRepositoryMock.findTopByMunicipalityIdAndRegistrationNumberAndConfidentialityConfidentialInOrderByRevisionDesc(MUNICIPALITY_ID, REGISTRATION_NUMBER, CONFIDENTIAL_AND_PUBLIC.getValue())).thenReturn(Optional.of(existingEntity));
-		when(binaryStoreMock.put(any(InputStream.class), anyLong(), anyString(), anyMap())).thenReturn(StorageRef.jdbc(randomUUID().toString()));
-		when(binaryStoreMock.copy(any(StorageRef.class))).thenAnswer(invocation -> StorageRef.jdbc(randomUUID().toString()));
+		when(binaryStoreMock.put(any(InputStream.class), anyLong(), anyString(), anyMap())).thenReturn(StorageRef.s3(randomUUID().toString()));
+		when(binaryStoreMock.copy(any(StorageRef.class))).thenAnswer(invocation -> StorageRef.s3(randomUUID().toString()));
 		when(documentRepositoryMock.save(any(DocumentEntity.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
 		// Act
@@ -1033,7 +1032,7 @@ class DocumentServiceTest {
 		final var documentEntity = createDocumentEntity();
 
 		when(documentRepositoryMock.findTopByMunicipalityIdAndRegistrationNumberAndConfidentialityConfidentialInOrderByRevisionDesc(MUNICIPALITY_ID, REGISTRATION_NUMBER, CONFIDENTIAL_AND_PUBLIC.getValue())).thenReturn(Optional.of(documentEntity));
-		when(binaryStoreMock.copy(any(StorageRef.class))).thenAnswer(invocation -> StorageRef.jdbc(randomUUID().toString()));
+		when(binaryStoreMock.copy(any(StorageRef.class))).thenAnswer(invocation -> StorageRef.s3(randomUUID().toString()));
 
 		// Act
 		documentService.deleteFile(REGISTRATION_NUMBER, DOCUMENT_DATA_ID, MUNICIPALITY_ID);
@@ -1099,7 +1098,7 @@ class DocumentServiceTest {
 		documentEntity.getDocumentData().getFirst().withId("some-id-that-will-not-be-found");
 
 		when(documentRepositoryMock.findTopByMunicipalityIdAndRegistrationNumberAndConfidentialityConfidentialInOrderByRevisionDesc(MUNICIPALITY_ID, REGISTRATION_NUMBER, CONFIDENTIAL_AND_PUBLIC.getValue())).thenReturn(Optional.of(documentEntity));
-		when(binaryStoreMock.copy(any(StorageRef.class))).thenAnswer(invocation -> StorageRef.jdbc(randomUUID().toString()));
+		when(binaryStoreMock.copy(any(StorageRef.class))).thenAnswer(invocation -> StorageRef.s3(randomUUID().toString()));
 
 		// Act
 		final var exception = assertThrows(ThrowableProblem.class, () -> documentService.deleteFile(REGISTRATION_NUMBER, DOCUMENT_DATA_ID, MUNICIPALITY_ID));
@@ -1145,7 +1144,6 @@ class DocumentServiceTest {
 	private DocumentDataEntity createDocumentDataEntity() {
 		return DocumentDataEntity.create()
 			.withId(DOCUMENT_DATA_ID)
-			.withStorageBackend("jdbc")
 			.withStorageLocator(STORAGE_LOCATOR)
 			.withFileName(FILE_NAME)
 			.withMimeType(MIME_TYPE)

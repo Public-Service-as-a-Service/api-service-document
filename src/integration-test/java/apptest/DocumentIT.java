@@ -6,7 +6,6 @@ import org.springframework.core.io.FileSystemResource;
 import org.springframework.http.client.MultipartBodyBuilder;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.jdbc.Sql;
-import se.sundsvall.dept44.test.AbstractAppTest;
 import se.sundsvall.dept44.test.annotation.wiremock.WireMockAppTestSuite;
 import se.sundsvall.document.Application;
 
@@ -37,7 +36,7 @@ import static org.springframework.util.ResourceUtils.getFile;
 	"/db/scripts/truncate.sql",
 	"/db/scripts/testdata-it.sql"
 })
-class DocumentIT extends AbstractAppTest {
+class DocumentIT extends AbstractDocumentAppTest {
 
 	private static final String FILTER_PATH = "/2281/documents/filter";
 	private static final String PATH_SUNDSVALL = "/2281/documents";

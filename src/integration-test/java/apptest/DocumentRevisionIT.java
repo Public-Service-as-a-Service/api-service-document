@@ -3,7 +3,6 @@ package apptest;
 import org.junit.jupiter.api.Test;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.jdbc.Sql;
-import se.sundsvall.dept44.test.AbstractAppTest;
 import se.sundsvall.dept44.test.annotation.wiremock.WireMockAppTestSuite;
 import se.sundsvall.document.Application;
 
@@ -19,7 +18,7 @@ import static org.springframework.http.HttpStatus.OK;
 	"/db/scripts/truncate.sql",
 	"/db/scripts/testdata-it.sql"
 })
-class DocumentRevisionIT extends AbstractAppTest {
+class DocumentRevisionIT extends AbstractDocumentAppTest {
 
 	private static final String PATH = "/2281/documents";
 	private static final String RESPONSE_FILE = "response.json";

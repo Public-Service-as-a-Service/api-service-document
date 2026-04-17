@@ -8,7 +8,6 @@ import java.nio.charset.StandardCharsets;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.UUID;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StreamUtils;
 import se.sundsvall.dept44.problem.Problem;
@@ -32,7 +31,6 @@ import static org.springframework.http.HttpStatus.NOT_FOUND;
  * per revision) and preserves the "delete old revision doesn't affect current" guarantee.
  */
 @Component
-@ConditionalOnProperty(name = "document.storage.backend", havingValue = "s3")
 public class S3BinaryStore implements BinaryStore {
 
 	private final S3Client s3Client;

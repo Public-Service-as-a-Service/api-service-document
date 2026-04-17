@@ -329,7 +329,7 @@ public class DocumentService {
 			.toString());
 		response.setContentLength((int) documentDataEntity.getFileSizeInBytes());
 
-		final var ref = new StorageRef(documentDataEntity.getStorageBackend(), documentDataEntity.getStorageLocator());
+		final var ref = StorageRef.s3(documentDataEntity.getStorageLocator());
 		try {
 			binaryStore.streamTo(ref, response.getOutputStream());
 		} catch (final IOException e) {

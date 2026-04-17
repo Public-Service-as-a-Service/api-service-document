@@ -80,7 +80,6 @@ public class DocumentMapper {
 			throw Problem.valueOf(INTERNAL_SERVER_ERROR, "Failed to read upload for " + multipartFile.getOriginalFilename() + ": " + e.getMessage());
 		}
 		return DocumentDataEntity.create()
-			.withStorageBackend(ref.backend())
 			.withStorageLocator(ref.locator())
 			.withMimeType(multipartFile.getContentType())
 			.withFileName(multipartFile.getOriginalFilename())
@@ -259,13 +258,12 @@ public class DocumentMapper {
 		if (documentDataEntity == null) {
 			return null;
 		}
-		final var sourceRef = new StorageRef(documentDataEntity.getStorageBackend(), documentDataEntity.getStorageLocator());
+		final var sourceRef = StorageRef.s3(documentDataEntity.getStorageLocator());
 		final var newRef = binaryStore.copy(sourceRef);
 		return DocumentDataEntity.create()
 			.withMimeType(documentDataEntity.getMimeType())
 			.withFileName(documentDataEntity.getFileName())
 			.withFileSizeInBytes(documentDataEntity.getFileSizeInBytes())
-			.withStorageBackend(newRef.backend())
 			.withStorageLocator(newRef.locator());
 	}
 

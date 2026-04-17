@@ -27,11 +27,7 @@ public class DocumentDataEntity {
 	@ColumnDefault("0")
 	private long fileSizeInBytes;
 
-	@Column(name = "storage_backend", nullable = false, length = 16)
-	@ColumnDefault("'jdbc'")
-	private String storageBackend = "jdbc";
-
-	@Column(name = "storage_locator")
+	@Column(name = "storage_locator", nullable = false)
 	private String storageLocator;
 
 	public static DocumentDataEntity create() {
@@ -90,19 +86,6 @@ public class DocumentDataEntity {
 		return this;
 	}
 
-	public String getStorageBackend() {
-		return storageBackend;
-	}
-
-	public void setStorageBackend(String storageBackend) {
-		this.storageBackend = storageBackend;
-	}
-
-	public DocumentDataEntity withStorageBackend(String storageBackend) {
-		this.storageBackend = storageBackend;
-		return this;
-	}
-
 	public String getStorageLocator() {
 		return storageLocator;
 	}
@@ -126,19 +109,19 @@ public class DocumentDataEntity {
 		}
 		final DocumentDataEntity that = (DocumentDataEntity) o;
 		return (fileSizeInBytes == that.fileSizeInBytes) && Objects.equals(id, that.id) && Objects.equals(mimeType, that.mimeType) && Objects.equals(fileName, that.fileName) &&
-			Objects.equals(storageBackend, that.storageBackend) && Objects.equals(storageLocator, that.storageLocator);
+			Objects.equals(storageLocator, that.storageLocator);
 	}
 
 	@Override
 	public int hashCode() {
-		return Objects.hash(id, mimeType, fileName, fileSizeInBytes, storageBackend, storageLocator);
+		return Objects.hash(id, mimeType, fileName, fileSizeInBytes, storageLocator);
 	}
 
 	@Override
 	public String toString() {
 		final StringBuilder builder = new StringBuilder();
 		builder.append("DocumentDataEntity [id=").append(id).append(", mimeType=").append(mimeType).append(", fileName=").append(fileName).append(", fileSizeInBytes=").append(fileSizeInBytes)
-			.append(", storageBackend=").append(storageBackend).append(", storageLocator=").append(storageLocator).append("]");
+			.append(", storageLocator=").append(storageLocator).append("]");
 		return builder.toString();
 	}
 }

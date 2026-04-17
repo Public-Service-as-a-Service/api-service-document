@@ -291,7 +291,7 @@ paths:
     post:
       tags:
         - Documents
-      summary: Unrevoke document.
+      summary: Unrevoke document. Targets latest revision by default; pass 'revision' to target a specific revision.
       operationId: unrevoke
       parameters:
         - name: municipalityId
@@ -310,6 +310,15 @@ paths:
           schema:
             type: string
             minLength: 1
+        - name: revision
+          in: query
+          description: Revision to transition. Defaults to the latest revision.
+          required: false
+          schema:
+            type: integer
+            format: int32
+            minimum: 1
+          example: 5
       responses:
         "400":
           description: Bad request
@@ -329,7 +338,7 @@ paths:
     post:
       tags:
         - Documents
-      summary: Revoke document.
+      summary: Revoke document. Targets latest revision by default; pass 'revision' to target a specific revision.
       operationId: revoke
       parameters:
         - name: municipalityId
@@ -348,6 +357,15 @@ paths:
           schema:
             type: string
             minLength: 1
+        - name: revision
+          in: query
+          description: Revision to transition. Defaults to the latest revision.
+          required: false
+          schema:
+            type: integer
+            format: int32
+            minimum: 1
+          example: 5
       responses:
         "400":
           description: Bad request
@@ -367,7 +385,7 @@ paths:
     post:
       tags:
         - Documents
-      summary: Publish document.
+      summary: Publish document. Targets latest revision by default; pass 'revision' to target a specific revision.
       operationId: publish
       parameters:
         - name: municipalityId
@@ -386,6 +404,15 @@ paths:
           schema:
             type: string
             minLength: 1
+        - name: revision
+          in: query
+          description: Revision to transition. Defaults to the latest revision.
+          required: false
+          schema:
+            type: integer
+            format: int32
+            minimum: 1
+          example: 5
       responses:
         "400":
           description: Bad request

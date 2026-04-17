@@ -12,6 +12,7 @@ import jakarta.validation.ConstraintViolation;
 import jakarta.validation.ConstraintViolationException;
 import jakarta.validation.Valid;
 import jakarta.validation.ValidatorFactory;
+import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import java.util.List;
@@ -138,33 +139,36 @@ class DocumentResource {
 	}
 
 	@PostMapping(path = "/{registrationNumber}/publish", produces = APPLICATION_JSON_VALUE)
-	@Operation(summary = "Publish document.")
+	@Operation(summary = "Publish document. Targets latest revision by default; pass 'revision' to target a specific revision.")
 	ResponseEntity<Document> publish(
 		@PathVariable @ValidMunicipalityId final String municipalityId,
 		@PathVariable final String registrationNumber,
-		@RequestParam("changedBy") @NotBlank final String changedBy) {
+		@RequestParam("changedBy") @NotBlank final String changedBy,
+		@Parameter(description = "Revision to transition. Defaults to the latest revision.", example = "5") @RequestParam(name = "revision", required = false) @Min(1) final Integer revision) {
 
-		return ok(documentService.publish(registrationNumber, changedBy, municipalityId));
+		return ok(documentService.publish(registrationNumber, changedBy, municipalityId, revision));
 	}
 
 	@PostMapping(path = "/{registrationNumber}/revoke", produces = APPLICATION_JSON_VALUE)
-	@Operation(summary = "Revoke document.")
+	@Operation(summary = "Revoke document. Targets latest revision by default; pass 'revision' to target a specific revision.")
 	ResponseEntity<Document> revoke(
 		@PathVariable @ValidMunicipalityId final String municipalityId,
 		@PathVariable final String registrationNumber,
-		@RequestParam("changedBy") @NotBlank final String changedBy) {
+		@RequestParam("changedBy") @NotBlank final String changedBy,
+		@Parameter(description = "Revision to transition. Defaults to the latest revision.", example = "5") @RequestParam(name = "revision", required = false) @Min(1) final Integer revision) {
 
-		return ok(documentService.revoke(registrationNumber, changedBy, municipalityId));
+		return ok(documentService.revoke(registrationNumber, changedBy, municipalityId, revision));
 	}
 
 	@PostMapping(path = "/{registrationNumber}/unrevoke", produces = APPLICATION_JSON_VALUE)
-	@Operation(summary = "Unrevoke document.")
+	@Operation(summary = "Unrevoke document. Targets latest revision by default; pass 'revision' to target a specific revision.")
 	ResponseEntity<Document> unrevoke(
 		@PathVariable @ValidMunicipalityId final String municipalityId,
 		@PathVariable final String registrationNumber,
-		@RequestParam("changedBy") @NotBlank final String changedBy) {
+		@RequestParam("changedBy") @NotBlank final String changedBy,
+		@Parameter(description = "Revision to transition. Defaults to the latest revision.", example = "5") @RequestParam(name = "revision", required = false) @Min(1) final Integer revision) {
 
-		return ok(documentService.unrevoke(registrationNumber, changedBy, municipalityId));
+		return ok(documentService.unrevoke(registrationNumber, changedBy, municipalityId, revision));
 	}
 
 	@PatchMapping(path = "/{registrationNumber}/confidentiality", produces = {

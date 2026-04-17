@@ -255,8 +255,8 @@ public class DocumentService {
 		return toDocumentWithResponsibilities(documentRepository.save(existingDocumentEntity));
 	}
 
-	public Document publish(String registrationNumber, String changedBy, String municipalityId) {
-		return transitionStatus(registrationNumber, changedBy, municipalityId, "publish", entity -> {
+	public Document publish(String registrationNumber, String changedBy, String municipalityId, Integer revision) {
+		return transitionStatus(registrationNumber, changedBy, municipalityId, revision, "publish", entity -> {
 			if (entity.getStatus() != DocumentStatus.DRAFT) {
 				throw Problem.valueOf(CONFLICT, ERROR_STATUS_TRANSITION_NOT_ALLOWED.formatted(entity.getStatus(), "publish", registrationNumber));
 			}
@@ -264,8 +264,8 @@ public class DocumentService {
 		});
 	}
 
-	public Document revoke(String registrationNumber, String changedBy, String municipalityId) {
-		return transitionStatus(registrationNumber, changedBy, municipalityId, "revoke", entity -> {
+	public Document revoke(String registrationNumber, String changedBy, String municipalityId, Integer revision) {
+		return transitionStatus(registrationNumber, changedBy, municipalityId, revision, "revoke", entity -> {
 			if (entity.getStatus() != DocumentStatus.ACTIVE && entity.getStatus() != DocumentStatus.SCHEDULED) {
 				throw Problem.valueOf(CONFLICT, ERROR_STATUS_TRANSITION_NOT_ALLOWED.formatted(entity.getStatus(), "revoke", registrationNumber));
 			}
@@ -273,8 +273,8 @@ public class DocumentService {
 		});
 	}
 
-	public Document unrevoke(String registrationNumber, String changedBy, String municipalityId) {
-		return transitionStatus(registrationNumber, changedBy, municipalityId, "unrevoke", entity -> {
+	public Document unrevoke(String registrationNumber, String changedBy, String municipalityId, Integer revision) {
+		return transitionStatus(registrationNumber, changedBy, municipalityId, revision, "unrevoke", entity -> {
 			if (entity.getStatus() != DocumentStatus.REVOKED) {
 				throw Problem.valueOf(CONFLICT, ERROR_STATUS_TRANSITION_NOT_ALLOWED.formatted(entity.getStatus(), "unrevoke", registrationNumber));
 			}
@@ -395,25 +395,28 @@ public class DocumentService {
 			changedBy))));
 	}
 
-	private void eventLogForStatusChange(String registrationNumber, DocumentStatus from, DocumentStatus to, String changedBy, String municipalityId) {
+	private void eventLogForStatusChange(String registrationNumber, int revision, DocumentStatus from, DocumentStatus to, String changedBy, String municipalityId) {
 		eventLogProperties.ifPresent(props -> eventLogClient.ifPresent(client -> client.createEvent(municipalityId, props.logKeyUuid(), toEvent(
 			UPDATE,
 			registrationNumber,
-			TEMPLATE_EVENTLOG_MESSAGE_STATUS_UPDATED_ON_DOCUMENT.formatted(from, to, registrationNumber, changedBy),
+			TEMPLATE_EVENTLOG_MESSAGE_STATUS_UPDATED_ON_DOCUMENT.formatted(from, to, registrationNumber, revision, changedBy),
 			changedBy))));
 	}
 
-	private Document transitionStatus(String registrationNumber, String changedBy, String municipalityId, String action,
+	private Document transitionStatus(String registrationNumber, String changedBy, String municipalityId, Integer revision, String action,
 		java.util.function.Function<DocumentEntity, DocumentStatus> nextStatusResolver) {
 
-		final var documentEntity = documentRepository.findTopByMunicipalityIdAndRegistrationNumberAndConfidentialityConfidentialInOrderByRevisionDesc(municipalityId, registrationNumber, CONFIDENTIAL_AND_PUBLIC.getValue())
-			.orElseThrow(() -> Problem.valueOf(NOT_FOUND, ERROR_DOCUMENT_BY_REGISTRATION_NUMBER_NOT_FOUND.formatted(registrationNumber)));
+		final var documentEntity = (revision == null)
+			? documentRepository.findTopByMunicipalityIdAndRegistrationNumberAndConfidentialityConfidentialInOrderByRevisionDesc(municipalityId, registrationNumber, CONFIDENTIAL_AND_PUBLIC.getValue())
+				.orElseThrow(() -> Problem.valueOf(NOT_FOUND, ERROR_DOCUMENT_BY_REGISTRATION_NUMBER_NOT_FOUND.formatted(registrationNumber)))
+			: documentRepository.findByMunicipalityIdAndRegistrationNumberAndRevisionAndConfidentialityConfidentialIn(municipalityId, registrationNumber, revision, CONFIDENTIAL_AND_PUBLIC.getValue())
+				.orElseThrow(() -> Problem.valueOf(NOT_FOUND, ERROR_DOCUMENT_BY_REGISTRATION_NUMBER_AND_REVISION_NOT_FOUND.formatted(registrationNumber, revision)));
 
 		final var previousStatus = documentEntity.getStatus();
 		final var newStatus = nextStatusResolver.apply(documentEntity);
 		documentEntity.setStatus(newStatus);
 
-		eventLogForStatusChange(registrationNumber, previousStatus, newStatus, changedBy, municipalityId);
+		eventLogForStatusChange(registrationNumber, documentEntity.getRevision(), previousStatus, newStatus, changedBy, municipalityId);
 
 		return toDocumentWithResponsibilities(documentRepository.save(documentEntity));
 	}

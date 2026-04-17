@@ -1157,7 +1157,7 @@ class DocumentServiceTest {
 		when(statusPolicyMock.resolvePublishedStatus(any(), any(), eq(REGISTRATION_NUMBER))).thenReturn(DocumentStatus.ACTIVE);
 		when(documentRepositoryMock.save(any(DocumentEntity.class))).thenAnswer(i -> i.getArgument(0));
 
-		final var result = documentService.publish(REGISTRATION_NUMBER, "actor", MUNICIPALITY_ID);
+		final var result = documentService.publish(REGISTRATION_NUMBER, "actor", MUNICIPALITY_ID, null);
 
 		assertThat(result.getStatus()).isEqualTo(DocumentStatus.ACTIVE);
 		verify(documentRepositoryMock).save(documentEntityCaptor.capture());
@@ -1169,7 +1169,7 @@ class DocumentServiceTest {
 		final var entity = createDocumentEntity().withStatus(DocumentStatus.ACTIVE);
 		when(documentRepositoryMock.findTopByMunicipalityIdAndRegistrationNumberAndConfidentialityConfidentialInOrderByRevisionDesc(MUNICIPALITY_ID, REGISTRATION_NUMBER, CONFIDENTIAL_AND_PUBLIC.getValue())).thenReturn(Optional.of(entity));
 
-		final var ex = assertThrows(ThrowableProblem.class, () -> documentService.publish(REGISTRATION_NUMBER, "actor", MUNICIPALITY_ID));
+		final var ex = assertThrows(ThrowableProblem.class, () -> documentService.publish(REGISTRATION_NUMBER, "actor", MUNICIPALITY_ID, null));
 
 		assertThat(ex.getMessage()).contains("not allowed");
 		verify(documentRepositoryMock, never()).save(any(DocumentEntity.class));
@@ -1181,7 +1181,7 @@ class DocumentServiceTest {
 		when(documentRepositoryMock.findTopByMunicipalityIdAndRegistrationNumberAndConfidentialityConfidentialInOrderByRevisionDesc(MUNICIPALITY_ID, REGISTRATION_NUMBER, CONFIDENTIAL_AND_PUBLIC.getValue())).thenReturn(Optional.of(entity));
 		when(documentRepositoryMock.save(any(DocumentEntity.class))).thenAnswer(i -> i.getArgument(0));
 
-		final var result = documentService.revoke(REGISTRATION_NUMBER, "actor", MUNICIPALITY_ID);
+		final var result = documentService.revoke(REGISTRATION_NUMBER, "actor", MUNICIPALITY_ID, null);
 
 		assertThat(result.getStatus()).isEqualTo(DocumentStatus.REVOKED);
 	}
@@ -1191,7 +1191,7 @@ class DocumentServiceTest {
 		final var entity = createDocumentEntity().withStatus(DocumentStatus.DRAFT);
 		when(documentRepositoryMock.findTopByMunicipalityIdAndRegistrationNumberAndConfidentialityConfidentialInOrderByRevisionDesc(MUNICIPALITY_ID, REGISTRATION_NUMBER, CONFIDENTIAL_AND_PUBLIC.getValue())).thenReturn(Optional.of(entity));
 
-		assertThrows(ThrowableProblem.class, () -> documentService.revoke(REGISTRATION_NUMBER, "actor", MUNICIPALITY_ID));
+		assertThrows(ThrowableProblem.class, () -> documentService.revoke(REGISTRATION_NUMBER, "actor", MUNICIPALITY_ID, null));
 
 		verify(documentRepositoryMock, never()).save(any(DocumentEntity.class));
 	}
@@ -1203,7 +1203,7 @@ class DocumentServiceTest {
 		when(statusPolicyMock.resolvePublishedStatus(any(), any(), eq(REGISTRATION_NUMBER))).thenReturn(DocumentStatus.SCHEDULED);
 		when(documentRepositoryMock.save(any(DocumentEntity.class))).thenAnswer(i -> i.getArgument(0));
 
-		final var result = documentService.unrevoke(REGISTRATION_NUMBER, "actor", MUNICIPALITY_ID);
+		final var result = documentService.unrevoke(REGISTRATION_NUMBER, "actor", MUNICIPALITY_ID, null);
 
 		assertThat(result.getStatus()).isEqualTo(DocumentStatus.SCHEDULED);
 	}
@@ -1213,15 +1213,72 @@ class DocumentServiceTest {
 		final var entity = createDocumentEntity().withStatus(DocumentStatus.ACTIVE);
 		when(documentRepositoryMock.findTopByMunicipalityIdAndRegistrationNumberAndConfidentialityConfidentialInOrderByRevisionDesc(MUNICIPALITY_ID, REGISTRATION_NUMBER, CONFIDENTIAL_AND_PUBLIC.getValue())).thenReturn(Optional.of(entity));
 
-		assertThrows(ThrowableProblem.class, () -> documentService.unrevoke(REGISTRATION_NUMBER, "actor", MUNICIPALITY_ID));
+		assertThrows(ThrowableProblem.class, () -> documentService.unrevoke(REGISTRATION_NUMBER, "actor", MUNICIPALITY_ID, null));
 	}
 
 	@Test
 	void publishWhenDocumentMissing_throwsNotFound() {
 		when(documentRepositoryMock.findTopByMunicipalityIdAndRegistrationNumberAndConfidentialityConfidentialInOrderByRevisionDesc(MUNICIPALITY_ID, REGISTRATION_NUMBER, CONFIDENTIAL_AND_PUBLIC.getValue())).thenReturn(empty());
 
-		final var ex = assertThrows(ThrowableProblem.class, () -> documentService.publish(REGISTRATION_NUMBER, "actor", MUNICIPALITY_ID));
+		final var ex = assertThrows(ThrowableProblem.class, () -> documentService.publish(REGISTRATION_NUMBER, "actor", MUNICIPALITY_ID, null));
 		assertThat(ex.getMessage()).contains("could be found");
+	}
+
+	@Test
+	void publishWithSpecificRevision_usesRevisionFinderAndSaves() {
+		final var targetRevision = 5;
+		final var entity = createDocumentEntity().withRevision(targetRevision).withStatus(DocumentStatus.DRAFT);
+		when(documentRepositoryMock.findByMunicipalityIdAndRegistrationNumberAndRevisionAndConfidentialityConfidentialIn(MUNICIPALITY_ID, REGISTRATION_NUMBER, targetRevision, CONFIDENTIAL_AND_PUBLIC.getValue())).thenReturn(Optional.of(entity));
+		when(statusPolicyMock.resolvePublishedStatus(any(), any(), eq(REGISTRATION_NUMBER))).thenReturn(DocumentStatus.ACTIVE);
+		when(documentRepositoryMock.save(any(DocumentEntity.class))).thenAnswer(i -> i.getArgument(0));
+
+		final var result = documentService.publish(REGISTRATION_NUMBER, "actor", MUNICIPALITY_ID, targetRevision);
+
+		assertThat(result.getStatus()).isEqualTo(DocumentStatus.ACTIVE);
+		verify(documentRepositoryMock, never()).findTopByMunicipalityIdAndRegistrationNumberAndConfidentialityConfidentialInOrderByRevisionDesc(any(), any(), any());
+		verify(documentRepositoryMock).save(documentEntityCaptor.capture());
+		assertThat(documentEntityCaptor.getValue().getRevision()).isEqualTo(targetRevision);
+		assertThat(documentEntityCaptor.getValue().getStatus()).isEqualTo(DocumentStatus.ACTIVE);
+	}
+
+	@Test
+	void revokeWithSpecificRevision_usesRevisionFinderAndSaves() {
+		final var targetRevision = 3;
+		final var entity = createDocumentEntity().withRevision(targetRevision).withStatus(DocumentStatus.ACTIVE);
+		when(documentRepositoryMock.findByMunicipalityIdAndRegistrationNumberAndRevisionAndConfidentialityConfidentialIn(MUNICIPALITY_ID, REGISTRATION_NUMBER, targetRevision, CONFIDENTIAL_AND_PUBLIC.getValue())).thenReturn(Optional.of(entity));
+		when(documentRepositoryMock.save(any(DocumentEntity.class))).thenAnswer(i -> i.getArgument(0));
+
+		final var result = documentService.revoke(REGISTRATION_NUMBER, "actor", MUNICIPALITY_ID, targetRevision);
+
+		assertThat(result.getStatus()).isEqualTo(DocumentStatus.REVOKED);
+		verify(documentRepositoryMock, never()).findTopByMunicipalityIdAndRegistrationNumberAndConfidentialityConfidentialInOrderByRevisionDesc(any(), any(), any());
+		verify(documentRepositoryMock).save(documentEntityCaptor.capture());
+		assertThat(documentEntityCaptor.getValue().getRevision()).isEqualTo(targetRevision);
+	}
+
+	@Test
+	void unrevokeWithSpecificRevision_usesRevisionFinderAndSaves() {
+		final var targetRevision = 2;
+		final var entity = createDocumentEntity().withRevision(targetRevision).withStatus(DocumentStatus.REVOKED);
+		when(documentRepositoryMock.findByMunicipalityIdAndRegistrationNumberAndRevisionAndConfidentialityConfidentialIn(MUNICIPALITY_ID, REGISTRATION_NUMBER, targetRevision, CONFIDENTIAL_AND_PUBLIC.getValue())).thenReturn(Optional.of(entity));
+		when(statusPolicyMock.resolvePublishedStatus(any(), any(), eq(REGISTRATION_NUMBER))).thenReturn(DocumentStatus.SCHEDULED);
+		when(documentRepositoryMock.save(any(DocumentEntity.class))).thenAnswer(i -> i.getArgument(0));
+
+		final var result = documentService.unrevoke(REGISTRATION_NUMBER, "actor", MUNICIPALITY_ID, targetRevision);
+
+		assertThat(result.getStatus()).isEqualTo(DocumentStatus.SCHEDULED);
+		verify(documentRepositoryMock, never()).findTopByMunicipalityIdAndRegistrationNumberAndConfidentialityConfidentialInOrderByRevisionDesc(any(), any(), any());
+	}
+
+	@Test
+	void publishWithUnknownRevision_throwsNotFound() {
+		final var targetRevision = 99;
+		when(documentRepositoryMock.findByMunicipalityIdAndRegistrationNumberAndRevisionAndConfidentialityConfidentialIn(MUNICIPALITY_ID, REGISTRATION_NUMBER, targetRevision, CONFIDENTIAL_AND_PUBLIC.getValue())).thenReturn(empty());
+
+		final var ex = assertThrows(ThrowableProblem.class, () -> documentService.publish(REGISTRATION_NUMBER, "actor", MUNICIPALITY_ID, targetRevision));
+
+		assertThat(ex.getMessage()).contains("revision: '%d'".formatted(targetRevision));
+		verify(documentRepositoryMock, never()).save(any(DocumentEntity.class));
 	}
 
 	@Test

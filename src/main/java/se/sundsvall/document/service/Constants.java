@@ -7,7 +7,7 @@ public final class Constants {
 	// Templates
 	public static final String TEMPLATE_EVENTLOG_MESSAGE_CONFIDENTIALITY_UPDATED_ON_DOCUMENT = "Confidentiality flag updated to: '%s' with legal citation: '%s' for document with registrationNumber: '%s'. Action performed by: '%s'";
 	public static final String TEMPLATE_EVENTLOG_MESSAGE_RESPONSIBILITIES_UPDATED_ON_DOCUMENT = "Responsibilities updated from: '%s' to: '%s' for document with registrationNumber: '%s'. Action performed by: '%s'";
-	public static final String TEMPLATE_EVENTLOG_MESSAGE_STATUS_UPDATED_ON_DOCUMENT = "Status changed from '%s' to '%s' for document with registrationNumber: '%s'. Action performed by: '%s'";
+	public static final String TEMPLATE_EVENTLOG_MESSAGE_STATUS_UPDATED_ON_DOCUMENT = "Status changed from '%s' to '%s' for document with registrationNumber: '%s' and revision: '%s'. Action performed by: '%s'";
 	public static final String TEMPLATE_REGISTRATION_NUMBER = "%s-%s-%s"; // [YYYY-MUNICIPALITY_ID-SEQUENCE]
 
 	// Error messages

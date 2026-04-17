@@ -113,8 +113,6 @@
 						<!-- API model classes -->
 						<exclude>**/db/model/*_*</exclude>
 						<!-- JPAModelGen classes -->
-						<!-- Spring config wired only when document.storage.backend=s3; no IT runs in that mode. -->
-						<exclude>**/service/storage/S3StorageConfiguration*</exclude>
 					</excludes>
 				</configuration>
 			</plugin>

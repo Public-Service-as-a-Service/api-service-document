@@ -73,7 +73,6 @@ class DocumentMapperTest {
 	private static final String MIME_TYPE_1 = "image/png";
 	private static final String MIME_TYPE_2 = "text/plain";
 	private static final String ID = "id";
-	private static final String STORAGE_BACKEND = "jdbc";
 	private static final String STORAGE_LOCATOR_1 = "locator-1";
 	private static final String STORAGE_LOCATOR_2 = "locator-2";
 	private static final String METADATA_KEY = "key";
@@ -147,13 +146,11 @@ class DocumentMapperTest {
 				.withFileName(fileName1)
 				.withFileSizeInBytes(1000)
 				.withMimeType(mimeType)
-				.withStorageBackend(STORAGE_BACKEND)
 				.withStorageLocator(STORAGE_LOCATOR_1),
 			DocumentDataEntity.create()
 				.withFileName(fileName2)
 				.withFileSizeInBytes(2000)
 				.withMimeType(mimeType)
-				.withStorageBackend(STORAGE_BACKEND)
 				.withStorageLocator(STORAGE_LOCATOR_2));
 
 		final var documentUpdateRequest = DocumentUpdateRequest.create()
@@ -537,7 +534,7 @@ class DocumentMapperTest {
 		final var multipartFile = (MultipartFile) new MockMultipartFile("file", fileName, mimeType, toByteArray(new FileInputStream(file)));
 		final var documents = DocumentFiles.create().withFiles(List.of(multipartFile));
 
-		when(binaryStoreMock.put(any(InputStream.class), anyLong(), anyString(), anyMap())).thenReturn(StorageRef.jdbc(newLocator));
+		when(binaryStoreMock.put(any(InputStream.class), anyLong(), anyString(), anyMap())).thenReturn(StorageRef.s3(newLocator));
 
 		// Act
 		final var result = DocumentMapper.toDocumentDataEntities(documents, binaryStoreMock, MUNICIPALITY_ID);
@@ -550,13 +547,11 @@ class DocumentMapperTest {
 				DocumentDataEntity::getFileName,
 				DocumentDataEntity::getMimeType,
 				DocumentDataEntity::getFileSizeInBytes,
-				DocumentDataEntity::getStorageBackend,
 				DocumentDataEntity::getStorageLocator)
 			.containsExactly(tuple(
 				fileName,
 				mimeType,
 				file.length(),
-				"jdbc",
 				newLocator));
 
 		verify(binaryStoreMock).put(
@@ -594,14 +589,12 @@ class DocumentMapperTest {
 					.withFileSizeInBytes(FILE_1_SIZE_IN_BYTES)
 					.withId(ID)
 					.withMimeType(MIME_TYPE_1)
-					.withStorageBackend(STORAGE_BACKEND)
 					.withStorageLocator(STORAGE_LOCATOR_1),
 				DocumentDataEntity.create()
 					.withFileName(FILE_2_NAME)
 					.withFileSizeInBytes(FILE_2_SIZE_IN_BYTES)
 					.withId(ID)
 					.withMimeType(MIME_TYPE_2)
-					.withStorageBackend(STORAGE_BACKEND)
 					.withStorageLocator(STORAGE_LOCATOR_2)))
 			.withId(ID)
 			.withMetadata(List.of(DocumentMetadataEmbeddable.create()
@@ -643,13 +636,11 @@ class DocumentMapperTest {
 						.withFileName(FILE_1_NAME)
 						.withFileSizeInBytes(FILE_1_SIZE_IN_BYTES)
 						.withMimeType(MIME_TYPE_1)
-						.withStorageBackend(STORAGE_BACKEND)
 						.withStorageLocator(STORAGE_LOCATOR_1),
 					DocumentDataEntity.create()
 						.withFileName(FILE_2_NAME)
 						.withFileSizeInBytes(FILE_2_SIZE_IN_BYTES)
 						.withMimeType(MIME_TYPE_2)
-						.withStorageBackend(STORAGE_BACKEND)
 						.withStorageLocator(STORAGE_LOCATOR_2)))
 				.withMetadata(List.of(DocumentMetadataEmbeddable.create()
 					.withKey(METADATA_KEY)
@@ -670,8 +661,8 @@ class DocumentMapperTest {
 				.withValidFrom(VALID_FROM)
 				.withValidTo(VALID_TO));
 
-		verify(binaryStoreMock).copy(new StorageRef(STORAGE_BACKEND, STORAGE_LOCATOR_1));
-		verify(binaryStoreMock).copy(new StorageRef(STORAGE_BACKEND, STORAGE_LOCATOR_2));
+		verify(binaryStoreMock).copy(StorageRef.s3(STORAGE_LOCATOR_1));
+		verify(binaryStoreMock).copy(StorageRef.s3(STORAGE_LOCATOR_2));
 	}
 
 	@Test

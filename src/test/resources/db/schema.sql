@@ -20,18 +20,11 @@
 
     create table document_data (
         file_size_in_bytes bigint default 0,
-        storage_backend varchar(16) default 'jdbc' not null,
         document_id varchar(255) not null,
         file_name varchar(255),
         id varchar(255) not null,
         mime_type varchar(255),
-        storage_locator varchar(255),
-        primary key (id)
-    ) engine=InnoDB;
-
-    create table document_data_binary (
-        id varchar(255) not null,
-        binary_file longblob,
+        storage_locator varchar(255) not null,
         primary key (id)
     ) engine=InnoDB;
 
@@ -83,13 +76,13 @@
     create index ix_municipality_id 
        on document (municipality_id);
 
-    create index ix_confidential
+    create index ix_confidential 
        on document (confidential);
 
-    create index ix_status
+    create index ix_status 
        on document (status);
 
-    alter table if exists document
+    alter table if exists document 
        add constraint uq_revision_and_registration_number unique (revision, registration_number);
 
     create index ix_key 

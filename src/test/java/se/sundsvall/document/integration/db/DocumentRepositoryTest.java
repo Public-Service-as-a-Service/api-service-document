@@ -566,7 +566,6 @@ class DocumentRepositoryTest {
 	private static DocumentDataEntity createDocumentDataEntity(String filename) {
 		final var fileContent = "fileContent";
 		return DocumentDataEntity.create()
-			.withStorageBackend("jdbc")
 			.withStorageLocator(UUID.randomUUID().toString())
 			.withFileName(filename)
 			.withFileSizeInBytes(fileContent.length())

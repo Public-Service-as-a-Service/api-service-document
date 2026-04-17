@@ -4,7 +4,6 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.jdbc.Sql;
-import se.sundsvall.dept44.test.AbstractAppTest;
 import se.sundsvall.dept44.test.annotation.wiremock.WireMockAppTestSuite;
 import se.sundsvall.document.Application;
 import se.sundsvall.document.integration.db.DocumentTypeRepository;
@@ -27,7 +26,7 @@ import static org.springframework.http.HttpStatus.OK;
 	"/db/scripts/truncate.sql",
 	"/db/scripts/testdata-it.sql"
 })
-class DocumentTypeIT extends AbstractAppTest {
+class DocumentTypeIT extends AbstractDocumentAppTest {
 
 	private static final String PATH = "/%s/admin/documenttypes";
 	private static final String REQUEST_FILE = "request.json";

@@ -31,7 +31,6 @@ class DocumentDataEntityTest {
 		final var id = randomUUID().toString();
 		final var mimeType = "image/jpeg";
 		final var fileSizeInBytes = 100;
-		final var storageBackend = "s3";
 		final var storageLocator = randomUUID().toString();
 
 		final var bean = DocumentDataEntity.create()
@@ -39,7 +38,6 @@ class DocumentDataEntityTest {
 			.withId(id)
 			.withMimeType(mimeType)
 			.withFileSizeInBytes(fileSizeInBytes)
-			.withStorageBackend(storageBackend)
 			.withStorageLocator(storageLocator);
 
 		assertThat(bean).isNotNull().hasNoNullFieldsOrProperties();
@@ -47,18 +45,14 @@ class DocumentDataEntityTest {
 		assertThat(bean.getId()).isEqualTo(id);
 		assertThat(bean.getMimeType()).isEqualTo(mimeType);
 		assertThat(bean.getFileSizeInBytes()).isEqualTo(fileSizeInBytes);
-		assertThat(bean.getStorageBackend()).isEqualTo(storageBackend);
 		assertThat(bean.getStorageLocator()).isEqualTo(storageLocator);
 	}
 
 	@Test
 	void testNoDirtOnCreatedBean() {
-		// storageBackend is initialized to "jdbc" by default; fileSizeInBytes to 0.
-		assertThat(DocumentDataEntity.create()).hasAllNullFieldsOrPropertiesExcept("fileSizeInBytes", "storageBackend")
-			.hasFieldOrPropertyWithValue("fileSizeInBytes", 0L)
-			.hasFieldOrPropertyWithValue("storageBackend", "jdbc");
-		assertThat(new DocumentDataEntity()).hasAllNullFieldsOrPropertiesExcept("fileSizeInBytes", "storageBackend")
-			.hasFieldOrPropertyWithValue("fileSizeInBytes", 0L)
-			.hasFieldOrPropertyWithValue("storageBackend", "jdbc");
+		assertThat(DocumentDataEntity.create()).hasAllNullFieldsOrPropertiesExcept("fileSizeInBytes")
+			.hasFieldOrPropertyWithValue("fileSizeInBytes", 0L);
+		assertThat(new DocumentDataEntity()).hasAllNullFieldsOrPropertiesExcept("fileSizeInBytes")
+			.hasFieldOrPropertyWithValue("fileSizeInBytes", 0L);
 	}
 }

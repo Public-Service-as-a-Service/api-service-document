@@ -31,6 +31,7 @@ import se.sundsvall.document.api.model.PagedDocumentResponse;
 import se.sundsvall.document.api.validation.DocumentTypeValidator;
 import se.sundsvall.document.service.DocumentService;
 
+import static java.util.Collections.emptyList;
 import static java.util.UUID.randomUUID;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
@@ -81,6 +82,71 @@ class DocumentResourceTest {
 		final var multipartBodyBuilder = new MultipartBodyBuilder();
 		multipartBodyBuilder.part("documentFiles", "file-content").filename("test1.txt").contentType(TEXT_PLAIN);
 		multipartBodyBuilder.part("documentFiles", "file-content").filename("tesst2.txt").contentType(TEXT_PLAIN);
+		multipartBodyBuilder.part("document", documentCreateRequest);
+
+		when(documentServiceMock.create(any(), any(), any())).thenReturn(Document.create());
+
+		// Act
+		final var response = webTestClient.post()
+			.uri("/2281/documents")
+			.contentType(MULTIPART_FORM_DATA)
+			.body(fromMultipartData(multipartBodyBuilder.build()))
+			.exchange()
+			.expectStatus().isCreated()
+			.expectHeader().contentType(ALL_VALUE)
+			.expectHeader().exists(LOCATION)
+			.expectHeader().valuesMatch(LOCATION, "^/2281/documents/(.*)$")
+			.expectBody().isEmpty();
+
+		// Assert
+		assertThat(response).isNotNull();
+		verify(documentServiceMock).create(eq(documentCreateRequest), ArgumentMatchers.<DocumentFiles>any(), eq("2281"));
+	}
+
+	@Test
+	void createWithoutMetadata() {
+
+		// Arrange
+		final var documentCreateRequest = DocumentCreateRequest.create()
+			.withCreatedBy("user")
+			.withDescription("description")
+			.withType("type");
+
+		final var multipartBodyBuilder = new MultipartBodyBuilder();
+		multipartBodyBuilder.part("documentFiles", "file-content").filename("test.txt").contentType(TEXT_PLAIN);
+		multipartBodyBuilder.part("document", documentCreateRequest);
+
+		when(documentServiceMock.create(any(), any(), any())).thenReturn(Document.create());
+
+		// Act
+		final var response = webTestClient.post()
+			.uri("/2281/documents")
+			.contentType(MULTIPART_FORM_DATA)
+			.body(fromMultipartData(multipartBodyBuilder.build()))
+			.exchange()
+			.expectStatus().isCreated()
+			.expectHeader().contentType(ALL_VALUE)
+			.expectHeader().exists(LOCATION)
+			.expectHeader().valuesMatch(LOCATION, "^/2281/documents/(.*)$")
+			.expectBody().isEmpty();
+
+		// Assert
+		assertThat(response).isNotNull();
+		verify(documentServiceMock).create(eq(documentCreateRequest), ArgumentMatchers.<DocumentFiles>any(), eq("2281"));
+	}
+
+	@Test
+	void createWithEmptyMetadata() {
+
+		// Arrange
+		final var documentCreateRequest = DocumentCreateRequest.create()
+			.withCreatedBy("user")
+			.withDescription("description")
+			.withType("type")
+			.withMetadataList(emptyList());
+
+		final var multipartBodyBuilder = new MultipartBodyBuilder();
+		multipartBodyBuilder.part("documentFiles", "file-content").filename("test.txt").contentType(TEXT_PLAIN);
 		multipartBodyBuilder.part("document", documentCreateRequest);
 
 		when(documentServiceMock.create(any(), any(), any())).thenReturn(Document.create());

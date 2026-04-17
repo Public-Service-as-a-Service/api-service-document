@@ -23,7 +23,6 @@ import se.sundsvall.document.api.model.DocumentUpdateRequest;
 import se.sundsvall.document.api.validation.DocumentTypeValidator;
 import se.sundsvall.document.service.DocumentService;
 
-import static java.util.Collections.emptyList;
 import static org.apache.commons.lang3.StringUtils.repeat;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.AssertionsForClassTypes.tuple;
@@ -246,71 +245,6 @@ class DocumentResourceFailuresTest {
 		assertThat(response.getViolations())
 			.extracting(Violation::field, Violation::message)
 			.containsExactlyInAnyOrder(tuple("description", "size must be between 0 and 8192"));
-
-		verifyNoInteractions(documentServiceMock);
-	}
-
-	@Test
-	void createWithEmptyMetadata() {
-
-		// Arrange
-		final var multipartBodyBuilder = new MultipartBodyBuilder();
-		multipartBodyBuilder.part("documentFiles", "file-content").filename("test.txt").contentType(TEXT_PLAIN);
-		multipartBodyBuilder.part("document", DocumentCreateRequest.create()
-			.withCreatedBy("user")
-			.withDescription("description")
-			.withType("type")
-			.withMetadataList(emptyList()));
-
-		// Act
-		final var response = webTestClient.post()
-			.uri("/2281/documents")
-			.contentType(MULTIPART_FORM_DATA)
-			.body(fromMultipartData(multipartBodyBuilder.build()))
-			.exchange()
-			.expectStatus().isBadRequest()
-			.expectHeader().contentType(APPLICATION_PROBLEM_JSON)
-			.expectBody(ConstraintViolationProblem.class)
-			.returnResult()
-			.getResponseBody();
-
-		// Assert
-		assertThat(response).isNotNull();
-		assertThat(response.getViolations())
-			.extracting(Violation::field, Violation::message)
-			.containsExactlyInAnyOrder(tuple("metadataList", "must not be empty"));
-
-		verifyNoInteractions(documentServiceMock);
-	}
-
-	@Test
-	void createWithMissingMetadata() {
-
-		// Arrange
-		final var multipartBodyBuilder = new MultipartBodyBuilder();
-		multipartBodyBuilder.part("documentFiles", "file-content").filename("test.txt").contentType(TEXT_PLAIN);
-		multipartBodyBuilder.part("document", DocumentCreateRequest.create()
-			.withDescription("description")
-			.withType("type")
-			.withCreatedBy("user"));
-
-		// Act
-		final var response = webTestClient.post()
-			.uri("/2281/documents")
-			.contentType(MULTIPART_FORM_DATA)
-			.body(fromMultipartData(multipartBodyBuilder.build()))
-			.exchange()
-			.expectStatus().isBadRequest()
-			.expectHeader().contentType(APPLICATION_PROBLEM_JSON)
-			.expectBody(ConstraintViolationProblem.class)
-			.returnResult()
-			.getResponseBody();
-
-		// Assert
-		assertThat(response).isNotNull();
-		assertThat(response.getViolations())
-			.extracting(Violation::field, Violation::message)
-			.containsExactlyInAnyOrder(tuple("metadataList", "must not be empty"));
 
 		verifyNoInteractions(documentServiceMock);
 	}

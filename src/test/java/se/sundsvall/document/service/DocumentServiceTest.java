@@ -977,6 +977,49 @@ class DocumentServiceTest {
 	}
 
 	@Test
+	void addMultipleFilesProducesSingleRevision() throws IOException {
+
+		final var existingEntity = createDocumentEntity();
+		final var documentDataCreateRequest = DocumentDataCreateRequest.create()
+			.withCreatedBy("changedUser");
+
+		final var file2 = new File("src/test/resources/files/image2.png");
+		final var file3 = new File("src/test/resources/files/readme.txt");
+		final var multipartFile2 = (MultipartFile) new MockMultipartFile("file", file2.getName(), "image/png", toByteArray(new FileInputStream(file2)));
+		final var multipartFile3 = (MultipartFile) new MockMultipartFile("file", file3.getName(), "text/plain", toByteArray(new FileInputStream(file3)));
+		final var documentFiles = DocumentFiles.create().withFiles(List.of(multipartFile2, multipartFile3));
+
+		when(documentRepositoryMock.findTopByMunicipalityIdAndRegistrationNumberAndConfidentialityConfidentialInOrderByRevisionDesc(MUNICIPALITY_ID, REGISTRATION_NUMBER, CONFIDENTIAL_AND_PUBLIC.getValue())).thenReturn(Optional.of(existingEntity));
+		when(binaryStoreMock.put(any(InputStream.class), anyLong(), anyString(), anyMap())).thenReturn(StorageRef.jdbc(randomUUID().toString()));
+		when(binaryStoreMock.copy(any(StorageRef.class))).thenAnswer(invocation -> StorageRef.jdbc(randomUUID().toString()));
+		when(documentRepositoryMock.save(any(DocumentEntity.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+		// Act
+		final var result = documentService.addOrReplaceFiles(REGISTRATION_NUMBER, documentDataCreateRequest, documentFiles, MUNICIPALITY_ID);
+
+		// Assert
+		assertThat(result).isNotNull();
+
+		// Exactly one save → exactly one new revision, regardless of file count.
+		verify(documentRepositoryMock).save(documentEntityCaptor.capture());
+		// One binaryStore.put per uploaded file.
+		verify(binaryStoreMock, org.mockito.Mockito.times(2)).put(any(InputStream.class), anyLong(), anyString(), anyMap());
+		verifyNoInteractions(registrationNumberServiceMock, documentTypeRepositoryMock);
+
+		final var capturedDocumentEntity = documentEntityCaptor.getValue();
+		assertThat(capturedDocumentEntity).isNotNull();
+		assertThat(capturedDocumentEntity.getRevision()).isEqualTo(existingEntity.getRevision() + 1);
+		assertThat(capturedDocumentEntity.getCreatedBy()).isEqualTo("changedUser");
+		assertThat(capturedDocumentEntity.getDocumentData())
+			.hasSize(3)
+			.extracting(DocumentDataEntity::getFileName)
+			.containsExactlyInAnyOrder(
+				"image.png",
+				"image2.png",
+				"readme.txt");
+	}
+
+	@Test
 	void deleteFileByRegistrationNumberAndDocumentDataId() {
 
 		// Arrange

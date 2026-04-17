@@ -15,7 +15,8 @@
 			"type": "VALIDITY_TEST",
 			"revision": 1,
 			"metadataList": [],
-			"validFrom": "2026-01-01"
+			"validFrom": "2026-01-01",
+			"responsibilities": []
 		},
 		{
 			"municipalityId": "2999",
@@ -31,7 +32,8 @@
 			"documentData": [],
 			"type": "VALIDITY_TEST",
 			"revision": 1,
-			"metadataList": []
+			"metadataList": [],
+			"responsibilities": []
 		}
 	],
 	"_meta": {

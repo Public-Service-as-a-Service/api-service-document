@@ -7,7 +7,7 @@ info:
     url: https://opensource.org/licenses/MIT
   version: "3.1"
 servers:
-  - url: http://localhost:56104
+  - url: http://localhost:56977
     description: Generated server url
 tags:
   - name: Document revisions
@@ -17,12 +17,64 @@ tags:
   - name: Documents
     description: Document operations
 paths:
+  /{municipalityId}/documents/{registrationNumber}/responsibilities:
+    put:
+      tags:
+        - Documents
+      summary: Replace document responsibilities.
+      operationId: updateResponsibilities
+      parameters:
+        - name: municipalityId
+          in: path
+          description: Municipality ID
+          required: true
+          schema:
+            type: string
+          example: 2281
+        - name: registrationNumber
+          in: path
+          description: Document registration number
+          required: true
+          schema:
+            type: string
+          example: 2023-2281-1337
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DocumentResponsibilitiesUpdateRequest"
+        required: true
+      responses:
+        "204":
+          description: Successful operation
+        "404":
+          description: Not found
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "400":
+          description: Bad request
+          content:
+            application/problem+json:
+              schema:
+                oneOf:
+                  - $ref: "#/components/schemas/Problem"
+                  - $ref: "#/components/schemas/ConstraintViolationProblem"
+        "500":
+          description: Internal Server error
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problem"
   /{municipalityId}/documents/{registrationNumber}/files:
     put:
       tags:
         - Documents
       summary: Add document file data (or replace existing if filename already exists
-        on the document object)
+        on the document object). Accepts either a single file via 'documentFile' (deprecated)
+        or multiple files via 'documentFiles' — in both cases the operation produces
+        exactly one new revision.
       operationId: addOrReplaceFile
       parameters:
         - name: municipalityId
@@ -51,9 +103,15 @@ paths:
                 documentFile:
                   type: string
                   format: binary
+                  description: Single file (deprecated — use 'documentFiles' for batch
+                    upload).
+                documentFiles:
+                  type: array
+                  items:
+                    type: string
+                    format: binary
               required:
                 - document
-                - documentFile
       responses:
         "204":
           description: Successful operation
@@ -243,12 +301,11 @@ paths:
         \ object to search for documents with specific metadata. Datatype - List of\
         \ metadata objects.\n- responsibilities: Uses document responsibilities to\
         \ search for documents where at least one username matches. Usernames are\
-        \ case-insensitive and stored lowercased. Datatype - List\
-        \ of DocumentResponsibility objects.\n- page: The page number to retrieve.\
-        \ Datatype - integer (default: 1)\n- limit: The number of documents to retrieve\
-        \ per page. Datatype - integer (default: 100)\n\nObjects:\n- MetaData: {\n\
-        \t- key: A given metadata\
-        \ key, this is optional. All metadata will be searched if key is not provided.\
+        \ case-insensitive and stored lowercased. Datatype - List of DocumentResponsibility\
+        \ objects.\n- page: The page number to retrieve. Datatype - integer (default:\
+        \ 1)\n- limit: The number of documents to retrieve per page. Datatype - integer\
+        \ (default: 100)\n\nObjects:\n- MetaData: {\n\t- key: A given metadata key,\
+        \ this is optional. All metadata will be searched if key is not provided.\
         \ Datatype - String\n\t- matchesAny: Returns documents where metadata entry\
         \ with the given key have at least one of the matchesAny values (if key is\
         \ present), or if the complete set of metadata have at least one of the matchesAny\
@@ -518,56 +575,6 @@ paths:
         required: true
       responses:
         "200":
-          description: Successful operation
-        "404":
-          description: Not found
-          content:
-            application/problem+json:
-              schema:
-                $ref: "#/components/schemas/Problem"
-        "400":
-          description: Bad request
-          content:
-            application/problem+json:
-              schema:
-                oneOf:
-                  - $ref: "#/components/schemas/Problem"
-                  - $ref: "#/components/schemas/ConstraintViolationProblem"
-        "500":
-          description: Internal Server error
-          content:
-            application/problem+json:
-              schema:
-                $ref: "#/components/schemas/Problem"
-  /{municipalityId}/documents/{registrationNumber}/responsibilities:
-    put:
-      tags:
-        - Documents
-      summary: Replace document responsibilities.
-      operationId: updateResponsibilities
-      parameters:
-        - name: municipalityId
-          in: path
-          description: Municipality ID
-          required: true
-          schema:
-            type: string
-          example: 2281
-        - name: registrationNumber
-          in: path
-          description: Document registration number
-          required: true
-          schema:
-            type: string
-          example: 2023-2281-1337
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/DocumentResponsibilitiesUpdateRequest"
-        required: true
-      responses:
-        "204":
           description: Successful operation
         "404":
           description: Not found
@@ -1065,9 +1072,9 @@ components:
     Problem:
       type: object
       properties:
-        title:
-          type: string
         detail:
+          type: string
+        title:
           type: string
         instance:
           type: string
@@ -1078,18 +1085,37 @@ components:
         status:
           type: integer
           format: int32
-    DocumentDataCreateRequest:
+    DocumentResponsibilitiesUpdateRequest:
       type: object
-      description: DocumentDataCreateRequest model.
+      description: Document responsibilities update request model.
       properties:
-        createdBy:
+        changedBy:
           type: string
-          description: Actor that created this revision
+          description: Actor that performed this change.
           examples:
             - username123
           minLength: 1
+        responsibilities:
+          type: array
+          items:
+            $ref: "#/components/schemas/DocumentResponsibility"
+            description: List of document responsibilities.
       required:
-        - createdBy
+        - changedBy
+        - responsibilities
+    DocumentResponsibility:
+      type: object
+      description: Document responsibility model.
+      properties:
+        username:
+          type: string
+          description: Username. Case-insensitive; stored lowercased.
+          examples:
+            - username123
+          maxLength: 255
+          minLength: 0
+      required:
+        - username
     ConstraintViolationProblem:
       type: object
       properties:
@@ -1136,6 +1162,18 @@ components:
           type: string
         message:
           type: string
+    DocumentDataCreateRequest:
+      type: object
+      description: DocumentDataCreateRequest model.
+      properties:
+        createdBy:
+          type: string
+          description: Actor that created this revision
+          examples:
+            - username123
+          minLength: 1
+      required:
+        - createdBy
     Confidentiality:
       type: object
       description: Confidentiality model.
@@ -1187,7 +1225,6 @@ components:
         responsibilities:
           type: array
           description: Document responsibilities.
-          uniqueItems: true
           items:
             $ref: "#/components/schemas/DocumentResponsibility"
         type:
@@ -1238,19 +1275,6 @@ components:
       enum:
         - ASC
         - DESC
-    DocumentResponsibility:
-      type: object
-      description: Document responsibility model.
-      properties:
-        username:
-          type: string
-          description: Username. Case-insensitive; stored lowercased.
-          examples:
-            - username123
-          maxLength: 255
-          minLength: 1
-      required:
-        - username
     DocumentParameters:
       type: object
       properties:
@@ -1577,8 +1601,8 @@ components:
         validTo:
           type: string
           format: date
-          description: End of validity period (inclusive). ISO date (yyyy-MM-dd). Omit
-            to leave unchanged.
+          description: End of validity period (inclusive). ISO date (yyyy-MM-dd).
+            Omit to leave unchanged.
           examples:
             - 2027-04-15
     ConfidentialityUpdateRequest:
@@ -1607,25 +1631,6 @@ components:
       required:
         - changedBy
         - confidential
-    DocumentResponsibilitiesUpdateRequest:
-      type: object
-      description: Document responsibilities update request model.
-      properties:
-        changedBy:
-          type: string
-          description: Actor that performed this change.
-          examples:
-            - username123
-          minLength: 1
-        responsibilities:
-          type: array
-          uniqueItems: true
-          items:
-            $ref: "#/components/schemas/DocumentResponsibility"
-            description: List of document responsibilities.
-      required:
-        - changedBy
-        - responsibilities
     DocumentTypeUpdateRequest:
       type: object
       properties:

@@ -53,6 +53,7 @@ import tools.jackson.databind.ObjectMapper;
 import static jakarta.validation.Validation.buildDefaultValidatorFactory;
 import static org.springframework.http.HttpHeaders.CONTENT_TYPE;
 import static org.springframework.http.HttpHeaders.LOCATION;
+import static org.springframework.http.HttpStatus.BAD_REQUEST;
 import static org.springframework.http.MediaType.ALL_VALUE;
 import static org.springframework.http.MediaType.APPLICATION_JSON_VALUE;
 import static org.springframework.http.MediaType.APPLICATION_PROBLEM_JSON_VALUE;
@@ -208,23 +209,40 @@ class DocumentResource {
 	}, produces = {
 		APPLICATION_JSON_VALUE
 	})
-	@Operation(summary = "Add document file data (or replace existing if filename already exists on the document object)", responses = {
-		@ApiResponse(responseCode = "204", description = "Successful operation", useReturnTypeSchema = true),
-		@ApiResponse(responseCode = "404", description = "Not found", content = @Content(mediaType = APPLICATION_PROBLEM_JSON_VALUE, schema = @Schema(implementation = Problem.class)))
-	})
+	@Operation(
+		summary = "Add document file data (or replace existing if filename already exists on the document object). Accepts either a single file via 'documentFile' (deprecated) or multiple files via 'documentFiles' — in both cases the operation produces exactly one new revision.",
+		responses = {
+			@ApiResponse(responseCode = "204", description = "Successful operation", useReturnTypeSchema = true),
+			@ApiResponse(responseCode = "404", description = "Not found", content = @Content(mediaType = APPLICATION_PROBLEM_JSON_VALUE, schema = @Schema(implementation = Problem.class)))
+		})
 	ResponseEntity<Void> addOrReplaceFile(
 		@PathVariable @Parameter(name = "municipalityId", description = "Municipality ID", example = "2281") @ValidMunicipalityId final String municipalityId,
 		@PathVariable @Parameter(name = "registrationNumber", description = "Document registration number", example = "2023-2281-1337") final String registrationNumber,
 		@RequestPart("document") @Schema(description = "Document", implementation = DocumentDataCreateRequest.class) final String documentDataString,
-		@RequestPart(value = "documentFile") final MultipartFile documentFile) {
+		@RequestPart(value = "documentFile", required = false) @Parameter(description = "Single file (deprecated — use 'documentFiles' for batch upload).", deprecated = true) final MultipartFile documentFile,
+		@RequestPart(value = "documentFiles", required = false) @ValidContentType final List<MultipartFile> documentFiles) {
 
 		// If parameter isn't a String an exception (bad content type) will be thrown. Manual deserialization is necessary.
 		final var documentDataCreateRequest = objectMapper.readValue(documentDataString, DocumentDataCreateRequest.class);
 		validate(documentDataCreateRequest);
 
-		documentService.addOrReplaceFile(registrationNumber, documentDataCreateRequest, documentFile, municipalityId);
+		final var files = resolveFiles(documentFile, documentFiles);
+		validate(files);
+
+		documentService.addOrReplaceFiles(registrationNumber, documentDataCreateRequest, files, municipalityId);
 
 		return noContent().build();
+	}
+
+	private static DocumentFiles resolveFiles(final MultipartFile documentFile, final List<MultipartFile> documentFiles) {
+		final var hasSingular = documentFile != null && !documentFile.isEmpty();
+		final var hasBatch = documentFiles != null && !documentFiles.isEmpty();
+
+		if (hasSingular == hasBatch) {
+			throw Problem.valueOf(BAD_REQUEST, "Provide exactly one of 'documentFile' (deprecated) or 'documentFiles'.");
+		}
+
+		return DocumentFiles.create().withFiles(hasBatch ? documentFiles : List.of(documentFile));
 	}
 
 	@DeleteMapping(path = "/{registrationNumber}/files/{documentDataId}", produces = {

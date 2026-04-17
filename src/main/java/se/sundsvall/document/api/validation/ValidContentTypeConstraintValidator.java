@@ -9,6 +9,11 @@ public class ValidContentTypeConstraintValidator implements ConstraintValidator<
 
 	@Override
 	public boolean isValid(final List<MultipartFile> files, final ConstraintValidatorContext context) {
+		// Presence is enforced by @RequestPart/@NotNull where applicable; null here means "not provided" and is treated as
+		// valid.
+		if (files == null) {
+			return true;
+		}
 		return files.stream()
 			.map(MultipartFile::getContentType)
 			.noneMatch("application/octet-stream"::equals);

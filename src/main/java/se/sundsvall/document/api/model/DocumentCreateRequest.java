@@ -3,7 +3,6 @@ package se.sundsvall.document.api.model;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.Size;
 import java.time.LocalDate;
 import java.util.List;
@@ -13,6 +12,7 @@ import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.format.annotation.DateTimeFormat.ISO;
 import se.sundsvall.document.api.validation.ValidValidityWindow;
 
+import static io.swagger.v3.oas.annotations.media.Schema.RequiredMode.NOT_REQUIRED;
 import static io.swagger.v3.oas.annotations.media.Schema.RequiredMode.REQUIRED;
 
 @ValidValidityWindow
@@ -34,8 +34,7 @@ public class DocumentCreateRequest {
 	@Schema(description = "Document description", examples = "A brief description of this object. Maximum 8192 characters.", requiredMode = REQUIRED)
 	private String description;
 
-	@NotEmpty
-	@Schema(description = "List of DocumentMetadata objects.", requiredMode = REQUIRED)
+	@Schema(description = "List of DocumentMetadata objects.", requiredMode = NOT_REQUIRED)
 	private List<@Valid DocumentMetadata> metadataList;
 
 	@Valid

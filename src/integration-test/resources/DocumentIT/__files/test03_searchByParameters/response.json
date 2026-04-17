@@ -26,7 +26,8 @@
 				}
 			],
 			"validFrom": "2024-02-05",
-			"validTo": "2025-02-05"
+			"validTo": "2025-02-05",
+			"responsibilities": []
 		},
 		{
 			"municipalityId": "2281",
@@ -54,7 +55,8 @@
 				}
 			],
 			"validFrom": "2023-12-07",
-			"validTo": "2026-12-07"
+			"validTo": "2026-12-07",
+			"responsibilities": []
 		},
 		{
 			"municipalityId": "2281",
@@ -81,7 +83,8 @@
 					"key": "EMPLOYEE_TYPE"
 				}
 			],
-			"validFrom": "2024-01-23"
+			"validFrom": "2024-01-23",
+			"responsibilities": []
 		}
 	],
 	"_meta": {

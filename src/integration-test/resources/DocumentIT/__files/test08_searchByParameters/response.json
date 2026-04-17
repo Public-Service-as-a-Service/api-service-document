@@ -26,7 +26,8 @@
 				}
 			],
 			"validFrom": "2023-12-07",
-			"validTo": "2026-12-07"
+			"validTo": "2026-12-07",
+			"responsibilities": []
 		},
 		{
 			"municipalityId": "2281",
@@ -51,7 +52,8 @@
 					"value": "Developer",
 					"key": "EMPLOYEE_TYPE"
 				}
-			]
+			],
+			"responsibilities": []
 		}
 	],
 	"_meta": {

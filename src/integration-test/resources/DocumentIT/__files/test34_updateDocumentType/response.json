@@ -26,5 +26,6 @@
 			"key": "document3-key1"
 		}
 	],
-	"validFrom": "2023-06-28"
+	"validFrom": "2023-06-28",
+	"responsibilities": []
 }

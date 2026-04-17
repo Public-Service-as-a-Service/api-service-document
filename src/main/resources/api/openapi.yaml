@@ -7,11 +7,13 @@ info:
     url: https://opensource.org/licenses/MIT
   version: "3.1"
 servers:
-- url: http://localhost:58761
+- url: http://localhost:55186
   description: Generated server url
 tags:
 - name: Document revisions
   description: Document revision operations
+- name: Document statistics
+  description: Document usage statistics
 - name: Administration
   description: Administration of document types
 - name: Documents
@@ -860,6 +862,73 @@ paths:
             application/problem+json:
               schema:
                 $ref: "#/components/schemas/Problem"
+  /{municipalityId}/documents/{registrationNumber}/statistics:
+    get:
+      tags:
+      - Document statistics
+      summary: Read aggregated usage statistics for a document.
+      description: "Returns total accesses and per-revision/per-file breakdown of\
+        \ file downloads and views. Optional [from, to) date range bounds the aggregation\
+        \ window."
+      operationId: readStatistics
+      parameters:
+      - name: municipalityId
+        in: path
+        description: Municipality ID
+        required: true
+        schema:
+          type: string
+        example: 2281
+      - name: registrationNumber
+        in: path
+        description: Document registration number
+        required: true
+        schema:
+          type: string
+        example: 2023-2281-1337
+      - name: from
+        in: query
+        description: Inclusive lower bound (ISO date-time). Omit for unbounded.
+        required: false
+        schema:
+          type: string
+          format: date-time
+        example: 2026-01-01T00:00:00+01:00
+      - name: to
+        in: query
+        description: Exclusive upper bound (ISO date-time). Omit for unbounded.
+        required: false
+        schema:
+          type: string
+          format: date-time
+        example: 2026-04-17T00:00:00+02:00
+      responses:
+        "200":
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DocumentStatistics"
+        "404":
+          description: Not found
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "400":
+          description: Bad request
+          content:
+            application/problem+json:
+              schema:
+                oneOf:
+                - $ref: "#/components/schemas/Problem"
+                - $ref: "#/components/schemas/ConstraintViolationProblem"
+        "500":
+          description: Internal Server error
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problem"
   /{municipalityId}/documents/{registrationNumber}/revisions:
     get:
       tags:
@@ -1045,6 +1114,32 @@ paths:
           type: boolean
           default: false
         example: true
+      - name: accessType
+        in: query
+        description: How this access should be classified in usage statistics.
+        required: false
+        schema:
+          type: string
+          default: DOWNLOAD
+          enum:
+          - DOWNLOAD
+          - VIEW
+        example: DOWNLOAD
+      - name: countStats
+        in: query
+        description: Whether this access should be counted in usage statistics. Set
+          to false for admin previews and test downloads.
+        required: false
+        schema:
+          type: boolean
+          default: true
+        example: true
+      - name: X-Sent-By
+        in: header
+        description: "Identifier of the caller, recorded in usage statistics."
+        required: false
+        schema:
+          type: string
       responses:
         "200":
           description: Successful operation
@@ -1112,6 +1207,32 @@ paths:
           type: boolean
           default: false
         example: false
+      - name: accessType
+        in: query
+        description: How this access should be classified in usage statistics.
+        required: false
+        schema:
+          type: string
+          default: DOWNLOAD
+          enum:
+          - DOWNLOAD
+          - VIEW
+        example: DOWNLOAD
+      - name: countStats
+        in: query
+        description: Whether this access should be counted in usage statistics. Set
+          to false for admin previews and test downloads.
+        required: false
+        schema:
+          type: boolean
+          default: true
+        example: true
+      - name: X-Sent-By
+        in: header
+        description: "Identifier of the caller, recorded in usage statistics."
+        required: false
+        schema:
+          type: string
       responses:
         "200":
           description: Successful operation
@@ -1206,9 +1327,9 @@ components:
     Problem:
       type: object
       properties:
-        detail:
-          type: string
         title:
+          type: string
+        detail:
           type: string
         instance:
           type: string
@@ -1265,10 +1386,10 @@ components:
             $ref: "#/components/schemas/Violation"
         title:
           type: string
-        detail:
-          type: string
         causeAsProblem:
           $ref: "#/components/schemas/ThrowableProblem"
+        detail:
+          type: string
         instance:
           type: string
           format: uri
@@ -1810,6 +1931,101 @@ components:
           minLength: 1
       required:
       - updatedBy
+    DocumentStatistics:
+      type: object
+      description: Aggregated usage statistics for a document.
+      properties:
+        municipalityId:
+          type: string
+          description: Municipality ID.
+          examples:
+          - "2281"
+        registrationNumber:
+          type: string
+          description: Registration number.
+          examples:
+          - 2023-2281-1337
+        from:
+          type: string
+          format: date-time
+          description: Inclusive lower bound of the aggregation window. Null if unbounded.
+          examples:
+          - 2026-01-01T00:00:00+01:00
+        to:
+          type: string
+          format: date-time
+          description: Exclusive upper bound of the aggregation window. Null if unbounded.
+          examples:
+          - 2026-04-17T00:00:00+02:00
+        totalAccesses:
+          type: integer
+          format: int64
+          description: Total accesses across all revisions and files within the aggregation
+            window.
+          examples:
+          - "142"
+        perRevision:
+          type: array
+          description: Per-revision breakdown.
+          items:
+            $ref: "#/components/schemas/RevisionStatistics"
+      readOnly: true
+    FileStatistics:
+      type: object
+      description: Per-file usage statistics within a document revision.
+      properties:
+        documentDataId:
+          type: string
+          description: Document data ID.
+          examples:
+          - 082ba08f-03c7-409f-b8a6-940a1397ba38
+        fileName:
+          type: string
+          description: File name. May be null if the file no longer exists in any
+            revision of the document.
+          examples:
+          - report.pdf
+        downloads:
+          type: integer
+          format: int64
+          description: "Number of download accesses (Content-Disposition: attachment)."
+          examples:
+          - "20"
+        views:
+          type: integer
+          format: int64
+          description: "Number of view accesses (Content-Disposition: inline)."
+          examples:
+          - "35"
+      readOnly: true
+    RevisionStatistics:
+      type: object
+      description: Per-revision usage statistics for a document.
+      properties:
+        revision:
+          type: integer
+          format: int32
+          description: Document revision number.
+          examples:
+          - "2"
+        downloads:
+          type: integer
+          format: int64
+          description: Total download accesses across all files in this revision.
+          examples:
+          - "30"
+        views:
+          type: integer
+          format: int64
+          description: Total view accesses across all files in this revision.
+          examples:
+          - "50"
+        perFile:
+          type: array
+          description: Per-file breakdown.
+          items:
+            $ref: "#/components/schemas/FileStatistics"
+      readOnly: true
     DocumentType:
       type: object
       description: DocumentType model.

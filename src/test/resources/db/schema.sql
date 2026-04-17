@@ -18,6 +18,19 @@
         primary key (id)
     ) engine=InnoDB;
 
+    create table document_access_log (
+        revision integer not null,
+        accessed_at datetime(6) not null,
+        accessed_by varchar(255),
+        document_data_id varchar(255) not null,
+        document_id varchar(255) not null,
+        id varchar(255) not null,
+        municipality_id varchar(255) not null,
+        registration_number varchar(255) not null,
+        access_type enum ('DOWNLOAD','VIEW') not null,
+        primary key (id)
+    ) engine=InnoDB;
+
     create table document_data (
         file_size_in_bytes bigint default 0,
         storage_backend varchar(16) default 'jdbc' not null,
@@ -83,14 +96,23 @@
     create index ix_municipality_id 
        on document (municipality_id);
 
-    create index ix_confidential
+    create index ix_confidential 
        on document (confidential);
 
-    create index ix_status
+    create index ix_status 
        on document (status);
 
-    alter table if exists document
+    alter table if exists document 
        add constraint uq_revision_and_registration_number unique (revision, registration_number);
+
+    create index ix_document_access_log_doc 
+       on document_access_log (municipality_id, registration_number);
+
+    create index ix_document_access_log_revision 
+       on document_access_log (municipality_id, registration_number, revision);
+
+    create index ix_document_access_log_accessed_at 
+       on document_access_log (accessed_at);
 
     create index ix_key 
        on document_metadata (`key`);

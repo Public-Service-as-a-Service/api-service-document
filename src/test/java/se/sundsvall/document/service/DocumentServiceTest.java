@@ -156,6 +156,9 @@ class DocumentServiceTest {
 
 	private TestEventLogClient eventLogClient;
 
+	@Mock
+	private org.springframework.context.ApplicationEventPublisher eventPublisherMock;
+
 	@BeforeEach
 	void setUp() {
 		eventLogClient = new TestEventLogClient();
@@ -167,7 +170,8 @@ class DocumentServiceTest {
 			registrationNumberServiceMock,
 			statusPolicyMock,
 			Optional.of(eventLogClient),
-			Optional.of(eventlogPropertiesMock));
+			Optional.of(eventlogPropertiesMock),
+			eventPublisherMock);
 	}
 
 	@Test
@@ -421,7 +425,7 @@ class DocumentServiceTest {
 		when(httpServletResponseMock.getOutputStream()).thenReturn(servletOutputStreamMock);
 
 		// Act
-		documentService.readFile(REGISTRATION_NUMBER, DOCUMENT_DATA_ID, includeConfidential, true, httpServletResponseMock, MUNICIPALITY_ID);
+		documentService.readFile(REGISTRATION_NUMBER, DOCUMENT_DATA_ID, includeConfidential, true, se.sundsvall.document.service.statistics.AccessContext.defaultContext(), httpServletResponseMock, MUNICIPALITY_ID);
 
 		// Assert
 		verify(documentRepositoryMock).findTopByMunicipalityIdAndRegistrationNumberAndConfidentialityConfidentialInOrderByRevisionDesc(MUNICIPALITY_ID, REGISTRATION_NUMBER, PUBLIC.getValue());
@@ -430,6 +434,23 @@ class DocumentServiceTest {
 		verify(httpServletResponseMock).setContentLength((int) FILE_SIZE_IN_BYTES);
 		verify(httpServletResponseMock).getOutputStream();
 		verify(binaryStoreMock).streamTo(eq(new StorageRef("jdbc", STORAGE_LOCATOR)), any(OutputStream.class));
+		verify(eventPublisherMock).publishEvent(any(se.sundsvall.document.service.statistics.DocumentAccessedEvent.class));
+	}
+
+	@Test
+	void readFile_skipsAccessEvent_whenCountStatsFalse() throws IOException {
+
+		// Arrange — countStats=false (admin preview / test download); statistics must not be recorded.
+		final var documentEntity = createDocumentEntity();
+		when(documentRepositoryMock.findTopByMunicipalityIdAndRegistrationNumberAndConfidentialityConfidentialInOrderByRevisionDesc(MUNICIPALITY_ID, REGISTRATION_NUMBER, PUBLIC.getValue())).thenReturn(Optional.of(documentEntity));
+		when(httpServletResponseMock.getOutputStream()).thenReturn(servletOutputStreamMock);
+		final var skipContext = new se.sundsvall.document.service.statistics.AccessContext(false, se.sundsvall.document.api.model.DocumentAccessType.DOWNLOAD, "admin");
+
+		// Act
+		documentService.readFile(REGISTRATION_NUMBER, DOCUMENT_DATA_ID, false, true, skipContext, httpServletResponseMock, MUNICIPALITY_ID);
+
+		// Assert
+		verify(eventPublisherMock, never()).publishEvent(any(se.sundsvall.document.service.statistics.DocumentAccessedEvent.class));
 	}
 
 	@Test
@@ -446,7 +467,7 @@ class DocumentServiceTest {
 		final var dispositionCaptor = ArgumentCaptor.forClass(String.class);
 
 		// Act
-		documentService.readFile(REGISTRATION_NUMBER, DOCUMENT_DATA_ID, includeConfidential, true, httpServletResponseMock, MUNICIPALITY_ID);
+		documentService.readFile(REGISTRATION_NUMBER, DOCUMENT_DATA_ID, includeConfidential, true, se.sundsvall.document.service.statistics.AccessContext.defaultContext(), httpServletResponseMock, MUNICIPALITY_ID);
 
 		// Assert
 		verify(httpServletResponseMock).addHeader(eq(CONTENT_DISPOSITION), dispositionCaptor.capture());
@@ -464,7 +485,8 @@ class DocumentServiceTest {
 		when(documentRepositoryMock.findTopByMunicipalityIdAndRegistrationNumberAndConfidentialityConfidentialInOrderByRevisionDesc(MUNICIPALITY_ID, REGISTRATION_NUMBER, PUBLIC.getValue())).thenReturn(empty());
 
 		// Act
-		final var exception = assertThrows(ThrowableProblem.class, () -> documentService.readFile(REGISTRATION_NUMBER, DOCUMENT_DATA_ID, includeConfidential, true, httpServletResponseMock, MUNICIPALITY_ID));
+		final var exception = assertThrows(ThrowableProblem.class, () -> documentService.readFile(REGISTRATION_NUMBER, DOCUMENT_DATA_ID, includeConfidential, true, se.sundsvall.document.service.statistics.AccessContext.defaultContext(),
+			httpServletResponseMock, MUNICIPALITY_ID));
 
 		// Assert
 		assertThat(exception).isNotNull();
@@ -487,7 +509,8 @@ class DocumentServiceTest {
 		when(documentRepositoryMock.findTopByMunicipalityIdAndRegistrationNumberAndConfidentialityConfidentialInOrderByRevisionDesc(MUNICIPALITY_ID, REGISTRATION_NUMBER, PUBLIC.getValue())).thenReturn(Optional.of(documentEntity));
 
 		// Act
-		final var exception = assertThrows(ThrowableProblem.class, () -> documentService.readFile(REGISTRATION_NUMBER, DOCUMENT_DATA_ID, includeConfidential, true, httpServletResponseMock, MUNICIPALITY_ID));
+		final var exception = assertThrows(ThrowableProblem.class, () -> documentService.readFile(REGISTRATION_NUMBER, DOCUMENT_DATA_ID, includeConfidential, true, se.sundsvall.document.service.statistics.AccessContext.defaultContext(),
+			httpServletResponseMock, MUNICIPALITY_ID));
 
 		// Assert
 		assertThat(exception).isNotNull();
@@ -507,7 +530,8 @@ class DocumentServiceTest {
 		when(documentRepositoryMock.findTopByMunicipalityIdAndRegistrationNumberAndConfidentialityConfidentialInOrderByRevisionDesc(MUNICIPALITY_ID, REGISTRATION_NUMBER, PUBLIC.getValue())).thenReturn(Optional.of(documentEntity));
 
 		// Act
-		final var exception = assertThrows(ThrowableProblem.class, () -> documentService.readFile(REGISTRATION_NUMBER, DOCUMENT_DATA_ID, includeConfidential, true, httpServletResponseMock, MUNICIPALITY_ID));
+		final var exception = assertThrows(ThrowableProblem.class, () -> documentService.readFile(REGISTRATION_NUMBER, DOCUMENT_DATA_ID, includeConfidential, true, se.sundsvall.document.service.statistics.AccessContext.defaultContext(),
+			httpServletResponseMock, MUNICIPALITY_ID));
 
 		// Assert
 		assertThat(exception).isNotNull();
@@ -530,7 +554,8 @@ class DocumentServiceTest {
 			.when(binaryStoreMock).streamTo(any(StorageRef.class), any(OutputStream.class));
 
 		// Act
-		final var exception = assertThrows(ThrowableProblem.class, () -> documentService.readFile(REGISTRATION_NUMBER, DOCUMENT_DATA_ID, includeConfidential, true, httpServletResponseMock, MUNICIPALITY_ID));
+		final var exception = assertThrows(ThrowableProblem.class, () -> documentService.readFile(REGISTRATION_NUMBER, DOCUMENT_DATA_ID, includeConfidential, true, se.sundsvall.document.service.statistics.AccessContext.defaultContext(),
+			httpServletResponseMock, MUNICIPALITY_ID));
 
 		// Assert
 		assertThat(exception).isNotNull();
@@ -555,7 +580,7 @@ class DocumentServiceTest {
 		when(httpServletResponseMock.getOutputStream()).thenReturn(servletOutputStreamMock);
 
 		// Act
-		documentService.readFile(REGISTRATION_NUMBER, REVISION, DOCUMENT_DATA_ID, includeConfidential, httpServletResponseMock, MUNICIPALITY_ID);
+		documentService.readFile(REGISTRATION_NUMBER, REVISION, DOCUMENT_DATA_ID, includeConfidential, se.sundsvall.document.service.statistics.AccessContext.defaultContext(), httpServletResponseMock, MUNICIPALITY_ID);
 
 		// Assert
 		verify(documentRepositoryMock).findByMunicipalityIdAndRegistrationNumberAndRevisionAndConfidentialityConfidentialIn(MUNICIPALITY_ID, REGISTRATION_NUMBER, REVISION, PUBLIC.getValue());
@@ -575,7 +600,8 @@ class DocumentServiceTest {
 		when(documentRepositoryMock.findByMunicipalityIdAndRegistrationNumberAndRevisionAndConfidentialityConfidentialIn(MUNICIPALITY_ID, REGISTRATION_NUMBER, REVISION, PUBLIC.getValue())).thenReturn(empty());
 
 		// Act
-		final var exception = assertThrows(ThrowableProblem.class, () -> documentService.readFile(REGISTRATION_NUMBER, REVISION, DOCUMENT_DATA_ID, includeConfidential, httpServletResponseMock, MUNICIPALITY_ID));
+		final var exception = assertThrows(ThrowableProblem.class, () -> documentService.readFile(REGISTRATION_NUMBER, REVISION, DOCUMENT_DATA_ID, includeConfidential, se.sundsvall.document.service.statistics.AccessContext.defaultContext(),
+			httpServletResponseMock, MUNICIPALITY_ID));
 
 		// Assert
 		assertThat(exception).isNotNull();
@@ -595,7 +621,8 @@ class DocumentServiceTest {
 		when(documentRepositoryMock.findByMunicipalityIdAndRegistrationNumberAndRevisionAndConfidentialityConfidentialIn(MUNICIPALITY_ID, REGISTRATION_NUMBER, REVISION, PUBLIC.getValue())).thenReturn(Optional.of(documentEntity));
 
 		// Act
-		final var exception = assertThrows(ThrowableProblem.class, () -> documentService.readFile(REGISTRATION_NUMBER, REVISION, DOCUMENT_DATA_ID, includeConfidential, httpServletResponseMock, MUNICIPALITY_ID));
+		final var exception = assertThrows(ThrowableProblem.class, () -> documentService.readFile(REGISTRATION_NUMBER, REVISION, DOCUMENT_DATA_ID, includeConfidential, se.sundsvall.document.service.statistics.AccessContext.defaultContext(),
+			httpServletResponseMock, MUNICIPALITY_ID));
 
 		// Assert
 		assertThat(exception).isNotNull();
@@ -618,7 +645,8 @@ class DocumentServiceTest {
 		when(documentRepositoryMock.findByMunicipalityIdAndRegistrationNumberAndRevisionAndConfidentialityConfidentialIn(MUNICIPALITY_ID, REGISTRATION_NUMBER, REVISION, PUBLIC.getValue())).thenReturn(Optional.of(documentEntity));
 
 		// Act
-		final var exception = assertThrows(ThrowableProblem.class, () -> documentService.readFile(REGISTRATION_NUMBER, REVISION, DOCUMENT_DATA_ID, includeConfidential, httpServletResponseMock, MUNICIPALITY_ID));
+		final var exception = assertThrows(ThrowableProblem.class, () -> documentService.readFile(REGISTRATION_NUMBER, REVISION, DOCUMENT_DATA_ID, includeConfidential, se.sundsvall.document.service.statistics.AccessContext.defaultContext(),
+			httpServletResponseMock, MUNICIPALITY_ID));
 
 		// Assert
 		assertThat(exception).isNotNull();

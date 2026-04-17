@@ -12,6 +12,7 @@ import java.util.stream.Collectors;
 import org.apache.commons.lang3.Strings;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.ContentDisposition;
@@ -38,10 +39,15 @@ import se.sundsvall.document.integration.db.model.DocumentResponsibilityEntity;
 import se.sundsvall.document.integration.eventlog.EventLogClient;
 import se.sundsvall.document.integration.eventlog.configuration.EventlogProperties;
 import se.sundsvall.document.service.mapper.DocumentMapper;
+import se.sundsvall.document.service.statistics.AccessContext;
+import se.sundsvall.document.service.statistics.DocumentAccessedEvent;
 import se.sundsvall.document.service.storage.BinaryStore;
 import se.sundsvall.document.service.storage.StorageRef;
 
 import static generated.se.sundsvall.eventlog.EventType.UPDATE;
+import static java.time.OffsetDateTime.now;
+import static java.time.ZoneId.systemDefault;
+import static java.time.temporal.ChronoUnit.MILLIS;
 import static java.util.Objects.nonNull;
 import static org.springframework.http.HttpHeaders.CONTENT_DISPOSITION;
 import static org.springframework.http.HttpHeaders.CONTENT_TYPE;
@@ -88,6 +94,7 @@ public class DocumentService {
 	private final DocumentStatusPolicy statusPolicy;
 	private final Optional<EventLogClient> eventLogClient;
 	private final Optional<EventlogProperties> eventLogProperties;
+	private final ApplicationEventPublisher eventPublisher;
 
 	public DocumentService(
 		final BinaryStore binaryStore,
@@ -97,7 +104,8 @@ public class DocumentService {
 		final RegistrationNumberService registrationNumberService,
 		final DocumentStatusPolicy statusPolicy,
 		final Optional<EventLogClient> eventLogClient,
-		final Optional<EventlogProperties> eventLogProperties) {
+		final Optional<EventlogProperties> eventLogProperties,
+		final ApplicationEventPublisher eventPublisher) {
 
 		this.binaryStore = binaryStore;
 		this.documentRepository = documentRepository;
@@ -107,6 +115,7 @@ public class DocumentService {
 		this.statusPolicy = statusPolicy;
 		this.eventLogClient = eventLogClient;
 		this.eventLogProperties = eventLogProperties;
+		this.eventPublisher = eventPublisher;
 	}
 
 	public Document create(final DocumentCreateRequest documentCreateRequest, final DocumentFiles documentFiles, final String municipalityId) {
@@ -154,7 +163,7 @@ public class DocumentService {
 		return toPagedDocumentResponseWithResponsibilities(documentRepository.search(query, includeConfidential, onlyLatestRevision, pageable, municipalityId, effectiveStatuses));
 	}
 
-	public void readFile(String registrationNumber, String documentDataId, boolean includeConfidential, boolean includeNonPublic, HttpServletResponse response, String municipalityId) {
+	public void readFile(String registrationNumber, String documentDataId, boolean includeConfidential, boolean includeNonPublic, AccessContext accessContext, HttpServletResponse response, String municipalityId) {
 
 		final var documentEntity = findLatestRevisionForRead(municipalityId, registrationNumber, includeConfidential, includeNonPublic);
 		reconcileStatusIfStale(documentEntity);
@@ -169,9 +178,10 @@ public class DocumentService {
 			.orElseThrow(() -> Problem.valueOf(NOT_FOUND, ERROR_DOCUMENT_FILE_BY_ID_NOT_FOUND.formatted(documentDataId)));
 
 		addFileContentToResponse(documentDataEntity, response);
+		publishAccessEvent(documentEntity, documentDataId, accessContext);
 	}
 
-	public void readFile(String registrationNumber, int revision, String documentDataId, boolean includeConfidential, HttpServletResponse response, String municipalityId) {
+	public void readFile(String registrationNumber, int revision, String documentDataId, boolean includeConfidential, AccessContext accessContext, HttpServletResponse response, String municipalityId) {
 
 		final var documentEntity = documentRepository.findByMunicipalityIdAndRegistrationNumberAndRevisionAndConfidentialityConfidentialIn(municipalityId, registrationNumber, revision, toInclusionFilter(includeConfidential))
 			.orElseThrow(() -> Problem.valueOf(NOT_FOUND, ERROR_DOCUMENT_BY_REGISTRATION_NUMBER_AND_REVISION_NOT_FOUND.formatted(registrationNumber, revision)));
@@ -186,6 +196,7 @@ public class DocumentService {
 			.orElseThrow(() -> Problem.valueOf(NOT_FOUND, ERROR_DOCUMENT_FILE_BY_ID_NOT_FOUND.formatted(documentDataId)));
 
 		addFileContentToResponse(documentDataEntity, response);
+		publishAccessEvent(documentEntity, documentDataId, accessContext);
 	}
 
 	public Document addOrReplaceFile(String registrationNumber, DocumentDataCreateRequest documentDataCreateRequest, MultipartFile documentFile, String municipalityId) {
@@ -347,6 +358,21 @@ public class DocumentService {
 		if (!response.isCommitted()) {
 			response.reset();
 		}
+	}
+
+	private void publishAccessEvent(DocumentEntity documentEntity, String documentDataId, AccessContext accessContext) {
+		if (accessContext == null || !accessContext.countStats()) {
+			return;
+		}
+		eventPublisher.publishEvent(new DocumentAccessedEvent(
+			documentEntity.getMunicipalityId(),
+			documentEntity.getId(),
+			documentEntity.getRegistrationNumber(),
+			documentEntity.getRevision(),
+			documentDataId,
+			accessContext.accessType(),
+			accessContext.sentBy(),
+			now(systemDefault()).truncatedTo(MILLIS)));
 	}
 
 	private Document toDocumentWithResponsibilities(final DocumentEntity documentEntity) {

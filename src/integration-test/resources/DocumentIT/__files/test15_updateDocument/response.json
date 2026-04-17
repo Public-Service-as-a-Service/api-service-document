@@ -28,5 +28,6 @@
 	],
 	"validFrom": "2023-06-28",
 	"validTo": "2026-06-28",
-	"responsibilities": []
+	"responsibilities": [],
+	"status": "DRAFT"
 }

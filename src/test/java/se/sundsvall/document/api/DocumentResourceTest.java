@@ -320,7 +320,7 @@ class DocumentResourceTest {
 		// Arrange
 		final var registrationNumber = "2023-1337";
 
-		when(documentServiceMock.read(any(), anyBoolean(), any())).thenReturn(Document.create());
+		when(documentServiceMock.read(any(), anyBoolean(), anyBoolean(), any())).thenReturn(Document.create());
 
 		// Act
 		final var response = webTestClient.get()
@@ -334,7 +334,7 @@ class DocumentResourceTest {
 
 		// Assert
 		assertThat(response).isNotNull();
-		verify(documentServiceMock).read(registrationNumber, false, "2281");
+		verify(documentServiceMock).read(registrationNumber, false, false, "2281");
 	}
 
 	@Test
@@ -344,7 +344,7 @@ class DocumentResourceTest {
 		final var includeConfidential = true;
 		final var registrationNumber = "2023-1337";
 
-		when(documentServiceMock.read(any(), anyBoolean(), any())).thenReturn(Document.create());
+		when(documentServiceMock.read(any(), anyBoolean(), anyBoolean(), any())).thenReturn(Document.create());
 
 		// Act
 		final var response = webTestClient.get()
@@ -360,7 +360,7 @@ class DocumentResourceTest {
 
 		// Assert
 		assertThat(response).isNotNull();
-		verify(documentServiceMock).read(registrationNumber, includeConfidential, "2281");
+		verify(documentServiceMock).read(registrationNumber, includeConfidential, false, "2281");
 	}
 
 	@Test
@@ -379,7 +379,7 @@ class DocumentResourceTest {
 			.isEmpty();
 
 		// Assert
-		verify(documentServiceMock).readFile(eq(registrationNumber), eq(documentDataId), eq(false), any(HttpServletResponse.class), eq("2281"));
+		verify(documentServiceMock).readFile(eq(registrationNumber), eq(documentDataId), eq(false), eq(false), any(HttpServletResponse.class), eq("2281"));
 	}
 
 	@Test
@@ -401,7 +401,7 @@ class DocumentResourceTest {
 			.isEmpty();
 
 		// Assert
-		verify(documentServiceMock).readFile(eq(registrationNumber), eq(documentDataId), eq(includeConfidential), any(HttpServletResponse.class), eq("2281"));
+		verify(documentServiceMock).readFile(eq(registrationNumber), eq(documentDataId), eq(includeConfidential), eq(false), any(HttpServletResponse.class), eq("2281"));
 	}
 
 	@Test

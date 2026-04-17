@@ -20,6 +20,7 @@ import org.springframework.transaction.annotation.Transactional;
 import se.sundsvall.dept44.problem.Problem;
 import se.sundsvall.document.api.model.DocumentParameters;
 import se.sundsvall.document.api.model.DocumentResponsibility;
+import se.sundsvall.document.api.model.DocumentStatus;
 import se.sundsvall.document.integration.db.model.ConfidentialityEmbeddable;
 import se.sundsvall.document.integration.db.model.DocumentDataEntity;
 import se.sundsvall.document.integration.db.model.DocumentEntity;
@@ -323,7 +324,7 @@ class DocumentRepositoryTest {
 		final var pageRequest = PageRequest.of(0, 10, Sort.by(ASC, "created"));
 
 		// Act
-		final var result = documentRepository.search(search, true, false, pageRequest, MUNICIPALITY_ID);
+		final var result = documentRepository.search(search, true, false, pageRequest, MUNICIPALITY_ID, List.of(DocumentStatus.SCHEDULED, DocumentStatus.ACTIVE, DocumentStatus.EXPIRED));
 
 		// Assert
 		assertThat(result).isNotNull();
@@ -342,7 +343,7 @@ class DocumentRepositoryTest {
 		final var pageRequest = PageRequest.of(0, 10, Sort.by(ASC, "created"));
 
 		// Act
-		final var result = documentRepository.search(search, false, false, pageRequest, MUNICIPALITY_ID);
+		final var result = documentRepository.search(search, false, false, pageRequest, MUNICIPALITY_ID, List.of(DocumentStatus.SCHEDULED, DocumentStatus.ACTIVE, DocumentStatus.EXPIRED));
 
 		// Assert
 		assertThat(result).isNotNull();
@@ -360,7 +361,7 @@ class DocumentRepositoryTest {
 		final var pageRequest = PageRequest.of(0, 10, Sort.by(ASC, "revision"));
 
 		// Act
-		final var result = documentRepository.search(search, false, false, pageRequest, MUNICIPALITY_ID);
+		final var result = documentRepository.search(search, false, false, pageRequest, MUNICIPALITY_ID, List.of(DocumentStatus.SCHEDULED, DocumentStatus.ACTIVE, DocumentStatus.EXPIRED));
 
 		// Assert
 		assertThat(result).isNotNull();
@@ -380,7 +381,7 @@ class DocumentRepositoryTest {
 		final var pageRequest = PageRequest.of(0, 10, Sort.by(ASC, "revision"));
 
 		// Act
-		final var result = documentRepository.search(search, false, true, pageRequest, MUNICIPALITY_ID);
+		final var result = documentRepository.search(search, false, true, pageRequest, MUNICIPALITY_ID, List.of(DocumentStatus.SCHEDULED, DocumentStatus.ACTIVE, DocumentStatus.EXPIRED));
 
 		// Assert
 		assertThat(result).isNotNull();
@@ -398,7 +399,7 @@ class DocumentRepositoryTest {
 		final var pageRequest = PageRequest.of(0, 10, Sort.by(ASC, "registrationNumber", "revision"));
 
 		// Act
-		final var result = documentRepository.search(search, true, false, pageRequest, MUNICIPALITY_ID);
+		final var result = documentRepository.search(search, true, false, pageRequest, MUNICIPALITY_ID, List.of(DocumentStatus.SCHEDULED, DocumentStatus.ACTIVE, DocumentStatus.EXPIRED));
 
 		// Assert
 		assertThat(result).isNotNull();
@@ -424,7 +425,7 @@ class DocumentRepositoryTest {
 		final var pageRequest = PageRequest.of(0, 10, Sort.by(ASC, "created"));
 
 		// Act
-		final var result = documentRepository.search(search, true, false, pageRequest, MUNICIPALITY_ID);
+		final var result = documentRepository.search(search, true, false, pageRequest, MUNICIPALITY_ID, List.of(DocumentStatus.SCHEDULED, DocumentStatus.ACTIVE, DocumentStatus.EXPIRED));
 
 		// Assert
 		assertThat(result).isNotNull();
@@ -471,7 +472,7 @@ class DocumentRepositoryTest {
 			.withMetaData(metaData);
 		var pageable = PageRequest.of(parameters.getPage() - 1, parameters.getLimit(), parameters.sort());
 
-		var result = documentRepository.searchByParameters(parameters, pageable);
+		var result = documentRepository.searchByParameters(parameters, pageable, List.of(DocumentStatus.SCHEDULED, DocumentStatus.ACTIVE, DocumentStatus.EXPIRED));
 
 		assertThat(result).isNotNull();
 		assertThat(result.getContent()).hasSize(expectedSize);
@@ -487,7 +488,7 @@ class DocumentRepositoryTest {
 			.withIncludeConfidential(true);
 		var pageable = PageRequest.of(0, 10, Sort.by(ASC, "registrationNumber"));
 
-		var result = documentRepository.searchByParameters(parameters, pageable);
+		var result = documentRepository.searchByParameters(parameters, pageable, List.of(DocumentStatus.SCHEDULED, DocumentStatus.ACTIVE, DocumentStatus.EXPIRED));
 
 		assertThat(result).isNotNull();
 		assertThat(result.getContent())
@@ -511,7 +512,7 @@ class DocumentRepositoryTest {
 				DocumentResponsibility.create().withUsername(" USER5 ")));
 		var pageable = PageRequest.of(0, 10, Sort.by(ASC, "registrationNumber"));
 
-		var result = documentRepository.searchByParameters(parameters, pageable);
+		var result = documentRepository.searchByParameters(parameters, pageable, null);
 
 		assertThat(result).isNotNull();
 		assertThat(result.getContent())
@@ -534,7 +535,7 @@ class DocumentRepositoryTest {
 			.withMetaData(List.of(DocumentParameters.MetaData.create().withKey("EMPLOYEE_UNIT").withMatchesAny(List.of("Sidsjö skola"))));
 		var pageable = PageRequest.of(0, 10, Sort.by(ASC, "registrationNumber"));
 
-		var result = documentRepository.searchByParameters(parameters, pageable);
+		var result = documentRepository.searchByParameters(parameters, pageable, null);
 
 		assertThat(result).isNotNull();
 		assertThat(result.getContent())

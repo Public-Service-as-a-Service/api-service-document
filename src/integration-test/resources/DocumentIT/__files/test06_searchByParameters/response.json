@@ -27,7 +27,8 @@
 			],
 			"validFrom": "2024-02-05",
 			"validTo": "2025-02-05",
-			"responsibilities": []
+			"responsibilities": [],
+			"status": "ACTIVE"
 		},
 		{
 			"municipalityId": "2281",
@@ -55,7 +56,8 @@
 				}
 			],
 			"validFrom": "2024-01-23",
-			"responsibilities": []
+			"responsibilities": [],
+			"status": "ACTIVE"
 		},
 		{
 			"municipalityId": "2281",
@@ -81,7 +83,8 @@
 					"key": "EMPLOYEE_TYPE"
 				}
 			],
-			"responsibilities": []
+			"responsibilities": [],
+			"status": "ACTIVE"
 		}
 	],
 	"_meta": {

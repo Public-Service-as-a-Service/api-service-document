@@ -26,7 +26,8 @@
 				}
 			],
 			"validFrom": "2024-01-23",
-			"responsibilities": []
+			"responsibilities": [],
+			"status": "ACTIVE"
 		},
 		{
 			"municipalityId": "2281",
@@ -52,7 +53,8 @@
 					"key": "EMPLOYEE_TYPE"
 				}
 			],
-			"responsibilities": []
+			"responsibilities": [],
+			"status": "ACTIVE"
 		},
 		{
 			"municipalityId": "2281",
@@ -80,7 +82,8 @@
 			],
 			"validFrom": "2027-01-01",
 			"validTo": "2028-12-31",
-			"responsibilities": []
+			"responsibilities": [],
+			"status": "ACTIVE"
 		}
 	],
 	"_meta": {

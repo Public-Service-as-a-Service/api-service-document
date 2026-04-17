@@ -13,6 +13,7 @@ import java.util.Optional;
 import org.springframework.data.jpa.domain.Specification;
 import se.sundsvall.document.api.model.DocumentParameters;
 import se.sundsvall.document.api.model.DocumentResponsibility;
+import se.sundsvall.document.api.model.DocumentStatus;
 import se.sundsvall.document.integration.db.model.DocumentEntity;
 import se.sundsvall.document.integration.db.model.DocumentMetadataEmbeddable;
 import se.sundsvall.document.integration.db.model.DocumentResponsibilityEntity;
@@ -34,15 +35,17 @@ public interface SearchSpecification {
 	String MUNICIPALITY_ID = "municipalityId";
 	String REGISTRATION_NUMBER = "registrationNumber";
 	String REVISION = "revision";
+	String STATUS = "status";
 	String TYPE = "type";
 	String VALID_FROM = "validFrom";
 	String VALID_TO = "validTo";
 	String VALUE = "value";
 
-	static Specification<DocumentEntity> withSearchParameters(final DocumentParameters parameters) {
-		return onlyLatestRevisionOfDocuments(parameters.isOnlyLatestRevision())
+	static Specification<DocumentEntity> withSearchParameters(final DocumentParameters parameters, final List<DocumentStatus> effectiveStatuses) {
+		return onlyLatestRevisionOfDocuments(parameters.isOnlyLatestRevision(), effectiveStatuses, effectiveConfidentialValues(parameters.isIncludeConfidential()))
 			.and(matchesMunicipalityId(parameters.getMunicipalityId(), false))
 			.and(includeConfidentialDocuments(parameters.isIncludeConfidential()))
+			.and(matchesStatus(effectiveStatuses))
 			.and(matchesType(parameters.getDocumentTypes()))
 			.and(matchesCreatedByExact(parameters.getCreatedBy()))
 			.and(matchesMetaData(parameters.getMetaData()))
@@ -81,6 +84,19 @@ public interface SearchSpecification {
 
 	private static String normalizeUsername(final String username) {
 		return username.trim().toLowerCase(Locale.ROOT);
+	}
+
+	private static Specification<DocumentEntity> matchesStatus(final List<DocumentStatus> statuses) {
+		return (root, query, cb) -> {
+			if (statuses == null || statuses.isEmpty()) {
+				return cb.and();
+			}
+			return root.get(STATUS).in(statuses);
+		};
+	}
+
+	private static List<Boolean> effectiveConfidentialValues(boolean includeConfidential) {
+		return includeConfidential ? List.of(true, false) : List.of(false);
 	}
 
 	private static Specification<DocumentEntity> matchesValidOn(LocalDate validOn) {
@@ -206,11 +222,12 @@ public interface SearchSpecification {
 		};
 	}
 
-	static Specification<DocumentEntity> withSearchQuery(String query, boolean includeConfidential, boolean onlyLatestRevision, String municipalityId) {
+	static Specification<DocumentEntity> withSearchQuery(String query, boolean includeConfidential, boolean onlyLatestRevision, String municipalityId, List<DocumentStatus> effectiveStatuses) {
 		final var queryString = toQueryString(query);
 
-		return onlyLatestRevisionOfDocuments(onlyLatestRevision)
+		return onlyLatestRevisionOfDocuments(onlyLatestRevision, effectiveStatuses, effectiveConfidentialValues(includeConfidential))
 			.and(matchesMunicipalityId(municipalityId, false))
+			.and(matchesStatus(effectiveStatuses))
 			.and(matchesCreatedBy(queryString)
 				.or(matchesDescription(queryString))
 				.or(matchesMunicipalityId(queryString, true))
@@ -223,7 +240,7 @@ public interface SearchSpecification {
 			.and(distinct());
 	}
 
-	private static Specification<DocumentEntity> onlyLatestRevisionOfDocuments(boolean onlyLatestRevision) {
+	private static Specification<DocumentEntity> onlyLatestRevisionOfDocuments(boolean onlyLatestRevision, List<DocumentStatus> effectiveStatuses, List<Boolean> effectiveConfidentialValues) {
 		if (!onlyLatestRevision) {
 			return (root, query, cb) -> cb.and(); // Do not add any filter to return all documents regardless of revision
 		}
@@ -231,11 +248,21 @@ public interface SearchSpecification {
 		return (root, query, cb) -> {
 			var subQuery = query.subquery(Integer.class);
 			var subRoot = subQuery.from(DocumentEntity.class);
+			final var predicates = new java.util.ArrayList<Predicate>();
+			predicates.add(cb.equal(root.get(REGISTRATION_NUMBER), subRoot.get(REGISTRATION_NUMBER)));
+			predicates.add(cb.equal(root.get(MUNICIPALITY_ID), subRoot.get(MUNICIPALITY_ID)));
+			if (effectiveStatuses != null && !effectiveStatuses.isEmpty()) {
+				predicates.add(subRoot.get(STATUS).in(effectiveStatuses));
+			}
+			if (effectiveConfidentialValues != null && !effectiveConfidentialValues.isEmpty()) {
+				predicates.add(subRoot.get(CONFIDENTIALITY).get(CONFIDENTIAL).in(effectiveConfidentialValues));
+			}
 			subQuery.select(cb.max(subRoot.get(REVISION)))
-				.where(cb.equal(root.get(REGISTRATION_NUMBER), subRoot.get(REGISTRATION_NUMBER)));
+				.where(predicates.toArray(new Predicate[0]));
 			return cb.equal(root.get(REVISION), subQuery);
 
-		}; // Only return latest revision of documents
+		}; // Only return latest revision of documents (consistent with the same status/confidentiality filters applied in the
+			 // outer query)
 	}
 
 	private static Specification<DocumentEntity> includeConfidentialDocuments(boolean includeConfidential) {

@@ -30,6 +30,7 @@ import se.sundsvall.document.api.model.DocumentData;
 import se.sundsvall.document.api.model.DocumentFiles;
 import se.sundsvall.document.api.model.DocumentMetadata;
 import se.sundsvall.document.api.model.DocumentResponsibility;
+import se.sundsvall.document.api.model.DocumentStatus;
 import se.sundsvall.document.api.model.DocumentUpdateRequest;
 import se.sundsvall.document.integration.db.model.ConfidentialityEmbeddable;
 import se.sundsvall.document.integration.db.model.DocumentDataEntity;
@@ -125,6 +126,7 @@ class DocumentMapperTest {
 					.withKey(METADATA_KEY)
 					.withValue(METADATA_VALUE)))
 				.withMunicipalityId(MUNICIPALITY_ID)
+				.withStatus(DocumentStatus.DRAFT)
 				.withValidFrom(VALID_FROM)
 				.withValidTo(VALID_TO));
 	}
@@ -655,6 +657,7 @@ class DocumentMapperTest {
 				.withMunicipalityId(MUNICIPALITY_ID)
 				.withRegistrationNumber(REGISTRATION_NUMBER)
 				.withRevision(REVISION)
+				.withStatus(DocumentStatus.DRAFT)
 				.withType(DocumentTypeEntity.create()
 					.withCreated(DOCUMENT_TYPE_CREATED)
 					.withCreatedBy(DOCUMENT_TYPE_CREATED_BY)

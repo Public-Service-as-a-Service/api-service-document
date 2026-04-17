@@ -39,6 +39,11 @@ public class DocumentParameters extends AbstractParameterPagingAndSortingBase {
 		+ "ISO date (yyyy-MM-dd).", examples = "2026-04-15")
 	private LocalDate validOn;
 
+	@ArraySchema(schema = @Schema(description = "Lifecycle statuses to include. "
+		+ "Defaults to published statuses (SCHEDULED, ACTIVE, EXPIRED) - DRAFT and REVOKED are excluded. "
+		+ "When set explicitly, the list is used as-is.", implementation = DocumentStatus.class))
+	private List<DocumentStatus> statuses;
+
 	public static class MetaData {
 
 		@Schema(description = "Metadata key", examples = "Some key")
@@ -202,6 +207,19 @@ public class DocumentParameters extends AbstractParameterPagingAndSortingBase {
 		this.validOn = validOn;
 	}
 
+	public DocumentParameters withStatuses(final List<DocumentStatus> statuses) {
+		this.statuses = statuses;
+		return this;
+	}
+
+	public List<DocumentStatus> getStatuses() {
+		return statuses;
+	}
+
+	public void setStatuses(List<DocumentStatus> statuses) {
+		this.statuses = statuses;
+	}
+
 	@Override
 	public String toString() {
 		return "DocumentParameters{" +
@@ -213,6 +231,7 @@ public class DocumentParameters extends AbstractParameterPagingAndSortingBase {
 			", metaData=" + metaData +
 			", responsibilities=" + responsibilities +
 			", validOn=" + validOn +
+			", statuses=" + statuses +
 			", sortBy=" + sortBy +
 			", sortDirection=" + sortDirection +
 			", page=" + page +
@@ -230,11 +249,11 @@ public class DocumentParameters extends AbstractParameterPagingAndSortingBase {
 			return false;
 		DocumentParameters that = (DocumentParameters) o;
 		return includeConfidential == that.includeConfidential && onlyLatestRevision == that.onlyLatestRevision && Objects.equals(municipalityId, that.municipalityId) && Objects.equals(createdBy, that.createdBy)
-			&& Objects.equals(documentTypes, that.documentTypes) && Objects.equals(metaData, that.metaData) && Objects.equals(responsibilities, that.responsibilities) && Objects.equals(validOn, that.validOn);
+			&& Objects.equals(documentTypes, that.documentTypes) && Objects.equals(metaData, that.metaData) && Objects.equals(responsibilities, that.responsibilities) && Objects.equals(validOn, that.validOn) && Objects.equals(statuses, that.statuses);
 	}
 
 	@Override
 	public int hashCode() {
-		return Objects.hash(super.hashCode(), municipalityId, createdBy, includeConfidential, onlyLatestRevision, documentTypes, metaData, responsibilities, validOn);
+		return Objects.hash(super.hashCode(), municipalityId, createdBy, includeConfidential, onlyLatestRevision, documentTypes, metaData, responsibilities, validOn, statuses);
 	}
 }

@@ -21,6 +21,7 @@
 				SDK 2.30+ enables flexible checksums + STREAMING-*-TRAILER payload signing by default. -->
 		<aws-sdk.version>2.29.52</aws-sdk.version>
 		<testcontainers.version>1.20.4</testcontainers.version>
+		<shedlock.version>5.16.0</shedlock.version>
 	</properties>
 	<dependencyManagement>
 		<dependencies>
@@ -67,6 +68,19 @@
 		<dependency>
 			<groupId>software.amazon.awssdk</groupId>
 			<artifactId>s3</artifactId>
+		</dependency>
+
+		<!-- ShedLock — distributed lock for the daily status scheduler so the job runs at most once
+				across all pods. JDBC provider piggy-backs on the existing datasource (no extra infra). -->
+		<dependency>
+			<groupId>net.javacrumbs.shedlock</groupId>
+			<artifactId>shedlock-spring</artifactId>
+			<version>${shedlock.version}</version>
+		</dependency>
+		<dependency>
+			<groupId>net.javacrumbs.shedlock</groupId>
+			<artifactId>shedlock-provider-jdbc-template</artifactId>
+			<version>${shedlock.version}</version>
 		</dependency>
 
 		<!-- Test -->

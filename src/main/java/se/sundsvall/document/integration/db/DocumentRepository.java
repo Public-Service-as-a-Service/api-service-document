@@ -1,13 +1,18 @@
 package se.sundsvall.document.integration.db;
 
 import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
+import org.springframework.data.jpa.repository.Modifying;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import se.sundsvall.document.api.model.DocumentParameters;
+import se.sundsvall.document.api.model.DocumentStatus;
 import se.sundsvall.document.integration.db.model.DocumentEntity;
 
 import static se.sundsvall.document.integration.db.specification.SearchSpecification.withSearchParameters;
@@ -26,6 +31,16 @@ public interface DocumentRepository extends JpaRepository<DocumentEntity, String
 	 * @return                    an Optional of DocumentEntity object.
 	 */
 	Optional<DocumentEntity> findTopByMunicipalityIdAndRegistrationNumberAndConfidentialityConfidentialInOrderByRevisionDesc(String municipalityId, String registrationNumber, List<Boolean> confidentialValues);
+
+	/**
+	 * Find latest document by registrationNumber, excluding revisions with statuses in the
+	 * provided exclusion list (typically {@code [DRAFT, REVOKED]} for public reads).
+	 */
+	Optional<DocumentEntity> findTopByMunicipalityIdAndRegistrationNumberAndConfidentialityConfidentialInAndStatusNotInOrderByRevisionDesc(
+		String municipalityId,
+		String registrationNumber,
+		List<Boolean> confidentialValues,
+		List<DocumentStatus> excludedStatuses);
 
 	/**
 	 * Find all revisions of a document by registrationNumber.
@@ -74,12 +89,46 @@ public interface DocumentRepository extends JpaRepository<DocumentEntity, String
 	 * @param  pageable            the pageable object.
 	 * @return                     a Page of DocumentEntity objects that matches the search string.
 	 */
-	default Page<DocumentEntity> search(String query, boolean includeConfidential, boolean onlyLatestRevision, Pageable pageable, String municipalityId) {
-		return this.findAll(withSearchQuery(query, includeConfidential, onlyLatestRevision, municipalityId), pageable);
+	default Page<DocumentEntity> search(String query, boolean includeConfidential, boolean onlyLatestRevision, Pageable pageable, String municipalityId, List<DocumentStatus> effectiveStatuses) {
+		return this.findAll(withSearchQuery(query, includeConfidential, onlyLatestRevision, municipalityId, effectiveStatuses), pageable);
 	}
 
-	default Page<DocumentEntity> searchByParameters(final DocumentParameters documentParameters, final Pageable pageable) {
-		return this.findAll(withSearchParameters(documentParameters), pageable);
+	default Page<DocumentEntity> searchByParameters(final DocumentParameters documentParameters, final Pageable pageable, final List<DocumentStatus> effectiveStatuses) {
+		return this.findAll(withSearchParameters(documentParameters, effectiveStatuses), pageable);
 	}
+
+	/**
+	 * Bulk transition of documents whose validFrom has been reached:
+	 * SCHEDULED → ACTIVE when validFrom is null or on/before today and validTo permits.
+	 *
+	 * @return number of affected rows.
+	 */
+	@Modifying
+	@Query("""
+		update DocumentEntity d
+		   set d.status = se.sundsvall.document.api.model.DocumentStatus.ACTIVE
+		 where d.status = se.sundsvall.document.api.model.DocumentStatus.SCHEDULED
+		   and (d.validFrom is null or d.validFrom <= :today)
+		   and (d.validTo is null or d.validTo >= :today)
+		""")
+	int bulkScheduledToActive(@Param("today") LocalDate today);
+
+	/**
+	 * Bulk transition of documents whose validTo has passed:
+	 * ACTIVE / SCHEDULED → EXPIRED.
+	 *
+	 * @return number of affected rows.
+	 */
+	@Modifying
+	@Query("""
+		update DocumentEntity d
+		   set d.status = se.sundsvall.document.api.model.DocumentStatus.EXPIRED
+		 where d.status in (
+		           se.sundsvall.document.api.model.DocumentStatus.ACTIVE,
+		           se.sundsvall.document.api.model.DocumentStatus.SCHEDULED)
+		   and d.validTo is not null
+		   and d.validTo < :today
+		""")
+	int bulkExpire(@Param("today") LocalDate today);
 
 }

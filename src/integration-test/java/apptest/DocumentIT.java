@@ -297,7 +297,7 @@ class DocumentIT extends AbstractAppTest {
 			.getResponseHeaders().get("Location").getFirst();
 
 		setupCall()
-			.withServicePath(location.substring(location.indexOf(PATH_SUNDSVALL)))
+			.withServicePath(location.substring(location.indexOf(PATH_SUNDSVALL)) + "?includeNonPublic=true")
 			.withHttpMethod(GET)
 			.withHeader(ACCEPT, APPLICATION_JSON_VALUE)
 			.withExpectedResponseStatus(OK)
@@ -510,7 +510,7 @@ class DocumentIT extends AbstractAppTest {
 			.sendRequestAndVerifyResponse();
 
 		setupCall()
-			.withServicePath(PATH_SUNDSVALL + "/2024-2281-991")
+			.withServicePath(PATH_SUNDSVALL + "/2024-2281-991?includeNonPublic=true")
 			.withHttpMethod(GET)
 			.withExpectedResponseStatus(OK)
 			.withExpectedResponse(RESPONSE_FILE)

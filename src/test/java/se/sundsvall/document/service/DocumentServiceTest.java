@@ -43,6 +43,7 @@ import se.sundsvall.document.api.model.DocumentFiles;
 import se.sundsvall.document.api.model.DocumentMetadata;
 import se.sundsvall.document.api.model.DocumentResponsibilitiesUpdateRequest;
 import se.sundsvall.document.api.model.DocumentResponsibility;
+import se.sundsvall.document.api.model.DocumentStatus;
 import se.sundsvall.document.api.model.DocumentUpdateRequest;
 import se.sundsvall.document.integration.db.DocumentRepository;
 import se.sundsvall.document.integration.db.DocumentResponsibilityRepository;
@@ -128,6 +129,9 @@ class DocumentServiceTest {
 	private RegistrationNumberService registrationNumberServiceMock;
 
 	@Mock
+	private DocumentStatusPolicy statusPolicyMock;
+
+	@Mock
 	private BinaryStore binaryStoreMock;
 
 	@Mock
@@ -161,6 +165,7 @@ class DocumentServiceTest {
 			documentResponsibilityRepositoryMock,
 			documentTypeRepositoryMock,
 			registrationNumberServiceMock,
+			statusPolicyMock,
 			Optional.of(eventLogClient),
 			Optional.of(eventlogPropertiesMock));
 	}
@@ -284,7 +289,7 @@ class DocumentServiceTest {
 		when(documentRepositoryMock.findTopByMunicipalityIdAndRegistrationNumberAndConfidentialityConfidentialInOrderByRevisionDesc(MUNICIPALITY_ID, REGISTRATION_NUMBER, PUBLIC.getValue())).thenReturn(Optional.of(createDocumentEntity()));
 
 		// Act
-		final var result = documentService.read(REGISTRATION_NUMBER, includeConfidential, MUNICIPALITY_ID);
+		final var result = documentService.read(REGISTRATION_NUMBER, includeConfidential, true, MUNICIPALITY_ID);
 
 		// Assert
 		assertThat(result).isNotNull();
@@ -309,7 +314,7 @@ class DocumentServiceTest {
 		when(documentRepositoryMock.findTopByMunicipalityIdAndRegistrationNumberAndConfidentialityConfidentialInOrderByRevisionDesc(MUNICIPALITY_ID, REGISTRATION_NUMBER, PUBLIC.getValue())).thenReturn(empty());
 
 		// Act
-		final var exception = assertThrows(ThrowableProblem.class, () -> documentService.read(REGISTRATION_NUMBER, includeConfidential, MUNICIPALITY_ID));
+		final var exception = assertThrows(ThrowableProblem.class, () -> documentService.read(REGISTRATION_NUMBER, includeConfidential, true, MUNICIPALITY_ID));
 
 		// Assert
 		assertThat(exception).isNotNull();
@@ -416,7 +421,7 @@ class DocumentServiceTest {
 		when(httpServletResponseMock.getOutputStream()).thenReturn(servletOutputStreamMock);
 
 		// Act
-		documentService.readFile(REGISTRATION_NUMBER, DOCUMENT_DATA_ID, includeConfidential, httpServletResponseMock, MUNICIPALITY_ID);
+		documentService.readFile(REGISTRATION_NUMBER, DOCUMENT_DATA_ID, includeConfidential, true, httpServletResponseMock, MUNICIPALITY_ID);
 
 		// Assert
 		verify(documentRepositoryMock).findTopByMunicipalityIdAndRegistrationNumberAndConfidentialityConfidentialInOrderByRevisionDesc(MUNICIPALITY_ID, REGISTRATION_NUMBER, PUBLIC.getValue());
@@ -441,7 +446,7 @@ class DocumentServiceTest {
 		final var dispositionCaptor = ArgumentCaptor.forClass(String.class);
 
 		// Act
-		documentService.readFile(REGISTRATION_NUMBER, DOCUMENT_DATA_ID, includeConfidential, httpServletResponseMock, MUNICIPALITY_ID);
+		documentService.readFile(REGISTRATION_NUMBER, DOCUMENT_DATA_ID, includeConfidential, true, httpServletResponseMock, MUNICIPALITY_ID);
 
 		// Assert
 		verify(httpServletResponseMock).addHeader(eq(CONTENT_DISPOSITION), dispositionCaptor.capture());
@@ -459,7 +464,7 @@ class DocumentServiceTest {
 		when(documentRepositoryMock.findTopByMunicipalityIdAndRegistrationNumberAndConfidentialityConfidentialInOrderByRevisionDesc(MUNICIPALITY_ID, REGISTRATION_NUMBER, PUBLIC.getValue())).thenReturn(empty());
 
 		// Act
-		final var exception = assertThrows(ThrowableProblem.class, () -> documentService.readFile(REGISTRATION_NUMBER, DOCUMENT_DATA_ID, includeConfidential, httpServletResponseMock, MUNICIPALITY_ID));
+		final var exception = assertThrows(ThrowableProblem.class, () -> documentService.readFile(REGISTRATION_NUMBER, DOCUMENT_DATA_ID, includeConfidential, true, httpServletResponseMock, MUNICIPALITY_ID));
 
 		// Assert
 		assertThat(exception).isNotNull();
@@ -482,7 +487,7 @@ class DocumentServiceTest {
 		when(documentRepositoryMock.findTopByMunicipalityIdAndRegistrationNumberAndConfidentialityConfidentialInOrderByRevisionDesc(MUNICIPALITY_ID, REGISTRATION_NUMBER, PUBLIC.getValue())).thenReturn(Optional.of(documentEntity));
 
 		// Act
-		final var exception = assertThrows(ThrowableProblem.class, () -> documentService.readFile(REGISTRATION_NUMBER, DOCUMENT_DATA_ID, includeConfidential, httpServletResponseMock, MUNICIPALITY_ID));
+		final var exception = assertThrows(ThrowableProblem.class, () -> documentService.readFile(REGISTRATION_NUMBER, DOCUMENT_DATA_ID, includeConfidential, true, httpServletResponseMock, MUNICIPALITY_ID));
 
 		// Assert
 		assertThat(exception).isNotNull();
@@ -502,7 +507,7 @@ class DocumentServiceTest {
 		when(documentRepositoryMock.findTopByMunicipalityIdAndRegistrationNumberAndConfidentialityConfidentialInOrderByRevisionDesc(MUNICIPALITY_ID, REGISTRATION_NUMBER, PUBLIC.getValue())).thenReturn(Optional.of(documentEntity));
 
 		// Act
-		final var exception = assertThrows(ThrowableProblem.class, () -> documentService.readFile(REGISTRATION_NUMBER, DOCUMENT_DATA_ID, includeConfidential, httpServletResponseMock, MUNICIPALITY_ID));
+		final var exception = assertThrows(ThrowableProblem.class, () -> documentService.readFile(REGISTRATION_NUMBER, DOCUMENT_DATA_ID, includeConfidential, true, httpServletResponseMock, MUNICIPALITY_ID));
 
 		// Assert
 		assertThat(exception).isNotNull();
@@ -525,7 +530,7 @@ class DocumentServiceTest {
 			.when(binaryStoreMock).streamTo(any(StorageRef.class), any(OutputStream.class));
 
 		// Act
-		final var exception = assertThrows(ThrowableProblem.class, () -> documentService.readFile(REGISTRATION_NUMBER, DOCUMENT_DATA_ID, includeConfidential, httpServletResponseMock, MUNICIPALITY_ID));
+		final var exception = assertThrows(ThrowableProblem.class, () -> documentService.readFile(REGISTRATION_NUMBER, DOCUMENT_DATA_ID, includeConfidential, true, httpServletResponseMock, MUNICIPALITY_ID));
 
 		// Assert
 		assertThat(exception).isNotNull();
@@ -635,7 +640,8 @@ class DocumentServiceTest {
 
 		when(pageMock.getContent()).thenReturn(List.of(createDocumentEntity()));
 		when(pageMock.getPageable()).thenReturn(pageRequest);
-		when(documentRepositoryMock.search(any(), anyBoolean(), anyBoolean(), any(), any())).thenReturn(pageMock);
+		when(documentRepositoryMock.search(any(), anyBoolean(), anyBoolean(), any(), any(), any())).thenReturn(pageMock);
+		when(statusPolicyMock.effectivePublishedStatuses(any())).thenReturn(java.util.List.of(DocumentStatus.SCHEDULED, DocumentStatus.ACTIVE, DocumentStatus.EXPIRED));
 
 		// Act
 		final var result = documentService.search(search, includeConfidential, false, pageRequest, MUNICIPALITY_ID);
@@ -647,7 +653,7 @@ class DocumentServiceTest {
 			.containsExactly(tuple(CREATED, CREATED_BY, ID, MUNICIPALITY_ID, REGISTRATION_NUMBER, REVISION));
 		assertThat(result.getDocuments().getFirst().getDocumentData()).hasSize(1);
 
-		verify(documentRepositoryMock).search(search, includeConfidential, false, pageRequest, MUNICIPALITY_ID);
+		verify(documentRepositoryMock).search(eq(search), eq(includeConfidential), eq(false), eq(pageRequest), eq(MUNICIPALITY_ID), any());
 	}
 
 	@ParameterizedTest
@@ -662,7 +668,8 @@ class DocumentServiceTest {
 
 		when(pageMock.getContent()).thenReturn(List.of(createDocumentEntity()));
 		when(pageMock.getPageable()).thenReturn(pageRequest);
-		when(documentRepositoryMock.search(any(), anyBoolean(), anyBoolean(), any(), any())).thenReturn(pageMock);
+		when(documentRepositoryMock.search(any(), anyBoolean(), anyBoolean(), any(), any(), any())).thenReturn(pageMock);
+		when(statusPolicyMock.effectivePublishedStatuses(any())).thenReturn(java.util.List.of(DocumentStatus.SCHEDULED, DocumentStatus.ACTIVE, DocumentStatus.EXPIRED));
 
 		// Act
 		final var result = documentService.search(search, false, onlyLatestRevision, pageRequest, MUNICIPALITY_ID);
@@ -674,7 +681,7 @@ class DocumentServiceTest {
 			.containsExactly(tuple(CREATED, CREATED_BY, ID, MUNICIPALITY_ID, REGISTRATION_NUMBER, REVISION));
 		assertThat(result.getDocuments().getFirst().getDocumentData()).hasSize(1);
 
-		verify(documentRepositoryMock).search(search, false, onlyLatestRevision, pageRequest, MUNICIPALITY_ID);
+		verify(documentRepositoryMock).search(eq(search), eq(false), eq(onlyLatestRevision), eq(pageRequest), eq(MUNICIPALITY_ID), any());
 	}
 
 	@Test
@@ -1143,6 +1150,129 @@ class DocumentServiceTest {
 			.withFileName(FILE_NAME)
 			.withMimeType(MIME_TYPE)
 			.withFileSizeInBytes(FILE_SIZE_IN_BYTES);
+	}
+
+	@Test
+	void publishFromDraft_setsStatusAndSaves() {
+		final var entity = createDocumentEntity().withStatus(DocumentStatus.DRAFT);
+		when(documentRepositoryMock.findTopByMunicipalityIdAndRegistrationNumberAndConfidentialityConfidentialInOrderByRevisionDesc(MUNICIPALITY_ID, REGISTRATION_NUMBER, CONFIDENTIAL_AND_PUBLIC.getValue())).thenReturn(Optional.of(entity));
+		when(statusPolicyMock.resolvePublishedStatus(any(), any(), eq(REGISTRATION_NUMBER))).thenReturn(DocumentStatus.ACTIVE);
+		when(documentRepositoryMock.save(any(DocumentEntity.class))).thenAnswer(i -> i.getArgument(0));
+
+		final var result = documentService.publish(REGISTRATION_NUMBER, "actor", MUNICIPALITY_ID);
+
+		assertThat(result.getStatus()).isEqualTo(DocumentStatus.ACTIVE);
+		verify(documentRepositoryMock).save(documentEntityCaptor.capture());
+		assertThat(documentEntityCaptor.getValue().getStatus()).isEqualTo(DocumentStatus.ACTIVE);
+	}
+
+	@Test
+	void publishFromActive_throwsConflict() {
+		final var entity = createDocumentEntity().withStatus(DocumentStatus.ACTIVE);
+		when(documentRepositoryMock.findTopByMunicipalityIdAndRegistrationNumberAndConfidentialityConfidentialInOrderByRevisionDesc(MUNICIPALITY_ID, REGISTRATION_NUMBER, CONFIDENTIAL_AND_PUBLIC.getValue())).thenReturn(Optional.of(entity));
+
+		final var ex = assertThrows(ThrowableProblem.class, () -> documentService.publish(REGISTRATION_NUMBER, "actor", MUNICIPALITY_ID));
+
+		assertThat(ex.getMessage()).contains("not allowed");
+		verify(documentRepositoryMock, never()).save(any(DocumentEntity.class));
+	}
+
+	@Test
+	void revokeFromActive_setsRevoked() {
+		final var entity = createDocumentEntity().withStatus(DocumentStatus.ACTIVE);
+		when(documentRepositoryMock.findTopByMunicipalityIdAndRegistrationNumberAndConfidentialityConfidentialInOrderByRevisionDesc(MUNICIPALITY_ID, REGISTRATION_NUMBER, CONFIDENTIAL_AND_PUBLIC.getValue())).thenReturn(Optional.of(entity));
+		when(documentRepositoryMock.save(any(DocumentEntity.class))).thenAnswer(i -> i.getArgument(0));
+
+		final var result = documentService.revoke(REGISTRATION_NUMBER, "actor", MUNICIPALITY_ID);
+
+		assertThat(result.getStatus()).isEqualTo(DocumentStatus.REVOKED);
+	}
+
+	@Test
+	void revokeFromDraft_throwsConflict() {
+		final var entity = createDocumentEntity().withStatus(DocumentStatus.DRAFT);
+		when(documentRepositoryMock.findTopByMunicipalityIdAndRegistrationNumberAndConfidentialityConfidentialInOrderByRevisionDesc(MUNICIPALITY_ID, REGISTRATION_NUMBER, CONFIDENTIAL_AND_PUBLIC.getValue())).thenReturn(Optional.of(entity));
+
+		assertThrows(ThrowableProblem.class, () -> documentService.revoke(REGISTRATION_NUMBER, "actor", MUNICIPALITY_ID));
+
+		verify(documentRepositoryMock, never()).save(any(DocumentEntity.class));
+	}
+
+	@Test
+	void unrevokeFromRevoked_restoresPublishedStatus() {
+		final var entity = createDocumentEntity().withStatus(DocumentStatus.REVOKED);
+		when(documentRepositoryMock.findTopByMunicipalityIdAndRegistrationNumberAndConfidentialityConfidentialInOrderByRevisionDesc(MUNICIPALITY_ID, REGISTRATION_NUMBER, CONFIDENTIAL_AND_PUBLIC.getValue())).thenReturn(Optional.of(entity));
+		when(statusPolicyMock.resolvePublishedStatus(any(), any(), eq(REGISTRATION_NUMBER))).thenReturn(DocumentStatus.SCHEDULED);
+		when(documentRepositoryMock.save(any(DocumentEntity.class))).thenAnswer(i -> i.getArgument(0));
+
+		final var result = documentService.unrevoke(REGISTRATION_NUMBER, "actor", MUNICIPALITY_ID);
+
+		assertThat(result.getStatus()).isEqualTo(DocumentStatus.SCHEDULED);
+	}
+
+	@Test
+	void unrevokeFromActive_throwsConflict() {
+		final var entity = createDocumentEntity().withStatus(DocumentStatus.ACTIVE);
+		when(documentRepositoryMock.findTopByMunicipalityIdAndRegistrationNumberAndConfidentialityConfidentialInOrderByRevisionDesc(MUNICIPALITY_ID, REGISTRATION_NUMBER, CONFIDENTIAL_AND_PUBLIC.getValue())).thenReturn(Optional.of(entity));
+
+		assertThrows(ThrowableProblem.class, () -> documentService.unrevoke(REGISTRATION_NUMBER, "actor", MUNICIPALITY_ID));
+	}
+
+	@Test
+	void publishWhenDocumentMissing_throwsNotFound() {
+		when(documentRepositoryMock.findTopByMunicipalityIdAndRegistrationNumberAndConfidentialityConfidentialInOrderByRevisionDesc(MUNICIPALITY_ID, REGISTRATION_NUMBER, CONFIDENTIAL_AND_PUBLIC.getValue())).thenReturn(empty());
+
+		final var ex = assertThrows(ThrowableProblem.class, () -> documentService.publish(REGISTRATION_NUMBER, "actor", MUNICIPALITY_ID));
+		assertThat(ex.getMessage()).contains("could be found");
+	}
+
+	@Test
+	void readPreReadReconcile_staleActiveBecomesExpired() {
+		final var entity = createDocumentEntity().withStatus(DocumentStatus.ACTIVE).withValidTo(LocalDate.of(2020, 1, 1));
+		when(documentRepositoryMock.findTopByMunicipalityIdAndRegistrationNumberAndConfidentialityConfidentialInAndStatusNotInOrderByRevisionDesc(
+			eq(MUNICIPALITY_ID), eq(REGISTRATION_NUMBER), any(), any())).thenReturn(Optional.of(entity));
+		when(statusPolicyMock.reconcile(DocumentStatus.ACTIVE, null, LocalDate.of(2020, 1, 1))).thenReturn(Optional.of(DocumentStatus.EXPIRED));
+		when(documentRepositoryMock.save(any(DocumentEntity.class))).thenAnswer(i -> i.getArgument(0));
+
+		final var result = documentService.read(REGISTRATION_NUMBER, false, false, MUNICIPALITY_ID);
+
+		assertThat(result.getStatus()).isEqualTo(DocumentStatus.EXPIRED);
+		verify(documentRepositoryMock).save(any(DocumentEntity.class));
+	}
+
+	@Test
+	void readPreReadReconcile_noChangeDoesNotSave() {
+		final var entity = createDocumentEntity().withStatus(DocumentStatus.ACTIVE);
+		when(documentRepositoryMock.findTopByMunicipalityIdAndRegistrationNumberAndConfidentialityConfidentialInAndStatusNotInOrderByRevisionDesc(
+			eq(MUNICIPALITY_ID), eq(REGISTRATION_NUMBER), any(), any())).thenReturn(Optional.of(entity));
+		when(statusPolicyMock.reconcile(any(), any(), any())).thenReturn(Optional.empty());
+
+		documentService.read(REGISTRATION_NUMBER, false, false, MUNICIPALITY_ID);
+
+		verify(documentRepositoryMock, never()).save(any(DocumentEntity.class));
+	}
+
+	@Test
+	void readNoPublishedRevision_throwsNotFound() {
+		when(documentRepositoryMock.findTopByMunicipalityIdAndRegistrationNumberAndConfidentialityConfidentialInAndStatusNotInOrderByRevisionDesc(
+			eq(MUNICIPALITY_ID), eq(REGISTRATION_NUMBER), any(), any())).thenReturn(empty());
+
+		final var ex = assertThrows(ThrowableProblem.class, () -> documentService.read(REGISTRATION_NUMBER, false, false, MUNICIPALITY_ID));
+
+		assertThat(ex.getMessage()).contains("could be found");
+	}
+
+	@Test
+	void createWithInvalidValidityWindow_throwsConflict() {
+		final var request = DocumentCreateRequest.create()
+			.withCreatedBy(CREATED_BY)
+			.withType(DOCUMENT_TYPE)
+			.withMetadataList(List.of(DocumentMetadata.create().withKey("k").withValue("v")))
+			.withValidFrom(LocalDate.of(2027, 1, 1))
+			.withValidTo(LocalDate.of(2026, 1, 1));
+
+		final var ex = assertThrows(ThrowableProblem.class, () -> documentService.create(request, DocumentFiles.create(), MUNICIPALITY_ID));
+		assertThat(ex.getMessage()).contains("must not be after");
 	}
 
 	private static final class TestEventLogClient implements EventLogClient {

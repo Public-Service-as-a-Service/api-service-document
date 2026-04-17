@@ -14,6 +14,7 @@
         municipality_id varchar(255),
         registration_number varchar(255) not null,
         updated_by varchar(255),
+        status enum ('ACTIVE','DRAFT','EXPIRED','REVOKED','SCHEDULED') not null,
         primary key (id)
     ) engine=InnoDB;
 
@@ -82,10 +83,13 @@
     create index ix_municipality_id 
        on document (municipality_id);
 
-    create index ix_confidential 
+    create index ix_confidential
        on document (confidential);
 
-    alter table if exists document 
+    create index ix_status
+       on document (status);
+
+    alter table if exists document
        add constraint uq_revision_and_registration_number unique (revision, registration_number);
 
     create index ix_key 

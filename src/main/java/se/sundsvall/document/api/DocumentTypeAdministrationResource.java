@@ -37,7 +37,7 @@ import static org.springframework.http.ResponseEntity.created;
 import static org.springframework.http.ResponseEntity.noContent;
 import static org.springframework.http.ResponseEntity.ok;
 import static org.springframework.web.util.UriComponentsBuilder.fromPath;
-import static se.sundsvall.document.Constants.ADMIN_DOCUMENT_TYPES_BASE_PATH;
+import static se.sundsvall.document.api.Constants.ADMIN_DOCUMENT_TYPES_BASE_PATH;
 
 @RestController
 @Validated

@@ -8,8 +8,6 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.OutputStream;
-import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.time.temporal.ChronoUnit;
@@ -30,7 +28,6 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
-import org.springframework.http.ContentDisposition;
 import org.springframework.http.ResponseEntity;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.web.multipart.MultipartFile;
@@ -38,7 +35,6 @@ import se.sundsvall.dept44.problem.ThrowableProblem;
 import se.sundsvall.document.api.model.ConfidentialityUpdateRequest;
 import se.sundsvall.document.api.model.Document;
 import se.sundsvall.document.api.model.DocumentCreateRequest;
-import se.sundsvall.document.api.model.DocumentDataCreateRequest;
 import se.sundsvall.document.api.model.DocumentFiles;
 import se.sundsvall.document.api.model.DocumentMetadata;
 import se.sundsvall.document.api.model.DocumentResponsibilitiesUpdateRequest;
@@ -77,15 +73,11 @@ import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyMap;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
-import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 import static org.springframework.data.domain.Sort.Direction.DESC;
-import static org.springframework.http.HttpHeaders.CONTENT_DISPOSITION;
-import static org.springframework.http.HttpHeaders.CONTENT_TYPE;
 import static se.sundsvall.document.service.InclusionFilter.CONFIDENTIAL_AND_PUBLIC;
 import static se.sundsvall.document.service.InclusionFilter.PUBLIC;
 
@@ -166,8 +158,7 @@ class DocumentServiceTest {
 			documentTypeRepositoryMock,
 			registrationNumberServiceMock,
 			statusPolicyMock,
-			Optional.of(eventLogClient),
-			Optional.of(eventlogPropertiesMock));
+			new DocumentEventPublisher(Optional.of(eventLogClient), Optional.of(eventlogPropertiesMock)));
 	}
 
 	@Test
@@ -408,224 +399,6 @@ class DocumentServiceTest {
 		assertThat(result.getDocuments()).isEmpty();
 
 		verify(documentRepositoryMock).findByMunicipalityIdAndRegistrationNumberAndConfidentialityConfidentialIn(MUNICIPALITY_ID, REGISTRATION_NUMBER, PUBLIC.getValue(), pageRequest);
-	}
-
-	@Test
-	void readFileByRegistrationNumber() throws IOException {
-
-		// Arrange
-		final var includeConfidential = false;
-		final var documentEntity = createDocumentEntity();
-
-		when(documentRepositoryMock.findTopByMunicipalityIdAndRegistrationNumberAndConfidentialityConfidentialInOrderByRevisionDesc(MUNICIPALITY_ID, REGISTRATION_NUMBER, PUBLIC.getValue())).thenReturn(Optional.of(documentEntity));
-		when(httpServletResponseMock.getOutputStream()).thenReturn(servletOutputStreamMock);
-
-		// Act
-		documentService.readFile(REGISTRATION_NUMBER, DOCUMENT_DATA_ID, includeConfidential, true, httpServletResponseMock, MUNICIPALITY_ID);
-
-		// Assert
-		verify(documentRepositoryMock).findTopByMunicipalityIdAndRegistrationNumberAndConfidentialityConfidentialInOrderByRevisionDesc(MUNICIPALITY_ID, REGISTRATION_NUMBER, PUBLIC.getValue());
-		verify(httpServletResponseMock).addHeader(CONTENT_TYPE, MIME_TYPE);
-		verify(httpServletResponseMock).addHeader(CONTENT_DISPOSITION, ContentDisposition.attachment().filename(FILE_NAME, StandardCharsets.UTF_8).build().toString());
-		verify(httpServletResponseMock).setContentLength((int) FILE_SIZE_IN_BYTES);
-		verify(httpServletResponseMock).getOutputStream();
-		verify(binaryStoreMock).streamTo(eq(StorageRef.s3(STORAGE_LOCATOR)), any(OutputStream.class));
-	}
-
-	@Test
-	void readFileByRegistrationNumber_withNonAsciiFilename_emitsRfc5987ContentDisposition() throws IOException {
-
-		// Arrange
-		final var includeConfidential = false;
-		final var documentEntity = createDocumentEntity();
-		documentEntity.getDocumentData().getFirst().setFileName("fet säl.jpg");
-
-		when(documentRepositoryMock.findTopByMunicipalityIdAndRegistrationNumberAndConfidentialityConfidentialInOrderByRevisionDesc(MUNICIPALITY_ID, REGISTRATION_NUMBER, PUBLIC.getValue())).thenReturn(Optional.of(documentEntity));
-		when(httpServletResponseMock.getOutputStream()).thenReturn(servletOutputStreamMock);
-
-		final var dispositionCaptor = ArgumentCaptor.forClass(String.class);
-
-		// Act
-		documentService.readFile(REGISTRATION_NUMBER, DOCUMENT_DATA_ID, includeConfidential, true, httpServletResponseMock, MUNICIPALITY_ID);
-
-		// Assert
-		verify(httpServletResponseMock).addHeader(eq(CONTENT_DISPOSITION), dispositionCaptor.capture());
-		assertThat(dispositionCaptor.getValue())
-			.startsWith("attachment;")
-			.contains("filename*=UTF-8''fet%20s%C3%A4l.jpg");
-	}
-
-	@Test
-	void readFileByRegistrationNumberWhenNotFound() {
-
-		// Arrange
-		final var includeConfidential = false;
-
-		when(documentRepositoryMock.findTopByMunicipalityIdAndRegistrationNumberAndConfidentialityConfidentialInOrderByRevisionDesc(MUNICIPALITY_ID, REGISTRATION_NUMBER, PUBLIC.getValue())).thenReturn(empty());
-
-		// Act
-		final var exception = assertThrows(ThrowableProblem.class, () -> documentService.readFile(REGISTRATION_NUMBER, DOCUMENT_DATA_ID, includeConfidential, true, httpServletResponseMock, MUNICIPALITY_ID));
-
-		// Assert
-		assertThat(exception).isNotNull();
-		assertThat(exception.getMessage()).isEqualTo("Not Found: No document with registrationNumber: '2023-2281-4' could be found!");
-
-		verify(documentRepositoryMock).findTopByMunicipalityIdAndRegistrationNumberAndConfidentialityConfidentialInOrderByRevisionDesc(MUNICIPALITY_ID, REGISTRATION_NUMBER, PUBLIC.getValue());
-		verifyNoInteractions(httpServletResponseMock, binaryStoreMock);
-	}
-
-	@Test
-	void readFileByRegistrationNumberWhenDocumentDataIdNotFound() {
-
-		// Arrange
-		final var includeConfidential = false;
-		final var documentEntity = createDocumentEntity();
-
-		// Set id to something that wont be found.
-		documentEntity.getDocumentData().getFirst().setId("Something else");
-
-		when(documentRepositoryMock.findTopByMunicipalityIdAndRegistrationNumberAndConfidentialityConfidentialInOrderByRevisionDesc(MUNICIPALITY_ID, REGISTRATION_NUMBER, PUBLIC.getValue())).thenReturn(Optional.of(documentEntity));
-
-		// Act
-		final var exception = assertThrows(ThrowableProblem.class, () -> documentService.readFile(REGISTRATION_NUMBER, DOCUMENT_DATA_ID, includeConfidential, true, httpServletResponseMock, MUNICIPALITY_ID));
-
-		// Assert
-		assertThat(exception).isNotNull();
-		assertThat(exception.getMessage()).isEqualTo("Not Found: No document file content with ID: '" + DOCUMENT_DATA_ID + "' could be found!");
-
-		verify(documentRepositoryMock).findTopByMunicipalityIdAndRegistrationNumberAndConfidentialityConfidentialInOrderByRevisionDesc(MUNICIPALITY_ID, REGISTRATION_NUMBER, PUBLIC.getValue());
-		verifyNoInteractions(httpServletResponseMock, binaryStoreMock);
-	}
-
-	@Test
-	void readFileByRegistrationNumberWhenFileContentNotFound() {
-
-		// Arrange
-		final var includeConfidential = false;
-		final var documentEntity = createDocumentEntity().withDocumentData(null);
-
-		when(documentRepositoryMock.findTopByMunicipalityIdAndRegistrationNumberAndConfidentialityConfidentialInOrderByRevisionDesc(MUNICIPALITY_ID, REGISTRATION_NUMBER, PUBLIC.getValue())).thenReturn(Optional.of(documentEntity));
-
-		// Act
-		final var exception = assertThrows(ThrowableProblem.class, () -> documentService.readFile(REGISTRATION_NUMBER, DOCUMENT_DATA_ID, includeConfidential, true, httpServletResponseMock, MUNICIPALITY_ID));
-
-		// Assert
-		assertThat(exception).isNotNull();
-		assertThat(exception.getMessage()).isEqualTo("Not Found: No document file for registrationNumber: '2023-2281-4' could be found!");
-
-		verify(documentRepositoryMock).findTopByMunicipalityIdAndRegistrationNumberAndConfidentialityConfidentialInOrderByRevisionDesc(MUNICIPALITY_ID, REGISTRATION_NUMBER, PUBLIC.getValue());
-		verifyNoInteractions(httpServletResponseMock, binaryStoreMock);
-	}
-
-	@Test
-	void readFileByRegistrationNumberResponseProcessingFailed() throws IOException {
-
-		// Arrange
-		final var includeConfidential = false;
-		final var documentEntity = createDocumentEntity();
-
-		when(documentRepositoryMock.findTopByMunicipalityIdAndRegistrationNumberAndConfidentialityConfidentialInOrderByRevisionDesc(MUNICIPALITY_ID, REGISTRATION_NUMBER, PUBLIC.getValue())).thenReturn(Optional.of(documentEntity));
-		when(httpServletResponseMock.getOutputStream()).thenReturn(servletOutputStreamMock);
-		doThrow(new IOException("An error occured during byte array copy"))
-			.when(binaryStoreMock).streamTo(any(StorageRef.class), any(OutputStream.class));
-
-		// Act
-		final var exception = assertThrows(ThrowableProblem.class, () -> documentService.readFile(REGISTRATION_NUMBER, DOCUMENT_DATA_ID, includeConfidential, true, httpServletResponseMock, MUNICIPALITY_ID));
-
-		// Assert
-		assertThat(exception).isNotNull();
-		assertThat(exception.getMessage()).isEqualTo("Internal Server Error: Could not read file content for document data with ID: '" + DOCUMENT_DATA_ID + "'!");
-
-		verify(documentRepositoryMock).findTopByMunicipalityIdAndRegistrationNumberAndConfidentialityConfidentialInOrderByRevisionDesc(MUNICIPALITY_ID, REGISTRATION_NUMBER, PUBLIC.getValue());
-		verify(httpServletResponseMock).addHeader(CONTENT_TYPE, MIME_TYPE);
-		verify(httpServletResponseMock).addHeader(CONTENT_DISPOSITION, ContentDisposition.attachment().filename(FILE_NAME, StandardCharsets.UTF_8).build().toString());
-		verify(httpServletResponseMock).setContentLength((int) FILE_SIZE_IN_BYTES);
-		verify(httpServletResponseMock).getOutputStream();
-		verify(binaryStoreMock).streamTo(eq(StorageRef.s3(STORAGE_LOCATOR)), any(OutputStream.class));
-	}
-
-	@Test
-	void readFileByRegistrationNumberAndRevision() throws IOException {
-
-		// Arrange
-		final var includeConfidential = false;
-		final var documentEntity = createDocumentEntity();
-
-		when(documentRepositoryMock.findByMunicipalityIdAndRegistrationNumberAndRevisionAndConfidentialityConfidentialIn(MUNICIPALITY_ID, REGISTRATION_NUMBER, REVISION, PUBLIC.getValue())).thenReturn(Optional.of(documentEntity));
-		when(httpServletResponseMock.getOutputStream()).thenReturn(servletOutputStreamMock);
-
-		// Act
-		documentService.readFile(REGISTRATION_NUMBER, REVISION, DOCUMENT_DATA_ID, includeConfidential, httpServletResponseMock, MUNICIPALITY_ID);
-
-		// Assert
-		verify(documentRepositoryMock).findByMunicipalityIdAndRegistrationNumberAndRevisionAndConfidentialityConfidentialIn(MUNICIPALITY_ID, REGISTRATION_NUMBER, REVISION, PUBLIC.getValue());
-		verify(httpServletResponseMock).addHeader(CONTENT_TYPE, MIME_TYPE);
-		verify(httpServletResponseMock).addHeader(CONTENT_DISPOSITION, ContentDisposition.attachment().filename(FILE_NAME, StandardCharsets.UTF_8).build().toString());
-		verify(httpServletResponseMock).setContentLength((int) FILE_SIZE_IN_BYTES);
-		verify(httpServletResponseMock).getOutputStream();
-		verify(binaryStoreMock).streamTo(eq(StorageRef.s3(STORAGE_LOCATOR)), any(OutputStream.class));
-	}
-
-	@Test
-	void readFileByRegistrationNumberAndRevisionWhenNotFound() {
-
-		// Arrange
-		final var includeConfidential = false;
-
-		when(documentRepositoryMock.findByMunicipalityIdAndRegistrationNumberAndRevisionAndConfidentialityConfidentialIn(MUNICIPALITY_ID, REGISTRATION_NUMBER, REVISION, PUBLIC.getValue())).thenReturn(empty());
-
-		// Act
-		final var exception = assertThrows(ThrowableProblem.class, () -> documentService.readFile(REGISTRATION_NUMBER, REVISION, DOCUMENT_DATA_ID, includeConfidential, httpServletResponseMock, MUNICIPALITY_ID));
-
-		// Assert
-		assertThat(exception).isNotNull();
-		assertThat(exception.getMessage()).isEqualTo("Not Found: No document with registrationNumber: '2023-2281-4' and revision: '1' could be found!");
-
-		verify(documentRepositoryMock).findByMunicipalityIdAndRegistrationNumberAndRevisionAndConfidentialityConfidentialIn(MUNICIPALITY_ID, REGISTRATION_NUMBER, REVISION, PUBLIC.getValue());
-		verifyNoInteractions(httpServletResponseMock, binaryStoreMock);
-	}
-
-	@Test
-	void readFileByRegistrationNumberAndRevisionFileWhenContentNotFound() {
-
-		// Arrange
-		final var includeConfidential = false;
-		final var documentEntity = createDocumentEntity().withDocumentData(null);
-
-		when(documentRepositoryMock.findByMunicipalityIdAndRegistrationNumberAndRevisionAndConfidentialityConfidentialIn(MUNICIPALITY_ID, REGISTRATION_NUMBER, REVISION, PUBLIC.getValue())).thenReturn(Optional.of(documentEntity));
-
-		// Act
-		final var exception = assertThrows(ThrowableProblem.class, () -> documentService.readFile(REGISTRATION_NUMBER, REVISION, DOCUMENT_DATA_ID, includeConfidential, httpServletResponseMock, MUNICIPALITY_ID));
-
-		// Assert
-		assertThat(exception).isNotNull();
-		assertThat(exception.getMessage()).isEqualTo("Not Found: No document file content with registrationNumber: '2023-2281-4' and revision: '1' could be found!");
-
-		verify(documentRepositoryMock).findByMunicipalityIdAndRegistrationNumberAndRevisionAndConfidentialityConfidentialIn(MUNICIPALITY_ID, REGISTRATION_NUMBER, REVISION, PUBLIC.getValue());
-		verifyNoInteractions(httpServletResponseMock, binaryStoreMock);
-	}
-
-	@Test
-	void readFileByRegistrationNumberAndRevisionWhenDocumentDataIdNotFound() {
-
-		// Arrange
-		final var includeConfidential = false;
-		final var documentEntity = createDocumentEntity();
-
-		// Set id to something that wont be found.
-		documentEntity.getDocumentData().get(0).setId("Something else");
-
-		when(documentRepositoryMock.findByMunicipalityIdAndRegistrationNumberAndRevisionAndConfidentialityConfidentialIn(MUNICIPALITY_ID, REGISTRATION_NUMBER, REVISION, PUBLIC.getValue())).thenReturn(Optional.of(documentEntity));
-
-		// Act
-		final var exception = assertThrows(ThrowableProblem.class, () -> documentService.readFile(REGISTRATION_NUMBER, REVISION, DOCUMENT_DATA_ID, includeConfidential, httpServletResponseMock, MUNICIPALITY_ID));
-
-		// Assert
-		assertThat(exception).isNotNull();
-		assertThat(exception.getMessage()).isEqualTo("Not Found: No document file content with ID: '" + DOCUMENT_DATA_ID + "' could be found!");
-
-		verify(documentRepositoryMock).findByMunicipalityIdAndRegistrationNumberAndRevisionAndConfidentialityConfidentialIn(MUNICIPALITY_ID, REGISTRATION_NUMBER, REVISION, PUBLIC.getValue());
-		verifyNoInteractions(httpServletResponseMock, binaryStoreMock);
 	}
 
 	@ParameterizedTest
@@ -873,242 +646,6 @@ class DocumentServiceTest {
 		verify(documentRepositoryMock).existsByMunicipalityIdAndRegistrationNumber(MUNICIPALITY_ID, REGISTRATION_NUMBER);
 		assertThat(eventLogClient.requests).isEmpty();
 		verifyNoInteractions(documentResponsibilityRepositoryMock, registrationNumberServiceMock, documentTypeRepositoryMock, binaryStoreMock);
-	}
-
-	@Test
-	void addFile() throws IOException {
-
-		final var existingEntity = createDocumentEntity();
-		final var documentDataCreateRequest = DocumentDataCreateRequest.create()
-			.withCreatedBy("changedUser");
-
-		final var file = new File("src/test/resources/files/image2.png");
-		final var multipartFile = (MultipartFile) new MockMultipartFile("file", file.getName(), "image/png", toByteArray(new FileInputStream(file)));
-
-		when(documentRepositoryMock.findTopByMunicipalityIdAndRegistrationNumberAndConfidentialityConfidentialInOrderByRevisionDesc(MUNICIPALITY_ID, REGISTRATION_NUMBER, CONFIDENTIAL_AND_PUBLIC.getValue())).thenReturn(Optional.of(existingEntity));
-		when(binaryStoreMock.put(any(InputStream.class), anyLong(), anyString(), anyMap())).thenReturn(StorageRef.s3(randomUUID().toString()));
-		when(binaryStoreMock.copy(any(StorageRef.class))).thenAnswer(invocation -> StorageRef.s3(randomUUID().toString()));
-		when(documentRepositoryMock.save(any(DocumentEntity.class))).thenAnswer(invocation -> invocation.getArgument(0));
-
-		// Act
-		final var result = documentService.addOrReplaceFile(REGISTRATION_NUMBER, documentDataCreateRequest, multipartFile, MUNICIPALITY_ID);
-
-		// Assert
-		assertThat(result).isNotNull();
-
-		verify(binaryStoreMock).put(any(InputStream.class), eq(file.length()), eq("image/png"), anyMap());
-		verify(documentRepositoryMock).save(documentEntityCaptor.capture());
-		verifyNoInteractions(registrationNumberServiceMock, documentTypeRepositoryMock);
-
-		final var capturedDocumentEntity = documentEntityCaptor.getValue();
-		assertThat(capturedDocumentEntity).isNotNull();
-		assertThat(capturedDocumentEntity.getConfidentiality()).isEqualTo(existingEntity.getConfidentiality());
-		assertThat(capturedDocumentEntity.getCreatedBy()).isEqualTo("changedUser");
-		assertThat(capturedDocumentEntity.getDescription()).isEqualTo(existingEntity.getDescription());
-		assertThat(capturedDocumentEntity.getDocumentData())
-			.hasSize(2)
-			.extracting(DocumentDataEntity::getFileName)
-			.containsExactlyInAnyOrder(
-				"image.png",
-				"image2.png");
-		assertThat(capturedDocumentEntity.getMetadata()).isEqualTo(existingEntity.getMetadata());
-		assertThat(capturedDocumentEntity.getMunicipalityId()).isEqualTo(existingEntity.getMunicipalityId());
-		assertThat(capturedDocumentEntity.getRegistrationNumber()).isEqualTo(existingEntity.getRegistrationNumber());
-		assertThat(capturedDocumentEntity.getType()).isNotNull().satisfies(type -> {
-			assertThat(type.getType()).isEqualTo(DOCUMENT_TYPE);
-		});
-	}
-
-	@Test
-	void addFileWithSameName() throws IOException {
-
-		final var existingEntity = createDocumentEntity();
-		final var documentDataCreateRequest = DocumentDataCreateRequest.create()
-			.withCreatedBy("changedUser");
-
-		final var file = new File("src/test/resources/files/image2.png");
-		final var multipartFile = (MultipartFile) new MockMultipartFile("file", FILE_NAME, "image/png", toByteArray(new FileInputStream(file))); // Same name as in "existingEntity"
-
-		when(documentRepositoryMock.findTopByMunicipalityIdAndRegistrationNumberAndConfidentialityConfidentialInOrderByRevisionDesc(MUNICIPALITY_ID, REGISTRATION_NUMBER, CONFIDENTIAL_AND_PUBLIC.getValue())).thenReturn(Optional.of(existingEntity));
-		when(binaryStoreMock.put(any(InputStream.class), anyLong(), anyString(), anyMap())).thenReturn(StorageRef.s3(randomUUID().toString()));
-		when(binaryStoreMock.copy(any(StorageRef.class))).thenAnswer(invocation -> StorageRef.s3(randomUUID().toString()));
-		when(documentRepositoryMock.save(any(DocumentEntity.class))).thenAnswer(invocation -> invocation.getArgument(0));
-
-		// Act
-		final var result = documentService.addOrReplaceFile(REGISTRATION_NUMBER, documentDataCreateRequest, multipartFile, MUNICIPALITY_ID);
-
-		// Assert
-		assertThat(result).isNotNull();
-
-		verify(binaryStoreMock).put(any(InputStream.class), eq(file.length()), eq("image/png"), anyMap());
-		verify(documentRepositoryMock).save(documentEntityCaptor.capture());
-		verifyNoInteractions(registrationNumberServiceMock, documentTypeRepositoryMock);
-
-		final var capturedDocumentEntity = documentEntityCaptor.getValue();
-		assertThat(capturedDocumentEntity).isNotNull();
-		assertThat(capturedDocumentEntity.getConfidentiality()).isEqualTo(existingEntity.getConfidentiality());
-		assertThat(capturedDocumentEntity.getCreatedBy()).isEqualTo("changedUser");
-		assertThat(capturedDocumentEntity.getDescription()).isEqualTo(existingEntity.getDescription());
-		assertThat(capturedDocumentEntity.getDocumentData())
-			.hasSize(1)
-			.extracting(DocumentDataEntity::getFileName)
-			.containsExactlyInAnyOrder("image.png");
-		assertThat(capturedDocumentEntity.getMetadata()).isEqualTo(existingEntity.getMetadata());
-		assertThat(capturedDocumentEntity.getMunicipalityId()).isEqualTo(existingEntity.getMunicipalityId());
-		assertThat(capturedDocumentEntity.getRegistrationNumber()).isEqualTo(existingEntity.getRegistrationNumber());
-	}
-
-	@Test
-	void addFileWhenNotFound() throws IOException {
-
-		// Arrange
-		final var documentDataCreateRequest = DocumentDataCreateRequest.create()
-			.withCreatedBy("changedUser");
-
-		final var file = new File("src/test/resources/files/image2.png");
-		final var multipartFile = (MultipartFile) new MockMultipartFile("file", file.getName(), "image/png", toByteArray(new FileInputStream(file)));
-
-		when(documentRepositoryMock.findTopByMunicipalityIdAndRegistrationNumberAndConfidentialityConfidentialInOrderByRevisionDesc(any(), any(), any())).thenReturn(Optional.empty());
-
-		// Act
-		final var exception = assertThrows(ThrowableProblem.class, () -> documentService.addOrReplaceFile(REGISTRATION_NUMBER, documentDataCreateRequest, multipartFile, MUNICIPALITY_ID));
-
-		// Assert
-		assertThat(exception).isNotNull();
-		assertThat(exception.getMessage()).isEqualTo("Not Found: No document with registrationNumber: '2023-2281-4' could be found!");
-
-		verify(documentRepositoryMock).findTopByMunicipalityIdAndRegistrationNumberAndConfidentialityConfidentialInOrderByRevisionDesc(MUNICIPALITY_ID, REGISTRATION_NUMBER, CONFIDENTIAL_AND_PUBLIC.getValue());
-		verifyNoMoreInteractions(documentRepositoryMock);
-		verifyNoInteractions(binaryStoreMock);
-	}
-
-	@Test
-	void addMultipleFilesProducesSingleRevision() throws IOException {
-
-		final var existingEntity = createDocumentEntity();
-		final var documentDataCreateRequest = DocumentDataCreateRequest.create()
-			.withCreatedBy("changedUser");
-
-		final var file2 = new File("src/test/resources/files/image2.png");
-		final var file3 = new File("src/test/resources/files/readme.txt");
-		final var multipartFile2 = (MultipartFile) new MockMultipartFile("file", file2.getName(), "image/png", toByteArray(new FileInputStream(file2)));
-		final var multipartFile3 = (MultipartFile) new MockMultipartFile("file", file3.getName(), "text/plain", toByteArray(new FileInputStream(file3)));
-		final var documentFiles = DocumentFiles.create().withFiles(List.of(multipartFile2, multipartFile3));
-
-		when(documentRepositoryMock.findTopByMunicipalityIdAndRegistrationNumberAndConfidentialityConfidentialInOrderByRevisionDesc(MUNICIPALITY_ID, REGISTRATION_NUMBER, CONFIDENTIAL_AND_PUBLIC.getValue())).thenReturn(Optional.of(existingEntity));
-		when(binaryStoreMock.put(any(InputStream.class), anyLong(), anyString(), anyMap())).thenReturn(StorageRef.s3(randomUUID().toString()));
-		when(binaryStoreMock.copy(any(StorageRef.class))).thenAnswer(invocation -> StorageRef.s3(randomUUID().toString()));
-		when(documentRepositoryMock.save(any(DocumentEntity.class))).thenAnswer(invocation -> invocation.getArgument(0));
-
-		// Act
-		final var result = documentService.addOrReplaceFiles(REGISTRATION_NUMBER, documentDataCreateRequest, documentFiles, MUNICIPALITY_ID);
-
-		// Assert
-		assertThat(result).isNotNull();
-
-		// Exactly one save → exactly one new revision, regardless of file count.
-		verify(documentRepositoryMock).save(documentEntityCaptor.capture());
-		// One binaryStore.put per uploaded file.
-		verify(binaryStoreMock, org.mockito.Mockito.times(2)).put(any(InputStream.class), anyLong(), anyString(), anyMap());
-		verifyNoInteractions(registrationNumberServiceMock, documentTypeRepositoryMock);
-
-		final var capturedDocumentEntity = documentEntityCaptor.getValue();
-		assertThat(capturedDocumentEntity).isNotNull();
-		assertThat(capturedDocumentEntity.getRevision()).isEqualTo(existingEntity.getRevision() + 1);
-		assertThat(capturedDocumentEntity.getCreatedBy()).isEqualTo("changedUser");
-		assertThat(capturedDocumentEntity.getDocumentData())
-			.hasSize(3)
-			.extracting(DocumentDataEntity::getFileName)
-			.containsExactlyInAnyOrder(
-				"image.png",
-				"image2.png",
-				"readme.txt");
-	}
-
-	@Test
-	void deleteFileByRegistrationNumberAndDocumentDataId() {
-
-		// Arrange
-		final var documentEntity = createDocumentEntity();
-
-		when(documentRepositoryMock.findTopByMunicipalityIdAndRegistrationNumberAndConfidentialityConfidentialInOrderByRevisionDesc(MUNICIPALITY_ID, REGISTRATION_NUMBER, CONFIDENTIAL_AND_PUBLIC.getValue())).thenReturn(Optional.of(documentEntity));
-		when(binaryStoreMock.copy(any(StorageRef.class))).thenAnswer(invocation -> StorageRef.s3(randomUUID().toString()));
-
-		// Act
-		documentService.deleteFile(REGISTRATION_NUMBER, DOCUMENT_DATA_ID, MUNICIPALITY_ID);
-
-		// Assert
-		verify(documentRepositoryMock).findTopByMunicipalityIdAndRegistrationNumberAndConfidentialityConfidentialInOrderByRevisionDesc(MUNICIPALITY_ID, REGISTRATION_NUMBER, CONFIDENTIAL_AND_PUBLIC.getValue());
-		verify(documentRepositoryMock).save(documentEntityCaptor.capture());
-		verifyNoInteractions(documentTypeRepositoryMock);
-
-		final var capturedEntity = documentEntityCaptor.getValue();
-		assertThat(capturedEntity).isNotNull();
-		assertThat(capturedEntity.getCreatedBy()).isEqualTo(CREATED_BY);
-		assertThat(capturedEntity.getDocumentData()).isEmpty(); // The element in the list should be deleted.
-		assertThat(capturedEntity.getMetadata()).isEqualTo(List.of(DocumentMetadataEmbeddable.create().withKey(METADATA_KEY).withValue(METADATA_VALUE)));
-		assertThat(capturedEntity.getMunicipalityId()).isEqualTo(MUNICIPALITY_ID);
-		assertThat(capturedEntity.getRegistrationNumber()).isEqualTo(REGISTRATION_NUMBER);
-		assertThat(capturedEntity.getRevision()).isEqualTo(REVISION + 1);
-	}
-
-	@Test
-	void deleteFileByRegistrationNumberAndDocumentDataIdWhenNotFound() {
-
-		// Arrange
-		when(documentRepositoryMock.findTopByMunicipalityIdAndRegistrationNumberAndConfidentialityConfidentialInOrderByRevisionDesc(MUNICIPALITY_ID, REGISTRATION_NUMBER, CONFIDENTIAL_AND_PUBLIC.getValue())).thenReturn(empty());
-
-		// Act
-		final var exception = assertThrows(ThrowableProblem.class, () -> documentService.deleteFile(REGISTRATION_NUMBER, DOCUMENT_DATA_ID, MUNICIPALITY_ID));
-
-		// Assert
-		assertThat(exception).isNotNull();
-		assertThat(exception.getMessage()).isEqualTo("Not Found: No document with registrationNumber: '2023-2281-4' could be found!");
-
-		verify(documentRepositoryMock).findTopByMunicipalityIdAndRegistrationNumberAndConfidentialityConfidentialInOrderByRevisionDesc(MUNICIPALITY_ID, REGISTRATION_NUMBER, CONFIDENTIAL_AND_PUBLIC.getValue());
-		verifyNoMoreInteractions(documentRepositoryMock);
-		verifyNoInteractions(binaryStoreMock);
-	}
-
-	@Test
-	void deleteFileByRegistrationNumberAndDocumentDataIdWhenDocumentDataIsEmpty() {
-
-		// Arrange
-		final var documentEntity = createDocumentEntity().withDocumentData(emptyList());
-
-		when(documentRepositoryMock.findTopByMunicipalityIdAndRegistrationNumberAndConfidentialityConfidentialInOrderByRevisionDesc(MUNICIPALITY_ID, REGISTRATION_NUMBER, CONFIDENTIAL_AND_PUBLIC.getValue())).thenReturn(Optional.of(documentEntity));
-
-		// Act
-		final var exception = assertThrows(ThrowableProblem.class, () -> documentService.deleteFile(REGISTRATION_NUMBER, DOCUMENT_DATA_ID, MUNICIPALITY_ID));
-
-		// Assert
-		assertThat(exception).isNotNull();
-		assertThat(exception.getMessage()).isEqualTo("Not Found: No document file for registrationNumber: '2023-2281-4' could be found!");
-
-		verify(documentRepositoryMock).findTopByMunicipalityIdAndRegistrationNumberAndConfidentialityConfidentialInOrderByRevisionDesc(MUNICIPALITY_ID, REGISTRATION_NUMBER, CONFIDENTIAL_AND_PUBLIC.getValue());
-		verifyNoMoreInteractions(documentRepositoryMock);
-	}
-
-	@Test
-	void deleteFileByRegistrationNumberAndDocumentDataIdWhenDocumentDataIdIsNotFound() {
-
-		// Arrange
-		final var documentEntity = createDocumentEntity();
-
-		documentEntity.getDocumentData().getFirst().withId("some-id-that-will-not-be-found");
-
-		when(documentRepositoryMock.findTopByMunicipalityIdAndRegistrationNumberAndConfidentialityConfidentialInOrderByRevisionDesc(MUNICIPALITY_ID, REGISTRATION_NUMBER, CONFIDENTIAL_AND_PUBLIC.getValue())).thenReturn(Optional.of(documentEntity));
-		when(binaryStoreMock.copy(any(StorageRef.class))).thenAnswer(invocation -> StorageRef.s3(randomUUID().toString()));
-
-		// Act
-		final var exception = assertThrows(ThrowableProblem.class, () -> documentService.deleteFile(REGISTRATION_NUMBER, DOCUMENT_DATA_ID, MUNICIPALITY_ID));
-
-		// Assert
-		assertThat(exception).isNotNull();
-		assertThat(exception.getMessage()).isEqualTo("Not Found: No document file content with ID: '" + DOCUMENT_DATA_ID + "' could be found!");
-
-		verify(documentRepositoryMock).findTopByMunicipalityIdAndRegistrationNumberAndConfidentialityConfidentialInOrderByRevisionDesc(MUNICIPALITY_ID, REGISTRATION_NUMBER, CONFIDENTIAL_AND_PUBLIC.getValue());
-		verifyNoMoreInteractions(documentRepositoryMock);
 	}
 
 	private DocumentEntity createDocumentEntity() {

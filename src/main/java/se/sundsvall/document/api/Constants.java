@@ -1,4 +1,4 @@
-package se.sundsvall.document;
+package se.sundsvall.document.api;
 
 public class Constants {
 

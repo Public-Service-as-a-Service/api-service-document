@@ -23,12 +23,13 @@ import se.sundsvall.dept44.problem.Problem;
 import se.sundsvall.dept44.problem.violations.ConstraintViolationProblem;
 import se.sundsvall.document.api.model.Document;
 import se.sundsvall.document.api.model.PagedDocumentResponse;
+import se.sundsvall.document.service.DocumentFileService;
 import se.sundsvall.document.service.DocumentService;
 
 import static org.springframework.http.MediaType.APPLICATION_JSON_VALUE;
 import static org.springframework.http.MediaType.APPLICATION_PROBLEM_JSON_VALUE;
 import static org.springframework.http.ResponseEntity.ok;
-import static se.sundsvall.document.Constants.DOCUMENT_REVISIONS_BASE_PATH;
+import static se.sundsvall.document.api.Constants.DOCUMENT_REVISIONS_BASE_PATH;
 
 @RestController
 @Validated
@@ -41,9 +42,11 @@ import static se.sundsvall.document.Constants.DOCUMENT_REVISIONS_BASE_PATH;
 public class DocumentRevisionResource {
 
 	private final DocumentService documentService;
+	private final DocumentFileService documentFileService;
 
-	public DocumentRevisionResource(final DocumentService documentService) {
+	public DocumentRevisionResource(final DocumentService documentService, final DocumentFileService documentFileService) {
 		this.documentService = documentService;
+		this.documentFileService = documentFileService;
 	}
 
 	@GetMapping(produces = {
@@ -95,7 +98,7 @@ public class DocumentRevisionResource {
 		@Parameter(name = "documentDataId", description = "Document data ID", example = "082ba08f-03c7-409f-b8a6-940a1397ba38") @PathVariable("documentDataId") @ValidUuid final String documentDataId,
 		@Parameter(name = "includeConfidential", description = "Include confidential records", example = "true") @RequestParam(name = "includeConfidential", defaultValue = "false") final boolean includeConfidential) {
 
-		documentService.readFile(registrationNumber, revision, documentDataId, includeConfidential, response, municipalityId);
+		documentFileService.readFile(registrationNumber, revision, documentDataId, includeConfidential, response, municipalityId);
 		return ok().build();
 	}
 }

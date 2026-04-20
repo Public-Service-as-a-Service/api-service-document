@@ -1,28 +1,18 @@
 package se.sundsvall.document.service;
 
-import jakarta.servlet.http.HttpServletResponse;
-import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.List;
-import java.util.Optional;
+import java.util.EnumSet;
+import java.util.Set;
+import java.util.function.Function;
 import java.util.stream.Collectors;
-import org.apache.commons.lang3.Strings;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
-import org.springframework.http.ContentDisposition;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.multipart.MultipartFile;
 import se.sundsvall.dept44.problem.Problem;
 import se.sundsvall.document.api.model.ConfidentialityUpdateRequest;
 import se.sundsvall.document.api.model.Document;
 import se.sundsvall.document.api.model.DocumentCreateRequest;
-import se.sundsvall.document.api.model.DocumentDataCreateRequest;
 import se.sundsvall.document.api.model.DocumentFiles;
 import se.sundsvall.document.api.model.DocumentParameters;
 import se.sundsvall.document.api.model.DocumentResponsibilitiesUpdateRequest;
@@ -32,37 +22,20 @@ import se.sundsvall.document.api.model.PagedDocumentResponse;
 import se.sundsvall.document.integration.db.DocumentRepository;
 import se.sundsvall.document.integration.db.DocumentResponsibilityRepository;
 import se.sundsvall.document.integration.db.DocumentTypeRepository;
-import se.sundsvall.document.integration.db.model.DocumentDataEntity;
 import se.sundsvall.document.integration.db.model.DocumentEntity;
 import se.sundsvall.document.integration.db.model.DocumentResponsibilityEntity;
-import se.sundsvall.document.integration.eventlog.EventLogClient;
-import se.sundsvall.document.integration.eventlog.configuration.EventlogProperties;
-import se.sundsvall.document.service.mapper.DocumentMapper;
 import se.sundsvall.document.service.storage.BinaryStore;
-import se.sundsvall.document.service.storage.StorageRef;
 
-import static generated.se.sundsvall.eventlog.EventType.UPDATE;
 import static java.util.Objects.nonNull;
-import static org.springframework.http.HttpHeaders.CONTENT_DISPOSITION;
-import static org.springframework.http.HttpHeaders.CONTENT_TYPE;
 import static org.springframework.http.HttpStatus.CONFLICT;
-import static org.springframework.http.HttpStatus.INTERNAL_SERVER_ERROR;
 import static org.springframework.http.HttpStatus.NOT_FOUND;
 import static org.springframework.util.CollectionUtils.isEmpty;
 import static se.sundsvall.document.service.Constants.ERROR_DOCUMENT_BY_REGISTRATION_NUMBER_AND_REVISION_NOT_FOUND;
 import static se.sundsvall.document.service.Constants.ERROR_DOCUMENT_BY_REGISTRATION_NUMBER_NOT_FOUND;
-import static se.sundsvall.document.service.Constants.ERROR_DOCUMENT_FILE_BY_ID_NOT_FOUND;
-import static se.sundsvall.document.service.Constants.ERROR_DOCUMENT_FILE_BY_REGISTRATION_NUMBER_AND_REVISION_NOT_FOUND;
-import static se.sundsvall.document.service.Constants.ERROR_DOCUMENT_FILE_BY_REGISTRATION_NUMBER_COULD_NOT_READ;
-import static se.sundsvall.document.service.Constants.ERROR_DOCUMENT_FILE_BY_REGISTRATION_NUMBER_NOT_FOUND;
 import static se.sundsvall.document.service.Constants.ERROR_STATUS_TRANSITION_NOT_ALLOWED;
 import static se.sundsvall.document.service.Constants.ERROR_VALID_FROM_AFTER_VALID_TO;
-import static se.sundsvall.document.service.Constants.TEMPLATE_EVENTLOG_MESSAGE_CONFIDENTIALITY_UPDATED_ON_DOCUMENT;
-import static se.sundsvall.document.service.Constants.TEMPLATE_EVENTLOG_MESSAGE_RESPONSIBILITIES_UPDATED_ON_DOCUMENT;
-import static se.sundsvall.document.service.Constants.TEMPLATE_EVENTLOG_MESSAGE_STATUS_UPDATED_ON_DOCUMENT;
 import static se.sundsvall.document.service.InclusionFilter.CONFIDENTIAL_AND_PUBLIC;
 import static se.sundsvall.document.service.mapper.DocumentMapper.applyUpdate;
-import static se.sundsvall.document.service.mapper.DocumentMapper.copyDocumentEntity;
 import static se.sundsvall.document.service.mapper.DocumentMapper.toConfidentialityEmbeddable;
 import static se.sundsvall.document.service.mapper.DocumentMapper.toDocument;
 import static se.sundsvall.document.service.mapper.DocumentMapper.toDocumentDataEntities;
@@ -71,14 +44,12 @@ import static se.sundsvall.document.service.mapper.DocumentMapper.toDocumentResp
 import static se.sundsvall.document.service.mapper.DocumentMapper.toDocumentResponsibilityEntities;
 import static se.sundsvall.document.service.mapper.DocumentMapper.toInclusionFilter;
 import static se.sundsvall.document.service.mapper.DocumentMapper.toPagedDocumentResponse;
-import static se.sundsvall.document.service.mapper.EventlogMapper.toEvent;
 
 @Service
 @Transactional
 public class DocumentService {
 
 	private static final String ERROR_DOCUMENT_TYPE_NOT_FOUND = "Document type with identifier %s was not found within municipality with id %s";
-	private static final Logger LOGGER = LoggerFactory.getLogger(DocumentService.class);
 
 	private final BinaryStore binaryStore;
 	private final DocumentRepository documentRepository;
@@ -86,8 +57,7 @@ public class DocumentService {
 	private final DocumentTypeRepository documentTypeRepository;
 	private final RegistrationNumberService registrationNumberService;
 	private final DocumentStatusPolicy statusPolicy;
-	private final Optional<EventLogClient> eventLogClient;
-	private final Optional<EventlogProperties> eventLogProperties;
+	private final DocumentEventPublisher eventPublisher;
 
 	public DocumentService(
 		final BinaryStore binaryStore,
@@ -96,8 +66,7 @@ public class DocumentService {
 		final DocumentTypeRepository documentTypeRepository,
 		final RegistrationNumberService registrationNumberService,
 		final DocumentStatusPolicy statusPolicy,
-		final Optional<EventLogClient> eventLogClient,
-		final Optional<EventlogProperties> eventLogProperties) {
+		final DocumentEventPublisher eventPublisher) {
 
 		this.binaryStore = binaryStore;
 		this.documentRepository = documentRepository;
@@ -105,8 +74,7 @@ public class DocumentService {
 		this.documentTypeRepository = documentTypeRepository;
 		this.registrationNumberService = registrationNumberService;
 		this.statusPolicy = statusPolicy;
-		this.eventLogClient = eventLogClient;
-		this.eventLogProperties = eventLogProperties;
+		this.eventPublisher = eventPublisher;
 	}
 
 	public Document create(final DocumentCreateRequest documentCreateRequest, final DocumentFiles documentFiles, final String municipalityId) {
@@ -154,88 +122,6 @@ public class DocumentService {
 		return toPagedDocumentResponseWithResponsibilities(documentRepository.search(query, includeConfidential, onlyLatestRevision, pageable, municipalityId, effectiveStatuses));
 	}
 
-	public void readFile(String registrationNumber, String documentDataId, boolean includeConfidential, boolean includeNonPublic, HttpServletResponse response, String municipalityId) {
-
-		final var documentEntity = findLatestRevisionForRead(municipalityId, registrationNumber, includeConfidential, includeNonPublic);
-		reconcileStatusIfStale(documentEntity);
-
-		if (isEmpty(documentEntity.getDocumentData())) {
-			throw Problem.valueOf(NOT_FOUND, ERROR_DOCUMENT_FILE_BY_REGISTRATION_NUMBER_NOT_FOUND.formatted(registrationNumber));
-		}
-
-		final var documentDataEntity = documentEntity.getDocumentData().stream()
-			.filter(docData -> docData.getId().equals(documentDataId))
-			.findFirst()
-			.orElseThrow(() -> Problem.valueOf(NOT_FOUND, ERROR_DOCUMENT_FILE_BY_ID_NOT_FOUND.formatted(documentDataId)));
-
-		addFileContentToResponse(documentDataEntity, response);
-	}
-
-	public void readFile(String registrationNumber, int revision, String documentDataId, boolean includeConfidential, HttpServletResponse response, String municipalityId) {
-
-		final var documentEntity = documentRepository.findByMunicipalityIdAndRegistrationNumberAndRevisionAndConfidentialityConfidentialIn(municipalityId, registrationNumber, revision, toInclusionFilter(includeConfidential))
-			.orElseThrow(() -> Problem.valueOf(NOT_FOUND, ERROR_DOCUMENT_BY_REGISTRATION_NUMBER_AND_REVISION_NOT_FOUND.formatted(registrationNumber, revision)));
-
-		if (isEmpty(documentEntity.getDocumentData())) {
-			throw Problem.valueOf(NOT_FOUND, ERROR_DOCUMENT_FILE_BY_REGISTRATION_NUMBER_AND_REVISION_NOT_FOUND.formatted(registrationNumber, revision));
-		}
-
-		final var documentDataEntity = documentEntity.getDocumentData().stream()
-			.filter(docData -> docData.getId().equals(documentDataId))
-			.findFirst()
-			.orElseThrow(() -> Problem.valueOf(NOT_FOUND, ERROR_DOCUMENT_FILE_BY_ID_NOT_FOUND.formatted(documentDataId)));
-
-		addFileContentToResponse(documentDataEntity, response);
-	}
-
-	public Document addOrReplaceFile(String registrationNumber, DocumentDataCreateRequest documentDataCreateRequest, MultipartFile documentFile, String municipalityId) {
-		return addOrReplaceFiles(registrationNumber, documentDataCreateRequest, DocumentFiles.create().withFiles(List.of(documentFile)), municipalityId);
-	}
-
-	public Document addOrReplaceFiles(String registrationNumber, DocumentDataCreateRequest documentDataCreateRequest, DocumentFiles documentFiles, String municipalityId) {
-
-		final var documentEntity = documentRepository.findTopByMunicipalityIdAndRegistrationNumberAndConfidentialityConfidentialInOrderByRevisionDesc(municipalityId, registrationNumber, CONFIDENTIAL_AND_PUBLIC.getValue())
-			.orElseThrow(() -> Problem.valueOf(NOT_FOUND, ERROR_DOCUMENT_BY_REGISTRATION_NUMBER_NOT_FOUND.formatted(registrationNumber)));
-
-		// Materialize all incoming files into documentData entities up front — one storage write per file.
-		final var newDocumentDataEntities = toDocumentDataEntities(documentFiles, binaryStore, municipalityId);
-
-		// Do not update existing entity, create a new revision instead.
-		final var newDocumentEntity = copyDocumentEntity(documentEntity, binaryStore)
-			.withRevision(documentEntity.getRevision() + 1)
-			.withCreatedBy(documentDataCreateRequest.getCreatedBy());
-
-		// Add/replace each new documentData element against the single new revision so N files produce 1 revision.
-		newDocumentDataEntities.forEach(entity -> addOrReplaceDocumentDataEntity(newDocumentEntity, entity));
-
-		return toDocumentWithResponsibilities(documentRepository.save(newDocumentEntity));
-	}
-
-	public void deleteFile(String registrationNumber, String documentDataId, String municipalityId) {
-
-		final var documentEntity = documentRepository.findTopByMunicipalityIdAndRegistrationNumberAndConfidentialityConfidentialInOrderByRevisionDesc(municipalityId, registrationNumber, toInclusionFilter(true))
-			.orElseThrow(() -> Problem.valueOf(NOT_FOUND, ERROR_DOCUMENT_BY_REGISTRATION_NUMBER_NOT_FOUND.formatted(registrationNumber)));
-
-		if (isEmpty(documentEntity.getDocumentData())) {
-			throw Problem.valueOf(NOT_FOUND, ERROR_DOCUMENT_FILE_BY_REGISTRATION_NUMBER_NOT_FOUND.formatted(registrationNumber));
-		}
-
-		// Do not update existing entity, create a new revision instead.
-		final var newDocumentEntity = copyDocumentEntity(documentEntity, binaryStore)
-			.withRevision(documentEntity.getRevision() + 1)
-			.withDocumentData(documentEntity.getDocumentData().stream()
-				.filter(docDataEntity -> !docDataEntity.getId().equals(documentDataId)) // Create a new documentData list without the "deleted" object.
-				.map(d -> DocumentMapper.copyDocumentDataEntity(d, binaryStore))
-				.toList());
-
-		// If size on new list is the same as the old list, nothing was removed in new revision.
-		if (documentEntity.getDocumentData().size() == newDocumentEntity.getDocumentData().size()) {
-			throw Problem.valueOf(NOT_FOUND, ERROR_DOCUMENT_FILE_BY_ID_NOT_FOUND.formatted(documentDataId));
-		}
-
-		documentRepository.save(newDocumentEntity);
-	}
-
 	public Document update(String registrationNumber, boolean includeConfidential, DocumentUpdateRequest documentUpdateRequest, String municipalityId) {
 
 		final var existingDocumentEntity = documentRepository.findTopByMunicipalityIdAndRegistrationNumberAndConfidentialityConfidentialInOrderByRevisionDesc(municipalityId, registrationNumber, toInclusionFilter(includeConfidential))
@@ -256,30 +142,21 @@ public class DocumentService {
 	}
 
 	public Document publish(String registrationNumber, String changedBy, String municipalityId, Integer revision) {
-		return transitionStatus(registrationNumber, changedBy, municipalityId, revision, "publish", entity -> {
-			if (entity.getStatus() != DocumentStatus.DRAFT) {
-				throw Problem.valueOf(CONFLICT, ERROR_STATUS_TRANSITION_NOT_ALLOWED.formatted(entity.getStatus(), "publish", registrationNumber));
-			}
-			return statusPolicy.resolvePublishedStatus(entity.getValidFrom(), entity.getValidTo(), registrationNumber);
-		});
+		return transitionStatus(registrationNumber, changedBy, municipalityId, revision, "publish",
+			EnumSet.of(DocumentStatus.DRAFT),
+			entity -> statusPolicy.resolvePublishedStatus(entity.getValidFrom(), entity.getValidTo(), registrationNumber));
 	}
 
 	public Document revoke(String registrationNumber, String changedBy, String municipalityId, Integer revision) {
-		return transitionStatus(registrationNumber, changedBy, municipalityId, revision, "revoke", entity -> {
-			if (entity.getStatus() != DocumentStatus.ACTIVE && entity.getStatus() != DocumentStatus.SCHEDULED) {
-				throw Problem.valueOf(CONFLICT, ERROR_STATUS_TRANSITION_NOT_ALLOWED.formatted(entity.getStatus(), "revoke", registrationNumber));
-			}
-			return DocumentStatus.REVOKED;
-		});
+		return transitionStatus(registrationNumber, changedBy, municipalityId, revision, "revoke",
+			EnumSet.of(DocumentStatus.ACTIVE, DocumentStatus.SCHEDULED),
+			entity -> DocumentStatus.REVOKED);
 	}
 
 	public Document unrevoke(String registrationNumber, String changedBy, String municipalityId, Integer revision) {
-		return transitionStatus(registrationNumber, changedBy, municipalityId, revision, "unrevoke", entity -> {
-			if (entity.getStatus() != DocumentStatus.REVOKED) {
-				throw Problem.valueOf(CONFLICT, ERROR_STATUS_TRANSITION_NOT_ALLOWED.formatted(entity.getStatus(), "unrevoke", registrationNumber));
-			}
-			return statusPolicy.resolvePublishedStatus(entity.getValidFrom(), entity.getValidTo(), registrationNumber);
-		});
+		return transitionStatus(registrationNumber, changedBy, municipalityId, revision, "unrevoke",
+			EnumSet.of(DocumentStatus.REVOKED),
+			entity -> statusPolicy.resolvePublishedStatus(entity.getValidFrom(), entity.getValidTo(), registrationNumber));
 	}
 
 	public void updateConfidentiality(String registrationNumber, ConfidentialityUpdateRequest confidentialityUpdateRequest, String municipalityId) {
@@ -288,11 +165,9 @@ public class DocumentService {
 
 		final var newConfidentialitySettings = toConfidentialityEmbeddable(confidentialityUpdateRequest);
 
-		// Set confidentiality settings on document-level.
 		documentEntities.forEach(documentEntity -> documentEntity.setConfidentiality(newConfidentialitySettings));
 
-		// Send info to Eventlog.
-		eventLogForDocument(registrationNumber, confidentialityUpdateRequest, municipalityId);
+		eventPublisher.logConfidentialityChange(registrationNumber, confidentialityUpdateRequest, municipalityId);
 
 		documentRepository.saveAll(documentEntities);
 	}
@@ -312,41 +187,13 @@ public class DocumentService {
 		documentResponsibilityRepository.flush();
 		documentResponsibilityRepository.saveAll(newResponsibilities);
 
-		eventLogForResponsibilities(registrationNumber, request.getChangedBy(), oldResponsibilities, newResponsibilities, municipalityId);
+		eventPublisher.logResponsibilitiesChange(registrationNumber, request.getChangedBy(), oldResponsibilities, newResponsibilities, municipalityId);
 	}
 
 	public PagedDocumentResponse searchByParameters(final DocumentParameters parameters) {
 		var pageable = PageRequest.of(parameters.getPage() - 1, parameters.getLimit(), parameters.sort());
 		final var effectiveStatuses = statusPolicy.effectivePublishedStatuses(parameters.getStatuses());
 		return toPagedDocumentResponseWithResponsibilities(documentRepository.searchByParameters(parameters, pageable, effectiveStatuses));
-	}
-
-	private void addFileContentToResponse(DocumentDataEntity documentDataEntity, HttpServletResponse response) {
-		response.addHeader(CONTENT_TYPE, documentDataEntity.getMimeType());
-		response.addHeader(CONTENT_DISPOSITION, ContentDisposition.attachment()
-			.filename(documentDataEntity.getFileName(), StandardCharsets.UTF_8)
-			.build()
-			.toString());
-		response.setContentLength((int) documentDataEntity.getFileSizeInBytes());
-
-		final var ref = StorageRef.s3(documentDataEntity.getStorageLocator());
-		try {
-			binaryStore.streamTo(ref, response.getOutputStream());
-		} catch (final IOException e) {
-			LOGGER.warn(ERROR_DOCUMENT_FILE_BY_REGISTRATION_NUMBER_COULD_NOT_READ.formatted(documentDataEntity.getId()), e);
-			resetIfUncommitted(response);
-			throw Problem.valueOf(INTERNAL_SERVER_ERROR, ERROR_DOCUMENT_FILE_BY_REGISTRATION_NUMBER_COULD_NOT_READ.formatted(documentDataEntity.getId()));
-		} catch (final RuntimeException e) {
-			// Stale Content-Length/Content-Type headers would make clients wait for bytes the error handler never writes.
-			resetIfUncommitted(response);
-			throw e;
-		}
-	}
-
-	private static void resetIfUncommitted(HttpServletResponse response) {
-		if (!response.isCommitted()) {
-			response.reset();
-		}
 	}
 
 	private Document toDocumentWithResponsibilities(final DocumentEntity documentEntity) {
@@ -374,51 +221,31 @@ public class DocumentService {
 		return response;
 	}
 
-	private void eventLogForDocument(String registrationNumber, ConfidentialityUpdateRequest confidentialityUpdateRequest, String municipalityId) {
-		eventLogProperties.ifPresent(props -> eventLogClient.ifPresent(client -> client.createEvent(municipalityId, props.logKeyUuid(), toEvent(
-			UPDATE,
-			registrationNumber,
-			TEMPLATE_EVENTLOG_MESSAGE_CONFIDENTIALITY_UPDATED_ON_DOCUMENT
-				.formatted(confidentialityUpdateRequest.getConfidential(), confidentialityUpdateRequest.getLegalCitation(), registrationNumber, confidentialityUpdateRequest.getChangedBy()),
-			confidentialityUpdateRequest.getChangedBy()))));
-	}
-
-	private void eventLogForResponsibilities(final String registrationNumber, final String changedBy, final List<DocumentResponsibilityEntity> oldResponsibilities, final List<DocumentResponsibilityEntity> newResponsibilities,
-		final String municipalityId) {
-		final var sortedNewResponsibilities = newResponsibilities.stream()
-			.sorted(Comparator.comparing(DocumentResponsibilityEntity::getUsername))
-			.toList();
-		eventLogProperties.ifPresent(props -> eventLogClient.ifPresent(client -> client.createEvent(municipalityId, props.logKeyUuid(), toEvent(
-			UPDATE,
-			registrationNumber,
-			TEMPLATE_EVENTLOG_MESSAGE_RESPONSIBILITIES_UPDATED_ON_DOCUMENT.formatted(toDocumentResponsibilities(oldResponsibilities), toDocumentResponsibilities(sortedNewResponsibilities), registrationNumber, changedBy),
-			changedBy))));
-	}
-
-	private void eventLogForStatusChange(String registrationNumber, int revision, DocumentStatus from, DocumentStatus to, String changedBy, String municipalityId) {
-		eventLogProperties.ifPresent(props -> eventLogClient.ifPresent(client -> client.createEvent(municipalityId, props.logKeyUuid(), toEvent(
-			UPDATE,
-			registrationNumber,
-			TEMPLATE_EVENTLOG_MESSAGE_STATUS_UPDATED_ON_DOCUMENT.formatted(from, to, registrationNumber, revision, changedBy),
-			changedBy))));
-	}
-
 	private Document transitionStatus(String registrationNumber, String changedBy, String municipalityId, Integer revision, String action,
-		java.util.function.Function<DocumentEntity, DocumentStatus> nextStatusResolver) {
+		Set<DocumentStatus> allowedFromStatuses, Function<DocumentEntity, DocumentStatus> nextStatusResolver) {
 
-		final var documentEntity = (revision == null)
-			? documentRepository.findTopByMunicipalityIdAndRegistrationNumberAndConfidentialityConfidentialInOrderByRevisionDesc(municipalityId, registrationNumber, CONFIDENTIAL_AND_PUBLIC.getValue())
-				.orElseThrow(() -> Problem.valueOf(NOT_FOUND, ERROR_DOCUMENT_BY_REGISTRATION_NUMBER_NOT_FOUND.formatted(registrationNumber)))
-			: documentRepository.findByMunicipalityIdAndRegistrationNumberAndRevisionAndConfidentialityConfidentialIn(municipalityId, registrationNumber, revision, CONFIDENTIAL_AND_PUBLIC.getValue())
-				.orElseThrow(() -> Problem.valueOf(NOT_FOUND, ERROR_DOCUMENT_BY_REGISTRATION_NUMBER_AND_REVISION_NOT_FOUND.formatted(registrationNumber, revision)));
+		final var documentEntity = findDocumentForStatusTransition(municipalityId, registrationNumber, revision);
 
 		final var previousStatus = documentEntity.getStatus();
+		if (!allowedFromStatuses.contains(previousStatus)) {
+			throw Problem.valueOf(CONFLICT, ERROR_STATUS_TRANSITION_NOT_ALLOWED.formatted(previousStatus, action, registrationNumber));
+		}
+
 		final var newStatus = nextStatusResolver.apply(documentEntity);
 		documentEntity.setStatus(newStatus);
 
-		eventLogForStatusChange(registrationNumber, documentEntity.getRevision(), previousStatus, newStatus, changedBy, municipalityId);
+		eventPublisher.logStatusChange(registrationNumber, documentEntity.getRevision(), previousStatus, newStatus, changedBy, municipalityId);
 
 		return toDocumentWithResponsibilities(documentRepository.save(documentEntity));
+	}
+
+	private DocumentEntity findDocumentForStatusTransition(String municipalityId, String registrationNumber, Integer revision) {
+		if (revision == null) {
+			return documentRepository.findTopByMunicipalityIdAndRegistrationNumberAndConfidentialityConfidentialInOrderByRevisionDesc(municipalityId, registrationNumber, CONFIDENTIAL_AND_PUBLIC.getValue())
+				.orElseThrow(() -> Problem.valueOf(NOT_FOUND, ERROR_DOCUMENT_BY_REGISTRATION_NUMBER_NOT_FOUND.formatted(registrationNumber)));
+		}
+		return documentRepository.findByMunicipalityIdAndRegistrationNumberAndRevisionAndConfidentialityConfidentialIn(municipalityId, registrationNumber, revision, CONFIDENTIAL_AND_PUBLIC.getValue())
+			.orElseThrow(() -> Problem.valueOf(NOT_FOUND, ERROR_DOCUMENT_BY_REGISTRATION_NUMBER_AND_REVISION_NOT_FOUND.formatted(registrationNumber, revision)));
 	}
 
 	private DocumentEntity findLatestRevisionForRead(String municipalityId, String registrationNumber, boolean includeConfidential, boolean includeNonPublic) {
@@ -445,18 +272,5 @@ public class DocumentService {
 		if (validFrom != null && validTo != null && validFrom.isAfter(validTo)) {
 			throw Problem.valueOf(CONFLICT, ERROR_VALID_FROM_AFTER_VALID_TO.formatted(validFrom, validTo));
 		}
-	}
-
-	private void addOrReplaceDocumentDataEntity(DocumentEntity documentEntity, DocumentDataEntity documentDataEntity) {
-
-		final var documentDataList = Optional.ofNullable(documentEntity.getDocumentData()).orElse(new ArrayList<>());
-
-		// Remove existing documentData element, if the filename already exists.
-		documentDataList.removeIf(documentData -> Strings.CI.equals(documentData.getFileName(), documentDataEntity.getFileName()));
-
-		// Add new documentData element.
-		documentDataList.add(documentDataEntity);
-
-		documentEntity.setDocumentData(documentDataList);
 	}
 }

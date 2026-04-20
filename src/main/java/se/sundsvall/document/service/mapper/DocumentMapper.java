@@ -4,7 +4,6 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import org.springframework.data.domain.Page;
@@ -151,13 +150,9 @@ public class DocumentMapper {
 			.map(value -> DocumentResponsibilityEntity.create()
 				.withMunicipalityId(municipalityId)
 				.withRegistrationNumber(registrationNumber)
-				.withUsername(normalizeUsername(value.getUsername()))
+				.withPersonId(value.getPersonId())
 				.withCreatedBy(createdBy))
 			.orElse(null);
-	}
-
-	private static String normalizeUsername(final String username) {
-		return username == null ? null : username.trim().toLowerCase(Locale.ROOT);
 	}
 
 	/**
@@ -227,7 +222,7 @@ public class DocumentMapper {
 	public static DocumentResponsibility toDocumentResponsibility(final DocumentResponsibilityEntity responsibility) {
 		return Optional.ofNullable(responsibility)
 			.map(value -> DocumentResponsibility.create()
-				.withUsername(value.getUsername()))
+				.withPersonId(value.getPersonId()))
 			.orElse(null);
 	}
 

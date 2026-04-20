@@ -485,10 +485,11 @@ class DocumentMapperTest {
 	void toDocumentWithResponsibilities() {
 
 		// Arrange
+		final var personId = "6b8d4a1c-34e2-4f73-a5f1-b7c2e9a0d8c4";
 		final var documentEntity = DocumentEntity.create()
 			.withType(DocumentTypeEntity.create().withType(DOCUMENT_TYPE));
 		final var responsibilityEntity = DocumentResponsibilityEntity.create()
-			.withUsername(CREATED_BY);
+			.withPersonId(personId);
 
 		// Act
 		final var result = DocumentMapper.toDocument(documentEntity, List.of(responsibilityEntity));
@@ -497,7 +498,7 @@ class DocumentMapperTest {
 		assertThat(result).isNotNull();
 		assertThat(result.getResponsibilities())
 			.containsExactly(DocumentResponsibility.create()
-				.withUsername(CREATED_BY));
+				.withPersonId(personId));
 	}
 
 	@Test
@@ -509,8 +510,9 @@ class DocumentMapperTest {
 	void toDocumentResponsibilityEntities() {
 
 		// Arrange
+		final var personId = "6b8d4a1c-34e2-4f73-a5f1-b7c2e9a0d8c4";
 		final var responsibilities = List.of(DocumentResponsibility.create()
-			.withUsername(" Username123 "));
+			.withPersonId(personId));
 
 		// Act
 		final var result = DocumentMapper.toDocumentResponsibilityEntities(responsibilities, MUNICIPALITY_ID, REGISTRATION_NUMBER, CREATED_BY);
@@ -518,9 +520,9 @@ class DocumentMapperTest {
 		// Assert
 		assertThat(result)
 			.hasSize(1)
-			.extracting(DocumentResponsibilityEntity::getMunicipalityId, DocumentResponsibilityEntity::getRegistrationNumber, DocumentResponsibilityEntity::getUsername,
+			.extracting(DocumentResponsibilityEntity::getMunicipalityId, DocumentResponsibilityEntity::getRegistrationNumber, DocumentResponsibilityEntity::getPersonId,
 				DocumentResponsibilityEntity::getCreatedBy)
-			.containsExactly(tuple(MUNICIPALITY_ID, REGISTRATION_NUMBER, "username123", CREATED_BY));
+			.containsExactly(tuple(MUNICIPALITY_ID, REGISTRATION_NUMBER, personId, CREATED_BY));
 	}
 
 	@Test

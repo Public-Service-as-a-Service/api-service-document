@@ -508,8 +508,8 @@ class DocumentRepositoryTest {
 			.withIncludeConfidential(true)
 			.withOnlyLatestRevision(true)
 			.withResponsibilities(List.of(
-				DocumentResponsibility.create().withUsername("User3"),
-				DocumentResponsibility.create().withUsername(" USER5 ")));
+				DocumentResponsibility.create().withPersonId("11111111-1111-1111-1111-111111111111"),
+				DocumentResponsibility.create().withPersonId("55555555-5555-5555-5555-555555555555")));
 		var pageable = PageRequest.of(0, 10, Sort.by(ASC, "registrationNumber"));
 
 		var result = documentRepository.searchByParameters(parameters, pageable, null);
@@ -531,7 +531,7 @@ class DocumentRepositoryTest {
 			.withMunicipalityId(MUNICIPALITY_ID)
 			.withIncludeConfidential(true)
 			.withOnlyLatestRevision(true)
-			.withResponsibilities(List.of(DocumentResponsibility.create().withUsername("USER5")))
+			.withResponsibilities(List.of(DocumentResponsibility.create().withPersonId("55555555-5555-5555-5555-555555555555")))
 			.withMetaData(List.of(DocumentParameters.MetaData.create().withKey("EMPLOYEE_UNIT").withMatchesAny(List.of("Sidsjö skola"))));
 		var pageable = PageRequest.of(0, 10, Sort.by(ASC, "registrationNumber"));
 

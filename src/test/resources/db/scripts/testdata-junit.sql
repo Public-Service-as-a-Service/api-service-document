@@ -70,15 +70,15 @@ VALUES ('159c10bf-1b32-471b-b2d3-c4b4b13ea152', "document1-key1", "value-1"),   
        ('3901694b-8e3a-46b7-83ea-cd351ccc0f52', "EMPLOYEE_TYPE", "Vikarie"),      -- Document-6, revision 1
        ('3901694b-8e3a-46b7-83ea-cd351ccc0f52', "EMPLOYEE_UNIT", "Livets tuffa skola"); -- Document-6, revision 1
 
-INSERT INTO document_responsibility (id, municipality_id, registration_number, username, created_by,
+INSERT INTO document_responsibility (id, municipality_id, registration_number, person_id, created_by,
                                      created)
-VALUES ('5ac3f0bd-0229-451a-9b66-736c510a0cf1', '2281', '2023-2281-123', 'user3', 'User3',
+VALUES ('5ac3f0bd-0229-451a-9b66-736c510a0cf1', '2281', '2023-2281-123', '11111111-1111-1111-1111-111111111111', 'User3',
         '2023-06-28 12:03:00.000'),
-       ('7c542b7c-9432-403a-af77-78eda79b4a9e', '2281', '2024-2281-601', 'user5', 'User5',
+       ('7c542b7c-9432-403a-af77-78eda79b4a9e', '2281', '2024-2281-601', '55555555-5555-5555-5555-555555555555', 'User5',
         '2023-06-28 12:04:00.000'),
-       ('3e8eb73b-e6be-4909-a7dc-0ad101bdc510', '2281', '2024-2281-602', 'user5', 'User5',
+       ('3e8eb73b-e6be-4909-a7dc-0ad101bdc510', '2281', '2024-2281-602', '55555555-5555-5555-5555-555555555555', 'User5',
         '2023-06-28 12:04:00.000'),
-       ('79223a90-c2a6-40fc-a52b-7fb2920d0373', '2281', '2024-2281-603', 'user5', 'User5',
+       ('79223a90-c2a6-40fc-a52b-7fb2920d0373', '2281', '2024-2281-603', '55555555-5555-5555-5555-555555555555', 'User5',
         '2023-06-28 12:04:00.000');
 
 INSERT INTO registration_number_sequence (sequence_number, created, modified, id, municipality_id)

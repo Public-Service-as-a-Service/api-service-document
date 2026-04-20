@@ -46,7 +46,7 @@ class DocumentParametersTest {
 				.withKey("key1")
 				.withMatchesAny(List.of("value1", "value2"))
 				.withMatchesAll(List.of("value1", "value2")));
-		var responsibilities = List.of(DocumentResponsibility.create().withUsername(createdBy));
+		var responsibilities = List.of(DocumentResponsibility.create().withPersonId("6b8d4a1c-34e2-4f73-a5f1-b7c2e9a0d8c4"));
 		var validOn = LocalDate.of(2026, 4, 15);
 		var statuses = List.of(DocumentStatus.ACTIVE, DocumentStatus.SCHEDULED);
 

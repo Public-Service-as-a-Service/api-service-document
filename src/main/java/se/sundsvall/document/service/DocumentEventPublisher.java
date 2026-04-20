@@ -42,7 +42,7 @@ public class DocumentEventPublisher {
 		final String municipalityId) {
 
 		final var sortedNewResponsibilities = newResponsibilities.stream()
-			.sorted(Comparator.comparing(DocumentResponsibilityEntity::getUsername))
+			.sorted(Comparator.comparing(DocumentResponsibilityEntity::getPersonId))
 			.toList();
 		publish(municipalityId, registrationNumber, changedBy,
 			TEMPLATE_EVENTLOG_MESSAGE_RESPONSIBILITIES_UPDATED_ON_DOCUMENT

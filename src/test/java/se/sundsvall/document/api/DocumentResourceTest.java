@@ -78,7 +78,7 @@ class DocumentResourceTest {
 				.withKey("key")
 				.withValue("value")))
 			.withResponsibilities(List.of(DocumentResponsibility.create()
-				.withUsername("username123")))
+				.withPersonId("6b8d4a1c-34e2-4f73-a5f1-b7c2e9a0d8c4")))
 			.withType("type")
 			.withValidFrom(LocalDate.of(2026, 4, 15))
 			.withValidTo(LocalDate.of(2027, 4, 15));
@@ -234,7 +234,7 @@ class DocumentResourceTest {
 		final var responsibilitiesUpdateRequest = DocumentResponsibilitiesUpdateRequest.create()
 			.withChangedBy("user")
 			.withResponsibilities(List.of(DocumentResponsibility.create()
-				.withUsername("username123")));
+				.withPersonId("6b8d4a1c-34e2-4f73-a5f1-b7c2e9a0d8c4")));
 
 		// Act
 		webTestClient.put()

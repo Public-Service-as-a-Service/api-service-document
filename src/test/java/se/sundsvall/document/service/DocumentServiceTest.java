@@ -90,6 +90,7 @@ class DocumentServiceTest {
 	private static final OffsetDateTime CREATED = now(systemDefault());
 	private static final boolean CONFIDENTIAL = true;
 	private static final String CREATED_BY = "User";
+	private static final String PERSON_ID = "6b8d4a1c-34e2-4f73-a5f1-b7c2e9a0d8c4";
 	private static final String DESCRIPTION = "Description";
 	private static final String ID = randomUUID().toString();
 	private static final String LEGAL_CITATION = "legalCitation";
@@ -168,7 +169,7 @@ class DocumentServiceTest {
 		final var documentCreateRequest = DocumentCreateRequest.create()
 			.withCreatedBy(CREATED_BY)
 			.withMetadataList(List.of(DocumentMetadata.create().withKey(METADATA_KEY).withValue(METADATA_VALUE)))
-			.withResponsibilities(List.of(DocumentResponsibility.create().withUsername(CREATED_BY)))
+			.withResponsibilities(List.of(DocumentResponsibility.create().withPersonId(PERSON_ID)))
 			.withType(DOCUMENT_TYPE)
 			.withValidFrom(VALID_FROM)
 			.withValidTo(VALID_TO);
@@ -189,7 +190,7 @@ class DocumentServiceTest {
 
 		// Assert
 		assertThat(result).isNotNull();
-		assertThat(result.getResponsibilities()).containsExactly(DocumentResponsibility.create().withUsername("user"));
+		assertThat(result.getResponsibilities()).containsExactly(DocumentResponsibility.create().withPersonId(PERSON_ID));
 
 		verify(documentTypeRepositoryMock).findByMunicipalityIdAndType(MUNICIPALITY_ID, DOCUMENT_TYPE);
 		verify(registrationNumberServiceMock).generateRegistrationNumber(MUNICIPALITY_ID);
@@ -214,9 +215,9 @@ class DocumentServiceTest {
 		assertThat(capturedDocumentEntity.getValidTo()).isEqualTo(VALID_TO);
 
 		assertThat(responsibilityEntitiesCaptor.getValue())
-			.extracting(DocumentResponsibilityEntity::getMunicipalityId, DocumentResponsibilityEntity::getRegistrationNumber, DocumentResponsibilityEntity::getUsername,
+			.extracting(DocumentResponsibilityEntity::getMunicipalityId, DocumentResponsibilityEntity::getRegistrationNumber, DocumentResponsibilityEntity::getPersonId,
 				DocumentResponsibilityEntity::getCreatedBy)
-			.containsExactly(tuple(MUNICIPALITY_ID, REGISTRATION_NUMBER, "user", CREATED_BY));
+			.containsExactly(tuple(MUNICIPALITY_ID, REGISTRATION_NUMBER, PERSON_ID, CREATED_BY));
 	}
 
 	@Test
@@ -581,26 +582,28 @@ class DocumentServiceTest {
 
 		// Arrange
 		final var eventLogKey = UUID.randomUUID().toString();
+		final var otherPersonId = "11111111-2222-3333-4444-555555555555";
+		final var oldPersonId = "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee";
 		final var request = DocumentResponsibilitiesUpdateRequest.create()
 			.withChangedBy(CREATED_BY)
 			.withResponsibilities(List.of(
-				DocumentResponsibility.create().withUsername(CREATED_BY),
-				DocumentResponsibility.create().withUsername("other-username123")));
+				DocumentResponsibility.create().withPersonId(PERSON_ID),
+				DocumentResponsibility.create().withPersonId(otherPersonId)));
 		final var oldResponsibilities = List.of(DocumentResponsibilityEntity.create()
 			.withMunicipalityId(MUNICIPALITY_ID)
 			.withRegistrationNumber(REGISTRATION_NUMBER)
-			.withUsername("old-username123"));
+			.withPersonId(oldPersonId));
 
 		when(eventlogPropertiesMock.logKeyUuid()).thenReturn(eventLogKey);
 		when(documentRepositoryMock.existsByMunicipalityIdAndRegistrationNumber(MUNICIPALITY_ID, REGISTRATION_NUMBER)).thenReturn(true);
-		when(documentResponsibilityRepositoryMock.findByMunicipalityIdAndRegistrationNumberOrderByUsernameAsc(MUNICIPALITY_ID, REGISTRATION_NUMBER)).thenReturn(oldResponsibilities);
+		when(documentResponsibilityRepositoryMock.findByMunicipalityIdAndRegistrationNumberOrderByPersonIdAsc(MUNICIPALITY_ID, REGISTRATION_NUMBER)).thenReturn(oldResponsibilities);
 
 		// Act
 		documentService.updateResponsibilities(REGISTRATION_NUMBER, request, MUNICIPALITY_ID);
 
 		// Assert
 		verify(documentRepositoryMock).existsByMunicipalityIdAndRegistrationNumber(MUNICIPALITY_ID, REGISTRATION_NUMBER);
-		verify(documentResponsibilityRepositoryMock).findByMunicipalityIdAndRegistrationNumberOrderByUsernameAsc(MUNICIPALITY_ID, REGISTRATION_NUMBER);
+		verify(documentResponsibilityRepositoryMock).findByMunicipalityIdAndRegistrationNumberOrderByPersonIdAsc(MUNICIPALITY_ID, REGISTRATION_NUMBER);
 		verify(documentResponsibilityRepositoryMock).deleteByMunicipalityIdAndRegistrationNumber(MUNICIPALITY_ID, REGISTRATION_NUMBER);
 		verify(documentResponsibilityRepositoryMock).flush();
 		verify(documentResponsibilityRepositoryMock).saveAll(responsibilityEntitiesCaptor.capture());
@@ -608,17 +611,17 @@ class DocumentServiceTest {
 		verifyNoInteractions(registrationNumberServiceMock, documentTypeRepositoryMock, binaryStoreMock);
 
 		assertThat(responsibilityEntitiesCaptor.getValue())
-			.extracting(DocumentResponsibilityEntity::getMunicipalityId, DocumentResponsibilityEntity::getRegistrationNumber, DocumentResponsibilityEntity::getUsername,
+			.extracting(DocumentResponsibilityEntity::getMunicipalityId, DocumentResponsibilityEntity::getRegistrationNumber, DocumentResponsibilityEntity::getPersonId,
 				DocumentResponsibilityEntity::getCreatedBy)
 			.containsExactly(
-				tuple(MUNICIPALITY_ID, REGISTRATION_NUMBER, "user", CREATED_BY),
-				tuple(MUNICIPALITY_ID, REGISTRATION_NUMBER, "other-username123", CREATED_BY));
+				tuple(MUNICIPALITY_ID, REGISTRATION_NUMBER, PERSON_ID, CREATED_BY),
+				tuple(MUNICIPALITY_ID, REGISTRATION_NUMBER, otherPersonId, CREATED_BY));
 
 		final var capturedEvent = eventLogClient.requests.getFirst().event();
 		assertThat(eventLogClient.requests.getFirst().municipalityId()).isEqualTo(MUNICIPALITY_ID);
 		assertThat(eventLogClient.requests.getFirst().logKey()).isEqualTo(eventLogKey);
 		assertThat(capturedEvent.getType()).isEqualTo(UPDATE);
-		assertThat(capturedEvent.getMessage()).contains("Responsibilities updated from:", "old-username123", CREATED_BY, "other-username123", REGISTRATION_NUMBER);
+		assertThat(capturedEvent.getMessage()).contains("Responsibilities updated from:", oldPersonId, CREATED_BY, otherPersonId, REGISTRATION_NUMBER);
 		assertThat(capturedEvent.getMetadata())
 			.extracting(Metadata::getKey, Metadata::getValue)
 			.containsExactlyInAnyOrder(
@@ -632,7 +635,7 @@ class DocumentServiceTest {
 		// Arrange
 		final var request = DocumentResponsibilitiesUpdateRequest.create()
 			.withChangedBy(CREATED_BY)
-			.withResponsibilities(List.of(DocumentResponsibility.create().withUsername(CREATED_BY)));
+			.withResponsibilities(List.of(DocumentResponsibility.create().withPersonId(PERSON_ID)));
 
 		when(documentRepositoryMock.existsByMunicipalityIdAndRegistrationNumber(MUNICIPALITY_ID, REGISTRATION_NUMBER)).thenReturn(false);
 

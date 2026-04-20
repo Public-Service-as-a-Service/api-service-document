@@ -445,8 +445,8 @@ paths:
         \ only drafts).\n- metaData: Uses the metadata object to search for documents\
         \ with specific metadata. Datatype - List of metadata objects.\n- responsibilities:\
         \ Uses document responsibilities to search for documents where at least one\
-        \ username matches. Usernames are case-insensitive and stored lowercased.\
-        \ Datatype - List of DocumentResponsibility objects.\n- page: The page number\
+        \ personId matches. Datatype - List of DocumentResponsibility objects.\n- page:\
+        \ The page number\
         \ to retrieve. Datatype - integer (default: 1)\n- limit: The number of documents\
         \ to retrieve per page. Datatype - integer (default: 100)\n\nObjects:\n- MetaData:\
         \ {\n\t- key: A given metadata key, this is optional. All metadata will be\
@@ -458,8 +458,7 @@ paths:
         \ with the given key have at least one of the matchesAny values (if key is\
         \ present), or if the complete set of metadata have at least one of the matchesAny\
         \ (when no key is present). Datatype - List of Strings\n}\n- DocumentResponsibility:\
-        \ {\n\t- username: Username. Case-insensitive; stored lowercased. Datatype\
-        \ - String\n}\n"
+        \ {\n\t- personId: Person ID of the responsible party. Datatype - String (UUID)\n}\n"
       operationId: searchByParameters
       parameters:
         - name: municipalityId
@@ -1268,15 +1267,15 @@ components:
       type: object
       description: Document responsibility model.
       properties:
-        username:
+        personId:
           type: string
-          description: Username. Case-insensitive; stored lowercased.
+          description: Person ID of the responsible party.
           examples:
-            - username123
-          maxLength: 255
+            - 6b8d4a1c-34e2-4f73-a5f1-b7c2e9a0d8c4
+          maxLength: 36
           minLength: 0
       required:
-        - username
+        - personId
     ConstraintViolationProblem:
       type: object
       properties:

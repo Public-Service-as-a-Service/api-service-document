@@ -202,7 +202,7 @@ public class DocumentFileService {
 	}
 
 	private Document toDocumentWithResponsibilities(final DocumentEntity documentEntity) {
-		final var responsibilities = documentResponsibilityRepository.findByMunicipalityIdAndRegistrationNumberOrderByUsernameAsc(documentEntity.getMunicipalityId(), documentEntity.getRegistrationNumber());
+		final var responsibilities = documentResponsibilityRepository.findByMunicipalityIdAndRegistrationNumberOrderByPersonIdAsc(documentEntity.getMunicipalityId(), documentEntity.getRegistrationNumber());
 		return toDocument(documentEntity, responsibilities);
 	}
 }

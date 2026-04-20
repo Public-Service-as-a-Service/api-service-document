@@ -43,11 +43,14 @@ class DocumentEventPublisherTest {
 	}
 
 	@Test
-	void logResponsibilitiesChange_sortsNewResponsibilitiesByUsername() {
+	void logResponsibilitiesChange_sortsNewResponsibilitiesByPersonId() {
 		final var client = new TestEventLogClient();
 		final var publisher = publisherWithClient(client);
-		final var oldResp = List.of(responsibility("zeta"));
-		final var newResp = List.of(responsibility("beta"), responsibility("alpha"));
+		final var oldId = "zzzzzzzz-zzzz-zzzz-zzzz-zzzzzzzzzzzz";
+		final var midId = "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb";
+		final var lowId = "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa";
+		final var oldResp = List.of(responsibility(oldId));
+		final var newResp = List.of(responsibility(midId), responsibility(lowId));
 
 		publisher.logResponsibilitiesChange(REGISTRATION_NUMBER, CHANGED_BY, oldResp, newResp, MUNICIPALITY_ID);
 
@@ -56,10 +59,10 @@ class DocumentEventPublisherTest {
 		assertThat(message)
 			.contains(REGISTRATION_NUMBER)
 			.contains(CHANGED_BY)
-			.contains("zeta")
-			.contains("alpha")
-			.contains("beta");
-		assertThat(message.indexOf("alpha")).isLessThan(message.indexOf("beta"));
+			.contains(oldId)
+			.contains(lowId)
+			.contains(midId);
+		assertThat(message.indexOf(lowId)).isLessThan(message.indexOf(midId));
 	}
 
 	@Test
@@ -104,11 +107,11 @@ class DocumentEventPublisherTest {
 		return props;
 	}
 
-	private static DocumentResponsibilityEntity responsibility(final String username) {
+	private static DocumentResponsibilityEntity responsibility(final String personId) {
 		return DocumentResponsibilityEntity.create()
 			.withMunicipalityId(MUNICIPALITY_ID)
 			.withRegistrationNumber(REGISTRATION_NUMBER)
-			.withUsername(username);
+			.withPersonId(personId);
 	}
 
 	private static final class TestEventLogClient implements EventLogClient {

@@ -7,7 +7,6 @@ import jakarta.persistence.criteria.Root;
 import jakarta.persistence.criteria.Subquery;
 import java.time.LocalDate;
 import java.util.List;
-import java.util.Locale;
 import java.util.Objects;
 import java.util.Optional;
 import org.springframework.data.jpa.domain.Specification;
@@ -62,13 +61,13 @@ public interface SearchSpecification {
 			final var subQuery = query.subquery(Long.class);
 			final var responsibilityRoot = subQuery.from(DocumentResponsibilityEntity.class);
 
-			final var usernamePredicates = responsibilities.stream()
+			final var personIdPredicates = responsibilities.stream()
 				.filter(Objects::nonNull)
-				.filter(responsibility -> responsibility.getUsername() != null && !responsibility.getUsername().isBlank())
-				.map(responsibility -> cb.equal(responsibilityRoot.get("username"), normalizeUsername(responsibility.getUsername())))
+				.filter(responsibility -> responsibility.getPersonId() != null && !responsibility.getPersonId().isBlank())
+				.map(responsibility -> cb.equal(responsibilityRoot.get("personId"), responsibility.getPersonId()))
 				.toList();
 
-			if (usernamePredicates.isEmpty()) {
+			if (personIdPredicates.isEmpty()) {
 				return cb.disjunction();
 			}
 
@@ -76,14 +75,10 @@ public interface SearchSpecification {
 				.where(
 					cb.equal(responsibilityRoot.get("municipalityId"), root.get(MUNICIPALITY_ID)),
 					cb.equal(responsibilityRoot.get("registrationNumber"), root.get(REGISTRATION_NUMBER)),
-					cb.or(usernamePredicates.toArray(new Predicate[0])));
+					cb.or(personIdPredicates.toArray(new Predicate[0])));
 
 			return cb.exists(subQuery);
 		};
-	}
-
-	private static String normalizeUsername(final String username) {
-		return username.trim().toLowerCase(Locale.ROOT);
 	}
 
 	private static Specification<DocumentEntity> matchesStatus(final List<DocumentStatus> statuses) {

@@ -2,6 +2,7 @@
     create table document (
         archive bit not null,
         confidential bit not null,
+        municipality_id varchar(4),
         revision integer not null,
         valid_from date,
         valid_to date,
@@ -11,7 +12,6 @@
         document_type_id varchar(255) not null,
         id varchar(255) not null,
         legal_citation varchar(255),
-        municipality_id varchar(255),
         registration_number varchar(255) not null,
         updated_by varchar(255),
         status enum ('ACTIVE','DRAFT','EXPIRED','REVOKED','SCHEDULED') not null,
@@ -35,35 +35,35 @@
     ) engine=InnoDB;
 
     create table document_responsibility (
+        municipality_id varchar(4) not null,
         created datetime(6),
         updated datetime(6),
+        person_id varchar(36) not null,
         created_by varchar(255),
         id varchar(255) not null,
-        municipality_id varchar(255) not null,
         registration_number varchar(255) not null,
         updated_by varchar(255),
-        username varchar(255) not null,
         primary key (id)
     ) engine=InnoDB;
 
     create table document_type (
+        municipality_id varchar(4),
         created datetime(6),
         last_updated datetime(6),
         created_by varchar(255),
         display_name varchar(255) not null,
         id varchar(255) not null,
         last_updated_by varchar(255),
-        municipality_id varchar(255),
         `type` varchar(255) not null,
         primary key (id)
     ) engine=InnoDB;
 
     create table registration_number_sequence (
+        municipality_id varchar(4),
         sequence_number integer,
         created datetime(6),
         modified datetime(6),
         id varchar(255) not null,
-        municipality_id varchar(255),
         primary key (id)
     ) engine=InnoDB;
 
@@ -89,13 +89,13 @@
        on document_metadata (`key`);
 
     create index ix_document_responsibility_lookup 
-       on document_responsibility (municipality_id, username);
+       on document_responsibility (municipality_id, person_id);
 
     create index ix_document_responsibility_document 
        on document_responsibility (municipality_id, registration_number);
 
     alter table if exists document_responsibility 
-       add constraint uq_document_responsibility unique (municipality_id, registration_number, username);
+       add constraint uq_document_responsibility unique (municipality_id, registration_number, person_id);
 
     create index ix_municipality_id_type 
        on document_type (municipality_id, `type`);

@@ -52,7 +52,7 @@ public class DocumentEntity {
 	@Column(name = "revision", nullable = false)
 	private int revision;
 
-	@Column(name = "municipality_id")
+	@Column(name = "municipality_id", length = 4)
 	private String municipalityId;
 
 	@Column(name = "registration_number", nullable = false, updatable = false)

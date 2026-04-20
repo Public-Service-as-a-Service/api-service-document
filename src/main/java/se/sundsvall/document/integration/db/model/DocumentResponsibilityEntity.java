@@ -19,10 +19,10 @@ import static org.hibernate.annotations.TimeZoneStorageType.NORMALIZE;
 @Entity
 @Table(name = "document_responsibility", uniqueConstraints = {
 	@UniqueConstraint(name = "uq_document_responsibility", columnNames = {
-		"municipality_id", "registration_number", "username"
+		"municipality_id", "registration_number", "person_id"
 	})
 }, indexes = {
-	@Index(name = "ix_document_responsibility_lookup", columnList = "municipality_id, username"),
+	@Index(name = "ix_document_responsibility_lookup", columnList = "municipality_id, person_id"),
 	@Index(name = "ix_document_responsibility_document", columnList = "municipality_id, registration_number")
 })
 @EntityListeners(DocumentResponsibilityEntityListener.class)
@@ -35,14 +35,14 @@ public class DocumentResponsibilityEntity implements Serializable {
 	@Column(name = "id")
 	private String id;
 
-	@Column(name = "municipality_id", nullable = false)
+	@Column(name = "municipality_id", nullable = false, length = 4)
 	private String municipalityId;
 
 	@Column(name = "registration_number", nullable = false)
 	private String registrationNumber;
 
-	@Column(name = "username", nullable = false)
-	private String username;
+	@Column(name = "person_id", nullable = false, length = 36)
+	private String personId;
 
 	@Column(name = "created_by")
 	private String createdBy;
@@ -101,16 +101,16 @@ public class DocumentResponsibilityEntity implements Serializable {
 		return this;
 	}
 
-	public String getUsername() {
-		return username;
+	public String getPersonId() {
+		return personId;
 	}
 
-	public void setUsername(final String username) {
-		this.username = username;
+	public void setPersonId(final String personId) {
+		this.personId = personId;
 	}
 
-	public DocumentResponsibilityEntity withUsername(final String username) {
-		this.username = username;
+	public DocumentResponsibilityEntity withPersonId(final String personId) {
+		this.personId = personId;
 		return this;
 	}
 
@@ -168,7 +168,7 @@ public class DocumentResponsibilityEntity implements Serializable {
 
 	@Override
 	public int hashCode() {
-		return Objects.hash(created, createdBy, id, municipalityId, username, registrationNumber, updated, updatedBy);
+		return Objects.hash(created, createdBy, id, municipalityId, personId, registrationNumber, updated, updatedBy);
 	}
 
 	@Override
@@ -180,14 +180,14 @@ public class DocumentResponsibilityEntity implements Serializable {
 			return false;
 		}
 		return Objects.equals(created, other.created) && Objects.equals(createdBy, other.createdBy) && Objects.equals(id, other.id) && Objects.equals(municipalityId, other.municipalityId)
-			&& Objects.equals(username, other.username) && Objects.equals(registrationNumber, other.registrationNumber) && Objects.equals(updated, other.updated) && Objects.equals(updatedBy, other.updatedBy);
+			&& Objects.equals(personId, other.personId) && Objects.equals(registrationNumber, other.registrationNumber) && Objects.equals(updated, other.updated) && Objects.equals(updatedBy, other.updatedBy);
 	}
 
 	@Override
 	public String toString() {
 		final var builder = new StringBuilder();
 		builder.append("DocumentResponsibilityEntity [id=").append(id).append(", municipalityId=").append(municipalityId).append(", registrationNumber=").append(registrationNumber)
-			.append(", username=").append(username).append(", createdBy=").append(createdBy).append(", created=").append(created).append(", updatedBy=").append(updatedBy).append(", updated=").append(updated).append("]");
+			.append(", personId=").append(personId).append(", createdBy=").append(createdBy).append(", created=").append(created).append(", updatedBy=").append(updatedBy).append(", updated=").append(updated).append("]");
 		return builder.toString();
 	}
 }

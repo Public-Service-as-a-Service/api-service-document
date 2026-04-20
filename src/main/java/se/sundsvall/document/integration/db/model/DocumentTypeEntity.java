@@ -32,7 +32,7 @@ public class DocumentTypeEntity {
 	@Column(name = "id")
 	private String id;
 
-	@Column(name = "municipality_id")
+	@Column(name = "municipality_id", length = 4)
 	private String municipalityId;
 
 	@Column(name = "`type`", nullable = false)

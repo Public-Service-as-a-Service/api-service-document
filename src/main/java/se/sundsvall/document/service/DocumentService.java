@@ -178,12 +178,12 @@ public class DocumentService {
 			throw Problem.valueOf(NOT_FOUND, ERROR_DOCUMENT_BY_REGISTRATION_NUMBER_NOT_FOUND.formatted(registrationNumber));
 		}
 
-		final var oldResponsibilities = documentResponsibilityRepository.findByMunicipalityIdAndRegistrationNumberOrderByUsernameAsc(municipalityId, registrationNumber);
+		final var oldResponsibilities = documentResponsibilityRepository.findByMunicipalityIdAndRegistrationNumberOrderByPersonIdAsc(municipalityId, registrationNumber);
 		final var newResponsibilities = toDocumentResponsibilityEntities(request.getResponsibilities(), municipalityId, registrationNumber, request.getChangedBy());
 
 		documentResponsibilityRepository.deleteByMunicipalityIdAndRegistrationNumber(municipalityId, registrationNumber);
-		// Force DELETE before INSERT so the (municipality_id, registration_number, username) unique constraint
-		// isn't violated when a username is both removed and re-added in the same call.
+		// Force DELETE before INSERT so the (municipality_id, registration_number, person_id) unique constraint
+		// isn't violated when a personId is both removed and re-added in the same call.
 		documentResponsibilityRepository.flush();
 		documentResponsibilityRepository.saveAll(newResponsibilities);
 
@@ -197,7 +197,7 @@ public class DocumentService {
 	}
 
 	private Document toDocumentWithResponsibilities(final DocumentEntity documentEntity) {
-		final var responsibilities = documentResponsibilityRepository.findByMunicipalityIdAndRegistrationNumberOrderByUsernameAsc(documentEntity.getMunicipalityId(), documentEntity.getRegistrationNumber());
+		final var responsibilities = documentResponsibilityRepository.findByMunicipalityIdAndRegistrationNumberOrderByPersonIdAsc(documentEntity.getMunicipalityId(), documentEntity.getRegistrationNumber());
 		return toDocument(documentEntity, responsibilities);
 	}
 

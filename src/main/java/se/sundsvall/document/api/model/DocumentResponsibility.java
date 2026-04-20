@@ -4,6 +4,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 import java.util.Objects;
+import se.sundsvall.dept44.common.validators.annotation.ValidUuid;
 
 import static io.swagger.v3.oas.annotations.media.Schema.RequiredMode.REQUIRED;
 
@@ -11,30 +12,31 @@ import static io.swagger.v3.oas.annotations.media.Schema.RequiredMode.REQUIRED;
 public class DocumentResponsibility {
 
 	@NotBlank
-	@Size(max = 255)
-	@Schema(description = "Username. Case-insensitive; stored lowercased.", examples = "username123", requiredMode = REQUIRED)
-	private String username;
+	@ValidUuid
+	@Size(max = 36)
+	@Schema(description = "Person ID of the responsible party.", examples = "6b8d4a1c-34e2-4f73-a5f1-b7c2e9a0d8c4", requiredMode = REQUIRED)
+	private String personId;
 
 	public static DocumentResponsibility create() {
 		return new DocumentResponsibility();
 	}
 
-	public String getUsername() {
-		return username;
+	public String getPersonId() {
+		return personId;
 	}
 
-	public void setUsername(final String username) {
-		this.username = username;
+	public void setPersonId(final String personId) {
+		this.personId = personId;
 	}
 
-	public DocumentResponsibility withUsername(final String username) {
-		this.username = username;
+	public DocumentResponsibility withPersonId(final String personId) {
+		this.personId = personId;
 		return this;
 	}
 
 	@Override
 	public int hashCode() {
-		return Objects.hash(username);
+		return Objects.hash(personId);
 	}
 
 	@Override
@@ -45,13 +47,13 @@ public class DocumentResponsibility {
 		if (!(obj instanceof final DocumentResponsibility other)) {
 			return false;
 		}
-		return Objects.equals(username, other.username);
+		return Objects.equals(personId, other.personId);
 	}
 
 	@Override
 	public String toString() {
 		final var builder = new StringBuilder();
-		builder.append("DocumentResponsibility [username=").append(username).append("]");
+		builder.append("DocumentResponsibility [personId=").append(personId).append("]");
 		return builder.toString();
 	}
 }

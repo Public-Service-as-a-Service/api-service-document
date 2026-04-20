@@ -7,6 +7,8 @@ import org.springframework.core.io.ClassPathResource;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.testcontainers.containers.MinIOContainer;
+import org.testcontainers.elasticsearch.ElasticsearchContainer;
+import org.testcontainers.utility.DockerImageName;
 import se.sundsvall.dept44.test.AbstractAppTest;
 import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
 import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
@@ -31,6 +33,13 @@ abstract class AbstractDocumentAppTest extends AbstractAppTest {
 
 	protected static final MinIOContainer MINIO = new MinIOContainer("minio/minio:RELEASE.2024-10-13T13-34-11Z");
 
+	// ES client 9.x resolves against a matching server. Security is disabled so the test can connect
+	// anonymously without bootstrapping certs/credentials.
+	protected static final ElasticsearchContainer ELASTICSEARCH = new ElasticsearchContainer(
+		DockerImageName.parse("docker.elastic.co/elasticsearch/elasticsearch:9.0.0"))
+			.withEnv("xpack.security.enabled", "false")
+			.withEnv("discovery.type", "single-node");
+
 	private static final List<String> SEEDED_OBJECT_KEYS = List.of(
 		"d35254ce-d26c-47e3-806f-4cf68cf2fa56",
 		"3b570ff2-b631-4584-a9fb-77dce2f6d85b",
@@ -42,6 +51,7 @@ abstract class AbstractDocumentAppTest extends AbstractAppTest {
 
 	static {
 		MINIO.start();
+		ELASTICSEARCH.start();
 		try (var s3 = buildSeedClient()) {
 			s3.createBucket(CreateBucketRequest.builder().bucket(S3_BUCKET).build());
 			final var bytes = readSeedImage();
@@ -66,6 +76,11 @@ abstract class AbstractDocumentAppTest extends AbstractAppTest {
 		registry.add("document.storage.s3.access-key", MINIO::getUserName);
 		registry.add("document.storage.s3.secret-key", MINIO::getPassword);
 		registry.add("document.storage.s3.path-style-access", () -> "true");
+	}
+
+	@DynamicPropertySource
+	static void elasticsearchProperties(DynamicPropertyRegistry registry) {
+		registry.add("spring.elasticsearch.uris", () -> "http://" + ELASTICSEARCH.getHttpHostAddress());
 	}
 
 	private static S3Client buildSeedClient() {

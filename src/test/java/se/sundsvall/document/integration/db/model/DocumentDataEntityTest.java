@@ -1,6 +1,7 @@
 package se.sundsvall.document.integration.db.model;
 
 import org.junit.jupiter.api.Test;
+import se.sundsvall.document.service.extraction.ExtractionStatus;
 
 import static com.google.code.beanmatchers.BeanMatchers.hasValidBeanConstructor;
 import static com.google.code.beanmatchers.BeanMatchers.hasValidBeanEquals;
@@ -32,13 +33,19 @@ class DocumentDataEntityTest {
 		final var mimeType = "image/jpeg";
 		final var fileSizeInBytes = 100;
 		final var storageLocator = randomUUID().toString();
+		final var contentHash = "abc123";
+		final var extractedText = "extracted text content";
+		final var extractionStatus = ExtractionStatus.SUCCESS;
 
 		final var bean = DocumentDataEntity.create()
 			.withFileName(fileName)
 			.withId(id)
 			.withMimeType(mimeType)
 			.withFileSizeInBytes(fileSizeInBytes)
-			.withStorageLocator(storageLocator);
+			.withStorageLocator(storageLocator)
+			.withContentHash(contentHash)
+			.withExtractedText(extractedText)
+			.withExtractionStatus(extractionStatus);
 
 		assertThat(bean).isNotNull().hasNoNullFieldsOrProperties();
 		assertThat(bean.getFileName()).isEqualTo(fileName);
@@ -46,6 +53,9 @@ class DocumentDataEntityTest {
 		assertThat(bean.getMimeType()).isEqualTo(mimeType);
 		assertThat(bean.getFileSizeInBytes()).isEqualTo(fileSizeInBytes);
 		assertThat(bean.getStorageLocator()).isEqualTo(storageLocator);
+		assertThat(bean.getContentHash()).isEqualTo(contentHash);
+		assertThat(bean.getExtractedText()).isEqualTo(extractedText);
+		assertThat(bean.getExtractionStatus()).isEqualTo(extractionStatus);
 	}
 
 	@Test

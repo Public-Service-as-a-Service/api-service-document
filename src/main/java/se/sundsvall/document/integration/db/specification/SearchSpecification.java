@@ -43,7 +43,7 @@ public interface SearchSpecification {
 
 	static Specification<DocumentEntity> withSearchParameters(final DocumentParameters parameters, final List<DocumentStatus> effectiveStatuses) {
 		return onlyLatestRevisionOfDocuments(parameters.isOnlyLatestRevision(), effectiveStatuses, effectiveConfidentialValues(parameters.isIncludeConfidential()))
-			.and(matchesMunicipalityId(parameters.getMunicipalityId(), false))
+			.and(matchesMunicipalityId(parameters.getMunicipalityId()))
 			.and(includeConfidentialDocuments(parameters.isIncludeConfidential()))
 			.and(matchesStatus(effectiveStatuses))
 			.and(matchesType(parameters.getDocumentTypes()))
@@ -218,24 +218,6 @@ public interface SearchSpecification {
 		};
 	}
 
-	static Specification<DocumentEntity> withSearchQuery(String query, boolean includeConfidential, boolean onlyLatestRevision, String municipalityId, List<DocumentStatus> effectiveStatuses) {
-		final var queryString = toQueryString(query);
-
-		return onlyLatestRevisionOfDocuments(onlyLatestRevision, effectiveStatuses, effectiveConfidentialValues(includeConfidential))
-			.and(matchesMunicipalityId(municipalityId, false))
-			.and(matchesStatus(effectiveStatuses))
-			.and(matchesCreatedBy(queryString)
-				.or(matchesDescription(queryString))
-				.or(matchesMunicipalityId(queryString, true))
-				.or(matchesRegistrationNumber(queryString))
-				.or(matchesFileName(queryString))
-				.or(matchesMimeType(queryString))
-				.or(matchesMetadataKey(queryString))
-				.or(matchesMetadataValue(queryString)))
-			.and(includeConfidentialDocuments(includeConfidential))
-			.and(distinct());
-	}
-
 	private static Specification<DocumentEntity> onlyLatestRevisionOfDocuments(boolean onlyLatestRevision, List<DocumentStatus> effectiveStatuses, List<Boolean> effectiveConfidentialValues) {
 		if (!onlyLatestRevision) {
 			return (root, query, cb) -> cb.and(); // Do not add any filter to return all documents regardless of revision
@@ -277,54 +259,7 @@ public interface SearchSpecification {
 		};
 	}
 
-	private static Specification<DocumentEntity> matchesCreatedBy(String query) {
-		return (entity, cq, cb) -> cb.like(cb.lower(entity.get(CREATED_BY)), query);
-	}
-
-	private static Specification<DocumentEntity> matchesDescription(String query) {
-		return (entity, cq, cb) -> cb.like(cb.lower(entity.get(DESCRIPTION)), query);
-	}
-
-	private static Specification<DocumentEntity> matchesMunicipalityId(String query, boolean like) {
-		if (like) {
-			return (entity, cq, cb) -> cb.like(cb.lower(entity.get(MUNICIPALITY_ID)), query);
-		} else {
-			return (entity, cq, cb) -> cb.equal(cb.lower(entity.get(MUNICIPALITY_ID)), query);
-		}
-	}
-
-	private static Specification<DocumentEntity> matchesRegistrationNumber(String query) {
-		return (entity, cq, cb) -> cb.like(cb.lower(entity.get(REGISTRATION_NUMBER)), query);
-	}
-
-	private static Specification<DocumentEntity> matchesFileName(String query) {
-		return (entity, cq, cb) -> cb.like(cb.lower(entity.join(DOCUMENT_DATA, LEFT).get(FILE_NAME)), query);
-	}
-
-	private static Specification<DocumentEntity> matchesMimeType(String query) {
-		return (entity, cq, cb) -> cb.like(cb.lower(entity.join(DOCUMENT_DATA, LEFT).get(MIME_TYPE)), query);
-	}
-
-	private static Specification<DocumentEntity> matchesMetadataKey(String query) {
-		return (entity, cq, cb) -> cb.like(cb.lower(entity.join(METADATA, LEFT).get(KEY)), query);
-	}
-
-	private static Specification<DocumentEntity> matchesMetadataValue(String query) {
-		return (entity, cq, cb) -> cb.like(cb.lower(entity.join(METADATA, LEFT).get(VALUE)), query);
-	}
-
-	private static Specification<DocumentEntity> distinct() {
-		return (entity, cq, cb) -> {
-			cq.distinct(true);
-			return cb.and();
-		};
-	}
-
-	private static String toQueryString(String query) {
-		return Optional.ofNullable(query)
-			.map(String::trim)
-			.map(String::toLowerCase)
-			.map(str -> str.replace('*', '%'))
-			.orElse(EMPTY);
+	private static Specification<DocumentEntity> matchesMunicipalityId(String query) {
+		return (entity, cq, cb) -> cb.equal(cb.lower(entity.get(MUNICIPALITY_ID)), query);
 	}
 }

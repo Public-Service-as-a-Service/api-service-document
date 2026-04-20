@@ -431,6 +431,9 @@ class DocumentRepositoryTest {
 		assertThat(result).isNotNull();
 		assertThat(result.getContent()).isEmpty();
 	}
+	// DB-side free-text search (documentRepository.search(...)) was retired in favour of ES.
+	// The searchByParameters tests below still cover the structured filter endpoint, which remains
+	// DB-backed. Free-text search coverage now lives in DocumentSearchIT (ES).
 
 	private static Stream<Arguments> searchByParametersArgumentsProvider() {
 		return Stream.of(

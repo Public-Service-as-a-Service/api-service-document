@@ -19,15 +19,16 @@ import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
+import org.springframework.data.elasticsearch.core.ElasticsearchOperations;
+import org.springframework.data.elasticsearch.core.SearchHits;
 import org.springframework.http.ResponseEntity;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.web.multipart.MultipartFile;
@@ -41,6 +42,7 @@ import se.sundsvall.document.api.model.DocumentResponsibilitiesUpdateRequest;
 import se.sundsvall.document.api.model.DocumentResponsibility;
 import se.sundsvall.document.api.model.DocumentStatus;
 import se.sundsvall.document.api.model.DocumentUpdateRequest;
+import se.sundsvall.document.integration.db.DocumentDataRepository;
 import se.sundsvall.document.integration.db.DocumentRepository;
 import se.sundsvall.document.integration.db.DocumentResponsibilityRepository;
 import se.sundsvall.document.integration.db.DocumentTypeRepository;
@@ -50,9 +52,12 @@ import se.sundsvall.document.integration.db.model.DocumentEntity;
 import se.sundsvall.document.integration.db.model.DocumentMetadataEmbeddable;
 import se.sundsvall.document.integration.db.model.DocumentResponsibilityEntity;
 import se.sundsvall.document.integration.db.model.DocumentTypeEntity;
+import se.sundsvall.document.integration.elasticsearch.DocumentIndexEntity;
 import se.sundsvall.document.integration.eventlog.EventLogClient;
 import se.sundsvall.document.integration.eventlog.configuration.EventlogProperties;
+import se.sundsvall.document.service.extraction.TextExtractor;
 import se.sundsvall.document.service.storage.BinaryStore;
+import se.sundsvall.document.service.storage.PutResult;
 import se.sundsvall.document.service.storage.StorageRef;
 
 import static generated.se.sundsvall.eventlog.EventType.UPDATE;
@@ -68,7 +73,6 @@ import static org.assertj.core.api.Assertions.within;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.fail;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyMap;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -128,6 +132,21 @@ class DocumentServiceTest {
 	private BinaryStore binaryStoreMock;
 
 	@Mock
+	private DocumentDataRepository documentDataRepositoryMock;
+
+	@Mock
+	private TextExtractor textExtractorMock;
+
+	@Mock
+	private ApplicationEventPublisher applicationEventPublisherMock;
+
+	@Mock
+	private ElasticsearchOperations elasticsearchOperationsMock;
+
+	@Mock
+	private SearchHits<DocumentIndexEntity> searchHitsMock;
+
+	@Mock
 	private HttpServletResponse httpServletResponseMock;
 
 	@Mock
@@ -157,9 +176,13 @@ class DocumentServiceTest {
 			documentRepositoryMock,
 			documentResponsibilityRepositoryMock,
 			documentTypeRepositoryMock,
+			documentDataRepositoryMock,
 			registrationNumberServiceMock,
 			statusPolicyMock,
-			new DocumentEventPublisher(Optional.of(eventLogClient), Optional.of(eventlogPropertiesMock)));
+			new DocumentEventPublisher(Optional.of(eventLogClient), Optional.of(eventlogPropertiesMock)),
+			textExtractorMock,
+			applicationEventPublisherMock,
+			Optional.of(elasticsearchOperationsMock));
 	}
 
 	@Test
@@ -181,7 +204,8 @@ class DocumentServiceTest {
 
 		when(documentTypeRepositoryMock.findByMunicipalityIdAndType(MUNICIPALITY_ID, DOCUMENT_TYPE)).thenReturn(Optional.of(DocumentTypeEntity.create().withType(DOCUMENT_TYPE)));
 		when(registrationNumberServiceMock.generateRegistrationNumber(MUNICIPALITY_ID)).thenReturn(REGISTRATION_NUMBER);
-		when(binaryStoreMock.put(any(InputStream.class), anyLong(), anyString(), anyMap())).thenReturn(StorageRef.s3(newLocator));
+		when(binaryStoreMock.put(any(InputStream.class), anyLong(), anyString(), anyMap())).thenReturn(new PutResult(StorageRef.s3(newLocator), "hash"));
+		when(textExtractorMock.extract(any(InputStream.class), anyString(), anyLong())).thenReturn(TextExtractor.ExtractedText.unsupported("text/plain"));
 		when(documentRepositoryMock.save(any(DocumentEntity.class))).thenAnswer(invocation -> invocation.getArgument(0));
 		when(documentResponsibilityRepositoryMock.saveAll(any())).thenAnswer(invocation -> invocation.getArgument(0));
 
@@ -237,7 +261,8 @@ class DocumentServiceTest {
 
 		when(documentTypeRepositoryMock.findByMunicipalityIdAndType(MUNICIPALITY_ID, DOCUMENT_TYPE)).thenReturn(Optional.of(DocumentTypeEntity.create().withType(DOCUMENT_TYPE)));
 		when(registrationNumberServiceMock.generateRegistrationNumber(MUNICIPALITY_ID)).thenReturn(REGISTRATION_NUMBER);
-		when(binaryStoreMock.put(any(InputStream.class), anyLong(), anyString(), anyMap())).thenAnswer(invocation -> StorageRef.s3(randomUUID().toString()));
+		when(binaryStoreMock.put(any(InputStream.class), anyLong(), anyString(), anyMap())).thenAnswer(invocation -> new PutResult(StorageRef.s3(randomUUID().toString()), "hash"));
+		when(textExtractorMock.extract(any(InputStream.class), anyString(), anyLong())).thenReturn(TextExtractor.ExtractedText.unsupported("text/plain"));
 		when(documentRepositoryMock.save(any(DocumentEntity.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
 		// Act
@@ -402,60 +427,22 @@ class DocumentServiceTest {
 		verify(documentRepositoryMock).findByMunicipalityIdAndRegistrationNumberAndConfidentialityConfidentialIn(MUNICIPALITY_ID, REGISTRATION_NUMBER, PUBLIC.getValue(), pageRequest);
 	}
 
-	@ParameterizedTest
-	@ValueSource(booleans = {
-		true, false
-	})
-	void searchConfidential(boolean includeConfidential) {
+	@Test
+	void search_whenEsReturnsNoHits_returnsEmptyPage() {
 
 		// Arrange
-		final var search = "search-string";
 		final var pageRequest = PageRequest.of(0, 10, Sort.by(DESC, "revision"));
-
-		when(pageMock.getContent()).thenReturn(List.of(createDocumentEntity()));
-		when(pageMock.getPageable()).thenReturn(pageRequest);
-		when(documentRepositoryMock.search(any(), anyBoolean(), anyBoolean(), any(), any(), any())).thenReturn(pageMock);
-		when(statusPolicyMock.effectivePublishedStatuses(any())).thenReturn(java.util.List.of(DocumentStatus.SCHEDULED, DocumentStatus.ACTIVE, DocumentStatus.EXPIRED));
+		org.mockito.Mockito.lenient().when(statusPolicyMock.effectivePublishedStatuses(any())).thenReturn(java.util.List.of(DocumentStatus.SCHEDULED, DocumentStatus.ACTIVE, DocumentStatus.EXPIRED));
+		when(elasticsearchOperationsMock.search(any(org.springframework.data.elasticsearch.core.query.Query.class), eq(DocumentIndexEntity.class))).thenReturn(searchHitsMock);
+		when(searchHitsMock.getSearchHits()).thenReturn(java.util.List.of());
 
 		// Act
-		final var result = documentService.search(search, includeConfidential, false, pageRequest, MUNICIPALITY_ID);
+		final var result = documentService.search("no-hits", false, false, pageRequest, MUNICIPALITY_ID);
 
 		// Assert
 		assertThat(result).isNotNull();
-		assertThat(result.getDocuments())
-			.extracting(Document::getCreated, Document::getCreatedBy, Document::getId, Document::getMunicipalityId, Document::getRegistrationNumber, Document::getRevision)
-			.containsExactly(tuple(CREATED, CREATED_BY, ID, MUNICIPALITY_ID, REGISTRATION_NUMBER, REVISION));
-		assertThat(result.getDocuments().getFirst().getDocumentData()).hasSize(1);
-
-		verify(documentRepositoryMock).search(eq(search), eq(includeConfidential), eq(false), eq(pageRequest), eq(MUNICIPALITY_ID), any());
-	}
-
-	@ParameterizedTest
-	@ValueSource(booleans = {
-		true, false
-	})
-	void searchLatestRevision(boolean onlyLatestRevision) {
-
-		// Arrange
-		final var search = "search-string";
-		final var pageRequest = PageRequest.of(0, 10, Sort.by(DESC, "revision"));
-
-		when(pageMock.getContent()).thenReturn(List.of(createDocumentEntity()));
-		when(pageMock.getPageable()).thenReturn(pageRequest);
-		when(documentRepositoryMock.search(any(), anyBoolean(), anyBoolean(), any(), any(), any())).thenReturn(pageMock);
-		when(statusPolicyMock.effectivePublishedStatuses(any())).thenReturn(java.util.List.of(DocumentStatus.SCHEDULED, DocumentStatus.ACTIVE, DocumentStatus.EXPIRED));
-
-		// Act
-		final var result = documentService.search(search, false, onlyLatestRevision, pageRequest, MUNICIPALITY_ID);
-
-		// Assert
-		assertThat(result).isNotNull();
-		assertThat(result.getDocuments())
-			.extracting(Document::getCreated, Document::getCreatedBy, Document::getId, Document::getMunicipalityId, Document::getRegistrationNumber, Document::getRevision)
-			.containsExactly(tuple(CREATED, CREATED_BY, ID, MUNICIPALITY_ID, REGISTRATION_NUMBER, REVISION));
-		assertThat(result.getDocuments().getFirst().getDocumentData()).hasSize(1);
-
-		verify(documentRepositoryMock).search(eq(search), eq(false), eq(onlyLatestRevision), eq(pageRequest), eq(MUNICIPALITY_ID), any());
+		assertThat(result.getDocuments()).isEmpty();
+		verify(elasticsearchOperationsMock).search(any(org.springframework.data.elasticsearch.core.query.Query.class), eq(DocumentIndexEntity.class));
 	}
 
 	@Test

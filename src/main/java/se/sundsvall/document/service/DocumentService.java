@@ -1,12 +1,20 @@
 package se.sundsvall.document.service;
 
+import co.elastic.clients.elasticsearch._types.FieldValue;
 import java.time.LocalDate;
+import java.util.Comparator;
 import java.util.EnumSet;
+import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.elasticsearch.client.elc.NativeQuery;
+import org.springframework.data.elasticsearch.core.ElasticsearchOperations;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import se.sundsvall.dept44.problem.Problem;
@@ -19,11 +27,15 @@ import se.sundsvall.document.api.model.DocumentResponsibilitiesUpdateRequest;
 import se.sundsvall.document.api.model.DocumentStatus;
 import se.sundsvall.document.api.model.DocumentUpdateRequest;
 import se.sundsvall.document.api.model.PagedDocumentResponse;
+import se.sundsvall.document.integration.db.DocumentDataRepository;
 import se.sundsvall.document.integration.db.DocumentRepository;
 import se.sundsvall.document.integration.db.DocumentResponsibilityRepository;
 import se.sundsvall.document.integration.db.DocumentTypeRepository;
 import se.sundsvall.document.integration.db.model.DocumentEntity;
 import se.sundsvall.document.integration.db.model.DocumentResponsibilityEntity;
+import se.sundsvall.document.integration.elasticsearch.DocumentIndexEntity;
+import se.sundsvall.document.service.extraction.TextExtractor;
+import se.sundsvall.document.service.indexing.DocumentIndexingEvent;
 import se.sundsvall.document.service.storage.BinaryStore;
 
 import static java.util.Objects.nonNull;
@@ -55,33 +67,49 @@ public class DocumentService {
 	private final DocumentRepository documentRepository;
 	private final DocumentResponsibilityRepository documentResponsibilityRepository;
 	private final DocumentTypeRepository documentTypeRepository;
+	private final DocumentDataRepository documentDataRepository;
 	private final RegistrationNumberService registrationNumberService;
 	private final DocumentStatusPolicy statusPolicy;
 	private final DocumentEventPublisher eventPublisher;
+	private final TextExtractor textExtractor;
+	private final ApplicationEventPublisher applicationEventPublisher;
+	// Optional so the junit profile (which excludes the ES auto-configurations) can still boot
+	// the Spring context for WebTestClient tests that don't exercise search. In production ES is
+	// always present; {@link #search(String, boolean, boolean, Pageable, String)} will throw if
+	// it is ever called without ES wired.
+	private final java.util.Optional<ElasticsearchOperations> elasticsearchOperations;
 
 	public DocumentService(
 		final BinaryStore binaryStore,
 		final DocumentRepository documentRepository,
 		final DocumentResponsibilityRepository documentResponsibilityRepository,
 		final DocumentTypeRepository documentTypeRepository,
+		final DocumentDataRepository documentDataRepository,
 		final RegistrationNumberService registrationNumberService,
 		final DocumentStatusPolicy statusPolicy,
-		final DocumentEventPublisher eventPublisher) {
+		final DocumentEventPublisher eventPublisher,
+		final TextExtractor textExtractor,
+		final ApplicationEventPublisher applicationEventPublisher,
+		final java.util.Optional<ElasticsearchOperations> elasticsearchOperations) {
 
 		this.binaryStore = binaryStore;
 		this.documentRepository = documentRepository;
 		this.documentResponsibilityRepository = documentResponsibilityRepository;
 		this.documentTypeRepository = documentTypeRepository;
+		this.documentDataRepository = documentDataRepository;
 		this.registrationNumberService = registrationNumberService;
 		this.statusPolicy = statusPolicy;
 		this.eventPublisher = eventPublisher;
+		this.textExtractor = textExtractor;
+		this.applicationEventPublisher = applicationEventPublisher;
+		this.elasticsearchOperations = elasticsearchOperations;
 	}
 
 	public Document create(final DocumentCreateRequest documentCreateRequest, final DocumentFiles documentFiles, final String municipalityId) {
 
 		validateValidityWindow(documentCreateRequest.getValidFrom(), documentCreateRequest.getValidTo());
 
-		final var documentDataEntities = toDocumentDataEntities(documentFiles, binaryStore, municipalityId);
+		final var documentDataEntities = toDocumentDataEntities(documentFiles, binaryStore, textExtractor, documentDataRepository, municipalityId);
 		final var registrationNumber = registrationNumberService.generateRegistrationNumber(municipalityId);
 		final var documentTypeEntity = documentTypeRepository.findByMunicipalityIdAndType(municipalityId, documentCreateRequest.getType())
 			.orElseThrow(() -> Problem.valueOf(NOT_FOUND, ERROR_DOCUMENT_TYPE_NOT_FOUND.formatted(documentCreateRequest.getType(), municipalityId)));
@@ -93,6 +121,8 @@ public class DocumentService {
 
 		final var savedDocumentEntity = documentRepository.save(documentEntity);
 		final var responsibilities = documentResponsibilityRepository.saveAll(toDocumentResponsibilityEntities(documentCreateRequest.getResponsibilities(), municipalityId, registrationNumber, documentCreateRequest.getCreatedBy()));
+
+		applicationEventPublisher.publishEvent(DocumentIndexingEvent.reindex(savedDocumentEntity.getId()));
 
 		return toDocument(savedDocumentEntity, responsibilities);
 	}
@@ -119,7 +149,59 @@ public class DocumentService {
 
 	public PagedDocumentResponse search(String query, boolean includeConfidential, boolean onlyLatestRevision, Pageable pageable, String municipalityId) {
 		final var effectiveStatuses = statusPolicy.effectivePublishedStatuses(null);
-		return toPagedDocumentResponseWithResponsibilities(documentRepository.search(query, includeConfidential, onlyLatestRevision, pageable, municipalityId, effectiveStatuses));
+
+		final var esQuery = NativeQuery.builder()
+			.withQuery(q -> q.bool(b -> {
+				if (query != null && !query.isBlank()) {
+					b.must(m -> m.multiMatch(mm -> mm
+						.query(query)
+						.fields("extractedText", "description", "fileName", "mimeType",
+							"registrationNumber", "createdBy", "metadataKeys", "metadataValues")));
+				}
+				b.filter(f -> f.term(t -> t.field("municipalityId").value(municipalityId)));
+				if (!includeConfidential) {
+					b.filter(f -> f.term(t -> t.field("confidential").value(false)));
+				}
+				if (effectiveStatuses != null && !effectiveStatuses.isEmpty()) {
+					b.filter(f -> f.terms(t -> t.field("status").terms(tt -> tt.value(
+						effectiveStatuses.stream().map(s -> FieldValue.of(s.name())).toList()))));
+				}
+				return b;
+			}))
+			.withPageable(pageable)
+			.build();
+
+		final var hits = elasticsearchOperations
+			.orElseThrow(() -> Problem.valueOf(org.springframework.http.HttpStatus.SERVICE_UNAVAILABLE, "Search is not available — Elasticsearch is not configured"))
+			.search(esQuery, DocumentIndexEntity.class);
+
+		// Collapse the per-file hits into unique documents, preserving ES relevance order.
+		final var orderedDocumentIds = hits.getSearchHits().stream()
+			.map(h -> h.getContent().getDocumentId())
+			.distinct()
+			.toList();
+
+		if (orderedDocumentIds.isEmpty()) {
+			return toPagedDocumentResponseWithResponsibilities(new PageImpl<>(List.of(), pageable, 0));
+		}
+
+		final var byId = documentRepository.findAllById(orderedDocumentIds).stream()
+			.collect(Collectors.toMap(DocumentEntity::getId, e -> e, (a, b) -> a));
+
+		var hydrated = orderedDocumentIds.stream()
+			.map(byId::get)
+			.filter(Objects::nonNull)
+			.toList();
+
+		if (onlyLatestRevision) {
+			// Reduce to one entity per registrationNumber (the one with the highest revision).
+			hydrated = hydrated.stream()
+				.collect(Collectors.groupingBy(DocumentEntity::getRegistrationNumber)).values().stream()
+				.map(group -> group.stream().max(Comparator.comparingInt(DocumentEntity::getRevision)).orElseThrow())
+				.toList();
+		}
+
+		return toPagedDocumentResponseWithResponsibilities(new PageImpl<>(hydrated, pageable, hits.getTotalHits()));
 	}
 
 	public Document update(String registrationNumber, boolean includeConfidential, DocumentUpdateRequest documentUpdateRequest, String municipalityId) {
@@ -138,7 +220,9 @@ public class DocumentService {
 			existingDocumentEntity.setType(documentTypeEntity);
 		}
 
-		return toDocumentWithResponsibilities(documentRepository.save(existingDocumentEntity));
+		final var saved = documentRepository.save(existingDocumentEntity);
+		applicationEventPublisher.publishEvent(DocumentIndexingEvent.reindex(saved.getId()));
+		return toDocumentWithResponsibilities(saved);
 	}
 
 	public Document publish(String registrationNumber, String updatedBy, String municipalityId, Integer revision) {
@@ -170,6 +254,8 @@ public class DocumentService {
 		eventPublisher.logConfidentialityChange(registrationNumber, confidentialityUpdateRequest, municipalityId);
 
 		documentRepository.saveAll(documentEntities);
+		// Re-index every revision — the confidential flag is part of ES filters, so all must stay in sync.
+		documentEntities.forEach(documentEntity -> applicationEventPublisher.publishEvent(DocumentIndexingEvent.reindex(documentEntity.getId())));
 	}
 
 	public void updateResponsibilities(final String registrationNumber, final DocumentResponsibilitiesUpdateRequest request, final String municipalityId) {
@@ -236,7 +322,9 @@ public class DocumentService {
 
 		eventPublisher.logStatusChange(registrationNumber, documentEntity.getRevision(), previousStatus, newStatus, updatedBy, municipalityId);
 
-		return toDocumentWithResponsibilities(documentRepository.save(documentEntity));
+		final var saved = documentRepository.save(documentEntity);
+		applicationEventPublisher.publishEvent(DocumentIndexingEvent.reindex(saved.getId()));
+		return toDocumentWithResponsibilities(saved);
 	}
 
 	private DocumentEntity findDocumentForStatusTransition(String municipalityId, String registrationNumber, Integer revision) {

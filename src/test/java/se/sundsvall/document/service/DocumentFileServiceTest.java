@@ -19,12 +19,14 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.http.ContentDisposition;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.web.multipart.MultipartFile;
 import se.sundsvall.dept44.problem.ThrowableProblem;
 import se.sundsvall.document.api.model.DocumentDataCreateRequest;
 import se.sundsvall.document.api.model.DocumentFiles;
+import se.sundsvall.document.integration.db.DocumentDataRepository;
 import se.sundsvall.document.integration.db.DocumentRepository;
 import se.sundsvall.document.integration.db.DocumentResponsibilityRepository;
 import se.sundsvall.document.integration.db.model.ConfidentialityEmbeddable;
@@ -32,7 +34,9 @@ import se.sundsvall.document.integration.db.model.DocumentDataEntity;
 import se.sundsvall.document.integration.db.model.DocumentEntity;
 import se.sundsvall.document.integration.db.model.DocumentMetadataEmbeddable;
 import se.sundsvall.document.integration.db.model.DocumentTypeEntity;
+import se.sundsvall.document.service.extraction.TextExtractor;
 import se.sundsvall.document.service.storage.BinaryStore;
+import se.sundsvall.document.service.storage.PutResult;
 import se.sundsvall.document.service.storage.StorageRef;
 
 import static java.time.OffsetDateTime.now;
@@ -104,13 +108,25 @@ class DocumentFileServiceTest {
 	@Captor
 	private ArgumentCaptor<DocumentEntity> documentEntityCaptor;
 
+	@Mock
+	private DocumentDataRepository documentDataRepositoryMock;
+
+	@Mock
+	private TextExtractor textExtractorMock;
+
+	@Mock
+	private ApplicationEventPublisher applicationEventPublisherMock;
+
 	@BeforeEach
 	void setUp() {
 		documentFileService = new DocumentFileService(
 			binaryStoreMock,
 			documentRepositoryMock,
 			documentResponsibilityRepositoryMock,
-			statusPolicyMock);
+			documentDataRepositoryMock,
+			statusPolicyMock,
+			textExtractorMock,
+			applicationEventPublisherMock);
 	}
 
 	@Test
@@ -310,7 +326,8 @@ class DocumentFileServiceTest {
 		final var multipartFile = (MultipartFile) new MockMultipartFile("file", file.getName(), "image/png", toByteArray(new FileInputStream(file)));
 
 		when(documentRepositoryMock.findTopByMunicipalityIdAndRegistrationNumberAndConfidentialityConfidentialInOrderByRevisionDesc(MUNICIPALITY_ID, REGISTRATION_NUMBER, CONFIDENTIAL_AND_PUBLIC.getValue())).thenReturn(Optional.of(existingEntity));
-		when(binaryStoreMock.put(any(InputStream.class), anyLong(), anyString(), anyMap())).thenReturn(StorageRef.s3(randomUUID().toString()));
+		when(binaryStoreMock.put(any(InputStream.class), anyLong(), anyString(), anyMap())).thenReturn(new PutResult(StorageRef.s3(randomUUID().toString()), "hash"));
+		when(textExtractorMock.extract(any(InputStream.class), anyString(), anyLong())).thenReturn(TextExtractor.ExtractedText.unsupported("image/png"));
 		when(binaryStoreMock.copy(any(StorageRef.class))).thenAnswer(invocation -> StorageRef.s3(randomUUID().toString()));
 		when(documentRepositoryMock.save(any(DocumentEntity.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
@@ -351,7 +368,8 @@ class DocumentFileServiceTest {
 		final var multipartFile = (MultipartFile) new MockMultipartFile("file", FILE_NAME, "image/png", toByteArray(new FileInputStream(file)));
 
 		when(documentRepositoryMock.findTopByMunicipalityIdAndRegistrationNumberAndConfidentialityConfidentialInOrderByRevisionDesc(MUNICIPALITY_ID, REGISTRATION_NUMBER, CONFIDENTIAL_AND_PUBLIC.getValue())).thenReturn(Optional.of(existingEntity));
-		when(binaryStoreMock.put(any(InputStream.class), anyLong(), anyString(), anyMap())).thenReturn(StorageRef.s3(randomUUID().toString()));
+		when(binaryStoreMock.put(any(InputStream.class), anyLong(), anyString(), anyMap())).thenReturn(new PutResult(StorageRef.s3(randomUUID().toString()), "hash"));
+		when(textExtractorMock.extract(any(InputStream.class), anyString(), anyLong())).thenReturn(TextExtractor.ExtractedText.unsupported("image/png"));
 		when(binaryStoreMock.copy(any(StorageRef.class))).thenAnswer(invocation -> StorageRef.s3(randomUUID().toString()));
 		when(documentRepositoryMock.save(any(DocumentEntity.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
@@ -411,7 +429,8 @@ class DocumentFileServiceTest {
 		final var documentFiles = DocumentFiles.create().withFiles(List.of(multipartFile2, multipartFile3));
 
 		when(documentRepositoryMock.findTopByMunicipalityIdAndRegistrationNumberAndConfidentialityConfidentialInOrderByRevisionDesc(MUNICIPALITY_ID, REGISTRATION_NUMBER, CONFIDENTIAL_AND_PUBLIC.getValue())).thenReturn(Optional.of(existingEntity));
-		when(binaryStoreMock.put(any(InputStream.class), anyLong(), anyString(), anyMap())).thenReturn(StorageRef.s3(randomUUID().toString()));
+		when(binaryStoreMock.put(any(InputStream.class), anyLong(), anyString(), anyMap())).thenReturn(new PutResult(StorageRef.s3(randomUUID().toString()), "hash"));
+		when(textExtractorMock.extract(any(InputStream.class), anyString(), anyLong())).thenReturn(TextExtractor.ExtractedText.unsupported("image/png"));
 		when(binaryStoreMock.copy(any(StorageRef.class))).thenAnswer(invocation -> StorageRef.s3(randomUUID().toString()));
 		when(documentRepositoryMock.save(any(DocumentEntity.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
@@ -442,6 +461,7 @@ class DocumentFileServiceTest {
 
 		when(documentRepositoryMock.findTopByMunicipalityIdAndRegistrationNumberAndConfidentialityConfidentialInOrderByRevisionDesc(MUNICIPALITY_ID, REGISTRATION_NUMBER, CONFIDENTIAL_AND_PUBLIC.getValue())).thenReturn(Optional.of(documentEntity));
 		when(binaryStoreMock.copy(any(StorageRef.class))).thenAnswer(invocation -> StorageRef.s3(randomUUID().toString()));
+		when(documentRepositoryMock.save(any(DocumentEntity.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
 		documentFileService.deleteFile(REGISTRATION_NUMBER, DOCUMENT_DATA_ID, MUNICIPALITY_ID);
 

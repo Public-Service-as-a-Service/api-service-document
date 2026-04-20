@@ -32,13 +32,17 @@ import se.sundsvall.document.api.model.DocumentMetadata;
 import se.sundsvall.document.api.model.DocumentResponsibility;
 import se.sundsvall.document.api.model.DocumentStatus;
 import se.sundsvall.document.api.model.DocumentUpdateRequest;
+import se.sundsvall.document.integration.db.DocumentDataRepository;
 import se.sundsvall.document.integration.db.model.ConfidentialityEmbeddable;
 import se.sundsvall.document.integration.db.model.DocumentDataEntity;
 import se.sundsvall.document.integration.db.model.DocumentEntity;
 import se.sundsvall.document.integration.db.model.DocumentMetadataEmbeddable;
 import se.sundsvall.document.integration.db.model.DocumentResponsibilityEntity;
 import se.sundsvall.document.integration.db.model.DocumentTypeEntity;
+import se.sundsvall.document.service.extraction.ExtractionStatus;
+import se.sundsvall.document.service.extraction.TextExtractor;
 import se.sundsvall.document.service.storage.BinaryStore;
+import se.sundsvall.document.service.storage.PutResult;
 import se.sundsvall.document.service.storage.StorageRef;
 
 import static java.time.OffsetDateTime.now;
@@ -92,6 +96,12 @@ class DocumentMapperTest {
 
 	@Mock
 	private BinaryStore binaryStoreMock;
+
+	@Mock
+	private TextExtractor textExtractorMock;
+
+	@Mock
+	private DocumentDataRepository documentDataRepositoryMock;
 
 	@Test
 	void toDocumentEntityFromDocumentCreateRequest() {
@@ -536,10 +546,11 @@ class DocumentMapperTest {
 		final var multipartFile = (MultipartFile) new MockMultipartFile("file", fileName, mimeType, toByteArray(new FileInputStream(file)));
 		final var documents = DocumentFiles.create().withFiles(List.of(multipartFile));
 
-		when(binaryStoreMock.put(any(InputStream.class), anyLong(), anyString(), anyMap())).thenReturn(StorageRef.s3(newLocator));
+		when(binaryStoreMock.put(any(InputStream.class), anyLong(), anyString(), anyMap())).thenReturn(new PutResult(StorageRef.s3(newLocator), "deadbeef"));
+		when(textExtractorMock.extract(any(InputStream.class), anyString(), anyLong())).thenReturn(TextExtractor.ExtractedText.unsupported(mimeType));
 
 		// Act
-		final var result = DocumentMapper.toDocumentDataEntities(documents, binaryStoreMock, MUNICIPALITY_ID);
+		final var result = DocumentMapper.toDocumentDataEntities(documents, binaryStoreMock, textExtractorMock, documentDataRepositoryMock, MUNICIPALITY_ID);
 
 		// Assert
 		assertThat(result)
@@ -549,12 +560,16 @@ class DocumentMapperTest {
 				DocumentDataEntity::getFileName,
 				DocumentDataEntity::getMimeType,
 				DocumentDataEntity::getFileSizeInBytes,
-				DocumentDataEntity::getStorageLocator)
+				DocumentDataEntity::getStorageLocator,
+				DocumentDataEntity::getContentHash,
+				DocumentDataEntity::getExtractionStatus)
 			.containsExactly(tuple(
 				fileName,
 				mimeType,
 				file.length(),
-				newLocator));
+				newLocator,
+				"deadbeef",
+				ExtractionStatus.UNSUPPORTED));
 
 		verify(binaryStoreMock).put(
 			any(InputStream.class),
@@ -567,7 +582,7 @@ class DocumentMapperTest {
 	void toDocumentDataEntitiesFromMultipartWhenInputIsNull() {
 
 		// Act
-		final var result = DocumentMapper.toDocumentDataEntities(null, binaryStoreMock, MUNICIPALITY_ID);
+		final var result = DocumentMapper.toDocumentDataEntities(null, binaryStoreMock, textExtractorMock, documentDataRepositoryMock, MUNICIPALITY_ID);
 
 		// Assert
 		assertThat(result).isNull();

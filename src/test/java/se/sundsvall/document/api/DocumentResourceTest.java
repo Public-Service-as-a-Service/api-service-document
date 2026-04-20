@@ -29,6 +29,7 @@ import se.sundsvall.document.api.model.DocumentResponsibility;
 import se.sundsvall.document.api.model.DocumentUpdateRequest;
 import se.sundsvall.document.api.model.PagedDocumentResponse;
 import se.sundsvall.document.api.validation.DocumentTypeValidator;
+import se.sundsvall.document.service.DocumentFileService;
 import se.sundsvall.document.service.DocumentService;
 
 import static java.util.Collections.emptyList;
@@ -55,6 +56,9 @@ class DocumentResourceTest {
 
 	@MockitoBean
 	private DocumentService documentServiceMock;
+
+	@MockitoBean
+	private DocumentFileService documentFileServiceMock;
 
 	@MockitoBean
 	private DocumentTypeValidator validationUtilityMock;
@@ -553,7 +557,7 @@ class DocumentResourceTest {
 			.isEmpty();
 
 		// Assert
-		verify(documentServiceMock).readFile(eq(registrationNumber), eq(documentDataId), eq(false), eq(false), any(HttpServletResponse.class), eq("2281"));
+		verify(documentFileServiceMock).readFile(eq(registrationNumber), eq(documentDataId), eq(false), eq(false), any(HttpServletResponse.class), eq("2281"));
 	}
 
 	@Test
@@ -575,7 +579,7 @@ class DocumentResourceTest {
 			.isEmpty();
 
 		// Assert
-		verify(documentServiceMock).readFile(eq(registrationNumber), eq(documentDataId), eq(includeConfidential), eq(false), any(HttpServletResponse.class), eq("2281"));
+		verify(documentFileServiceMock).readFile(eq(registrationNumber), eq(documentDataId), eq(includeConfidential), eq(false), any(HttpServletResponse.class), eq("2281"));
 	}
 
 	@Test
@@ -591,7 +595,7 @@ class DocumentResourceTest {
 		multipartBodyBuilder.part("documentFile", "file-content").filename("test1.txt").contentType(TEXT_PLAIN);
 		multipartBodyBuilder.part("document", documentDataCreateRequest);
 
-		when(documentServiceMock.addOrReplaceFiles(any(), any(), any(), any())).thenReturn(Document.create());
+		when(documentFileServiceMock.addOrReplaceFiles(any(), any(), any(), any())).thenReturn(Document.create());
 
 		// Act
 		webTestClient.put()
@@ -604,7 +608,7 @@ class DocumentResourceTest {
 			.isEmpty();
 
 		// Assert — backwards-compatible singular upload is wrapped into a one-element DocumentFiles.
-		verify(documentServiceMock).addOrReplaceFiles(eq(registrationNumber), eq(documentDataCreateRequest), ArgumentMatchers.<DocumentFiles>any(), eq("2281"));
+		verify(documentFileServiceMock).addOrReplaceFiles(eq(registrationNumber), eq(documentDataCreateRequest), ArgumentMatchers.<DocumentFiles>any(), eq("2281"));
 	}
 
 	@Test
@@ -621,7 +625,7 @@ class DocumentResourceTest {
 		multipartBodyBuilder.part("documentFiles", "file-content-3").filename("test3.txt").contentType(TEXT_PLAIN);
 		multipartBodyBuilder.part("document", documentDataCreateRequest);
 
-		when(documentServiceMock.addOrReplaceFiles(any(), any(), any(), any())).thenReturn(Document.create());
+		when(documentFileServiceMock.addOrReplaceFiles(any(), any(), any(), any())).thenReturn(Document.create());
 
 		// Act
 		webTestClient.put()
@@ -634,7 +638,7 @@ class DocumentResourceTest {
 			.isEmpty();
 
 		// Assert — resource delegates to the batch service method; the service is responsible for single-revision semantics.
-		verify(documentServiceMock).addOrReplaceFiles(eq(registrationNumber), eq(documentDataCreateRequest), ArgumentMatchers.<DocumentFiles>any(), eq("2281"));
+		verify(documentFileServiceMock).addOrReplaceFiles(eq(registrationNumber), eq(documentDataCreateRequest), ArgumentMatchers.<DocumentFiles>any(), eq("2281"));
 	}
 
 	@Test
@@ -653,6 +657,6 @@ class DocumentResourceTest {
 			.isEmpty();
 
 		// Assert
-		verify(documentServiceMock).deleteFile(registrationNumber, documentDataId, "2281");
+		verify(documentFileServiceMock).deleteFile(registrationNumber, documentDataId, "2281");
 	}
 }

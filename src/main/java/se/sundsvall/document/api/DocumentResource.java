@@ -48,6 +48,7 @@ import se.sundsvall.document.api.model.DocumentUpdateRequest;
 import se.sundsvall.document.api.model.PagedDocumentResponse;
 import se.sundsvall.document.api.validation.DocumentTypeValidator;
 import se.sundsvall.document.api.validation.ValidContentType;
+import se.sundsvall.document.service.DocumentFileService;
 import se.sundsvall.document.service.DocumentService;
 import tools.jackson.databind.ObjectMapper;
 
@@ -63,7 +64,7 @@ import static org.springframework.http.ResponseEntity.created;
 import static org.springframework.http.ResponseEntity.noContent;
 import static org.springframework.http.ResponseEntity.ok;
 import static org.springframework.web.util.UriComponentsBuilder.fromPath;
-import static se.sundsvall.document.Constants.DOCUMENTS_BASE_PATH;
+import static se.sundsvall.document.api.Constants.DOCUMENTS_BASE_PATH;
 import static se.sundsvall.document.service.Constants.SEARCH_BY_PARAMETERS_DOCUMENTATION;
 import static se.sundsvall.document.service.Constants.SEARCH_DOCUMENTATION;
 
@@ -78,11 +79,13 @@ import static se.sundsvall.document.service.Constants.SEARCH_DOCUMENTATION;
 class DocumentResource {
 
 	private final DocumentService documentService;
+	private final DocumentFileService documentFileService;
 	private final DocumentTypeValidator documentTypeValidator;
 	private final ObjectMapper objectMapper;
 
-	DocumentResource(final DocumentService documentService, final ObjectMapper objectMapper, final DocumentTypeValidator documentTypeValidator) {
+	DocumentResource(final DocumentService documentService, final DocumentFileService documentFileService, final ObjectMapper objectMapper, final DocumentTypeValidator documentTypeValidator) {
 		this.documentService = documentService;
+		this.documentFileService = documentFileService;
 		this.objectMapper = objectMapper;
 		this.documentTypeValidator = documentTypeValidator;
 	}
@@ -236,7 +239,7 @@ class DocumentResource {
 		@Parameter(name = "includeConfidential", description = "Include confidential records", example = "true") @RequestParam(name = "includeConfidential", defaultValue = "false") final boolean includeConfidential,
 		@Parameter(name = "includeNonPublic", description = "Admin flag: include DRAFT/REVOKED latest revision.", example = "false") @RequestParam(name = "includeNonPublic", defaultValue = "false") final boolean includeNonPublic) {
 
-		documentService.readFile(registrationNumber, documentDataId, includeConfidential, includeNonPublic, response, municipalityId);
+		documentFileService.readFile(registrationNumber, documentDataId, includeConfidential, includeNonPublic, response, municipalityId);
 		return ok().build();
 	}
 
@@ -265,7 +268,7 @@ class DocumentResource {
 		final var files = resolveFiles(documentFile, documentFiles);
 		validate(files);
 
-		documentService.addOrReplaceFiles(registrationNumber, documentDataCreateRequest, files, municipalityId);
+		documentFileService.addOrReplaceFiles(registrationNumber, documentDataCreateRequest, files, municipalityId);
 
 		return noContent().build();
 	}
@@ -293,7 +296,7 @@ class DocumentResource {
 		@PathVariable @Parameter(name = "registrationNumber", description = "Document registration number", example = "2023-2281-1337") final String registrationNumber,
 		@PathVariable @Parameter(name = "documentDataId", description = "Document data ID", example = "082ba08f-03c7-409f-b8a6-940a1397ba38") @ValidUuid final String documentDataId) {
 
-		documentService.deleteFile(registrationNumber, documentDataId, municipalityId);
+		documentFileService.deleteFile(registrationNumber, documentDataId, municipalityId);
 		return noContent().build();
 	}
 

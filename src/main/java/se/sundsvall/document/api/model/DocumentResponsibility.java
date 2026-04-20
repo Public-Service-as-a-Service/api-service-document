@@ -2,7 +2,6 @@ package se.sundsvall.document.api.model;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.Size;
 import java.util.Objects;
 import se.sundsvall.dept44.common.validators.annotation.ValidUuid;
 
@@ -13,7 +12,6 @@ public class DocumentResponsibility {
 
 	@NotBlank
 	@ValidUuid
-	@Size(max = 36)
 	@Schema(description = "Person ID of the responsible party.", examples = "6b8d4a1c-34e2-4f73-a5f1-b7c2e9a0d8c4", requiredMode = REQUIRED)
 	private String personId;
 

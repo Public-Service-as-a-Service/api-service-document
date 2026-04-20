@@ -9,6 +9,7 @@ import java.time.LocalDate;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.data.jpa.domain.Specification;
 import se.sundsvall.document.api.model.DocumentParameters;
 import se.sundsvall.document.api.model.DocumentResponsibility;
@@ -63,7 +64,7 @@ public interface SearchSpecification {
 
 			final var personIdPredicates = responsibilities.stream()
 				.filter(Objects::nonNull)
-				.filter(responsibility -> responsibility.getPersonId() != null && !responsibility.getPersonId().isBlank())
+				.filter(responsibility -> StringUtils.isNotBlank(responsibility.getPersonId()))
 				.map(responsibility -> cb.equal(responsibilityRoot.get("personId"), responsibility.getPersonId()))
 				.toList();
 

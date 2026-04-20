@@ -1272,8 +1272,7 @@ components:
           description: Person ID of the responsible party.
           examples:
             - 6b8d4a1c-34e2-4f73-a5f1-b7c2e9a0d8c4
-          maxLength: 36
-          minLength: 0
+          minLength: 1
       required:
         - personId
     ConstraintViolationProblem:

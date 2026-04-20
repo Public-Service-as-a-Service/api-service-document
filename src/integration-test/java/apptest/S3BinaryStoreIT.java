@@ -1,4 +1,4 @@
-package se.sundsvall.document.service.storage;
+package apptest;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -8,9 +8,14 @@ import java.util.Map;
 import java.util.UUID;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.testcontainers.containers.MinIOContainer;
 import se.sundsvall.dept44.problem.ThrowableProblem;
+import se.sundsvall.document.service.storage.S3BinaryStore;
+import se.sundsvall.document.service.storage.S3StorageProperties;
+import se.sundsvall.document.service.storage.StorageRef;
+
 import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
 import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
 import software.amazon.awssdk.regions.Region;
@@ -85,10 +90,10 @@ class S3BinaryStoreIT {
 
 		final var sink = new ByteArrayOutputStream();
 		binaryStore.streamTo(result.ref(), sink);
-
+		
 		assertThat(sink.toByteArray()).isEqualTo(payload);
 	}
-
+	
 	@Test
 	void put_persistsUserMetadata_andHeadObjectReturnsIt() {
 		final var payload = "metadata sample".getBytes();
@@ -114,7 +119,7 @@ class S3BinaryStoreIT {
 		final var head = s3Client.headObject(HeadObjectRequest.builder().bucket(BUCKET).key(result.ref().locator()).build());
 		assertThat(head.metadata()).containsEntry("original-filename", "fet_s%C3%A4l.jpg");
 	}
-
+	
 	@Test
 	void copy_createsIndependentObjectWithSameContent() throws Exception {
 		final var payload = "hello storage".getBytes();

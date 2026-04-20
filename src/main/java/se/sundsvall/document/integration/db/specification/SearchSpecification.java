@@ -8,7 +8,6 @@ import jakarta.persistence.criteria.Subquery;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Objects;
-import java.util.Optional;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.data.jpa.domain.Specification;
 import se.sundsvall.document.api.model.DocumentParameters;
@@ -17,9 +16,6 @@ import se.sundsvall.document.api.model.DocumentStatus;
 import se.sundsvall.document.integration.db.model.DocumentEntity;
 import se.sundsvall.document.integration.db.model.DocumentMetadataEmbeddable;
 import se.sundsvall.document.integration.db.model.DocumentResponsibilityEntity;
-
-import static jakarta.persistence.criteria.JoinType.LEFT;
-import static org.apache.commons.lang3.StringUtils.EMPTY;
 
 public interface SearchSpecification {
 

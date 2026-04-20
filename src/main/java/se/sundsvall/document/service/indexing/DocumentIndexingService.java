@@ -6,7 +6,7 @@ import java.util.ArrayList;
 import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.context.annotation.Profile;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
@@ -30,7 +30,7 @@ import static java.util.Optional.ofNullable;
  * by re-reading {@code DocumentDataEntity.extracted_text}.
  */
 @Service
-@Profile("!junit")
+@ConditionalOnProperty(name = "document.search.enabled", havingValue = "true", matchIfMissing = true)
 public class DocumentIndexingService {
 
 	private static final Logger LOGGER = LoggerFactory.getLogger(DocumentIndexingService.class);

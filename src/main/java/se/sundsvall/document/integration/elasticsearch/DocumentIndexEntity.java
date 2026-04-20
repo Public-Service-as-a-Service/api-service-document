@@ -66,8 +66,9 @@ public class DocumentIndexEntity {
 	@Field(type = FieldType.Text)
 	private String createdBy;
 
-	// Metadata is flattened into two parallel text fields for simple multi_match inclusion.
-	// Key-filtered metadata queries are handled by the DB-side searchByParameters endpoint, not here.
+	// Metadata is flattened into two parallel text fields so a match_phrase across all fields
+	// catches occurrences inside structured data. Key-filtered metadata queries remain on the
+	// DB-side searchByParameters endpoint.
 	@Field(type = FieldType.Text)
 	private List<String> metadataKeys;
 

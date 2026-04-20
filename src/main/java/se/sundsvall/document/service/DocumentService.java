@@ -153,8 +153,14 @@ public class DocumentService {
 		final var esQuery = NativeQuery.builder()
 			.withQuery(q -> q.bool(b -> {
 				if (query != null && !query.isBlank()) {
+					// Phrase match: the user's query must appear as adjacent tokens in at least one
+					// of the listed fields. No wildcard support — callers type the phrase they want
+					// and it's matched literally (modulo the standard analyzer). This is narrower
+					// than the retired SQL LIKE path on purpose; wildcard / partial-token matching
+					// can be reintroduced later if there's demand.
 					b.must(m -> m.multiMatch(mm -> mm
 						.query(query)
+						.type(co.elastic.clients.elasticsearch._types.query_dsl.TextQueryType.Phrase)
 						.fields("extractedText", "description", "fileName", "mimeType",
 							"registrationNumber", "createdBy", "metadataKeys", "metadataValues")));
 				}

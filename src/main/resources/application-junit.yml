@@ -5,6 +5,10 @@ integration:
     logKeyUuid: 00000000-0000-0000-0000-000000000000
     readTimeout: 21
     url: http://localhost:${wiremock.server.port:}/api-eventlog
+document:
+  # Disable ES wiring in the junit profile — WebTestClient tests mock DocumentService etc.
+  search:
+    enabled: false
 spring:
   cache:
     type: none
@@ -25,8 +29,8 @@ spring:
     exclude:
       - org.springframework.boot.elasticsearch.autoconfigure.ElasticsearchClientAutoConfiguration
       - org.springframework.boot.elasticsearch.autoconfigure.ElasticsearchRestClientAutoConfiguration
-      - org.springframework.boot.data.elasticsearch.autoconfigure.ElasticsearchDataAutoConfiguration
-      - org.springframework.boot.data.elasticsearch.autoconfigure.ElasticsearchRepositoriesAutoConfiguration
+      - org.springframework.boot.data.elasticsearch.autoconfigure.DataElasticsearchAutoConfiguration
+      - org.springframework.boot.data.elasticsearch.autoconfigure.DataElasticsearchRepositoriesAutoConfiguration
   jpa:
     properties:
       hibernate:

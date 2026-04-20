@@ -64,7 +64,7 @@ class DocumentMapperTest {
 	private static final boolean CONFIDENTIAL = true;
 	private static final String DESCRIPTION = "Description";
 	private static final OffsetDateTime CREATED = now(systemDefault());
-	private static final String CREATED_BY = "createdBy";
+	private static final String CREATED_BY = "b0000000-0000-0000-0000-0000000000c1";
 	private static final String FILE_1_NAME = "filename1.png";
 	private static final String FILE_2_NAME = "filename2.txt";
 	private static final long FILE_1_SIZE_IN_BYTES = 1000;
@@ -82,11 +82,11 @@ class DocumentMapperTest {
 	private static final int REVISION = 666;
 	private static final String DOCUMENT_TYPE = "documentType";
 	private static final OffsetDateTime DOCUMENT_TYPE_CREATED = now(systemDefault()).minusDays(7);
-	private static final String DOCUMENT_TYPE_CREATED_BY = "documentTypeCreatedBy";
+	private static final String DOCUMENT_TYPE_CREATED_BY = "b0000000-0000-0000-0000-0000000000c2";
 	private static final String DOCUMENT_TYPE_DISPLAY_NAME = "documentTypeDisplayName";
 	private static final String DOCUMENT_TYPE_ID = "documentTypeId";
 	private static final OffsetDateTime DOCUMENT_TYPE_UPDATED = now(systemDefault()).minusDays(6);
-	private static final String DOCUMENT_TYPE_UPDATED_BY = "documentTypeUpdatedBy";
+	private static final String DOCUMENT_TYPE_UPDATED_BY = "b0000000-0000-0000-0000-0000000000c3";
 	private static final LocalDate VALID_FROM = LocalDate.of(2026, 4, 15);
 	private static final LocalDate VALID_TO = LocalDate.of(2027, 4, 15);
 
@@ -278,7 +278,7 @@ class DocumentMapperTest {
 		final var confidentiality = ConfidentialityUpdateRequest.create()
 			.withConfidential(CONFIDENTIAL)
 			.withLegalCitation(LEGAL_CITATION)
-			.withChangedBy(CREATED_BY);
+			.withUpdatedBy(CREATED_BY);
 
 		// Act
 		final var result = DocumentMapper.toConfidentialityEmbeddable(confidentiality);

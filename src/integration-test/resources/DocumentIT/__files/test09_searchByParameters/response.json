@@ -2,7 +2,7 @@
 	"documents": [
 		{
 			"municipalityId": "2281",
-			"createdBy": "User1",
+			"createdBy": "a0000001-0000-0000-0000-000000000001",
 			"registrationNumber": "2024-2281-200",
 			"created": "2024-08-23T08:31:00+02:00",
 			"confidentiality": {
@@ -32,7 +32,7 @@
 		},
 		{
 			"municipalityId": "2281",
-			"createdBy": "User4",
+			"createdBy": "a0000004-0000-0000-0000-000000000004",
 			"registrationNumber": "2024-2281-639",
 			"created": "2024-08-29T08:31:00+02:00",
 			"confidentiality": {

@@ -8,6 +8,7 @@ import jakarta.validation.constraints.NotNull;
 import java.util.List;
 import java.util.Objects;
 import org.hibernate.validator.constraints.UniqueElements;
+import se.sundsvall.dept44.common.validators.annotation.ValidUuid;
 
 import static io.swagger.v3.oas.annotations.media.Schema.RequiredMode.REQUIRED;
 
@@ -15,8 +16,9 @@ import static io.swagger.v3.oas.annotations.media.Schema.RequiredMode.REQUIRED;
 public class DocumentResponsibilitiesUpdateRequest {
 
 	@NotBlank
-	@Schema(description = "Actor that performed this change.", examples = "username123", requiredMode = REQUIRED)
-	private String changedBy;
+	@ValidUuid
+	@Schema(description = "PersonId of the actor that performed this change.", examples = "6c3e4f5a-7b8d-4e9c-a1f2-d3e4b5c6a7f8", requiredMode = REQUIRED)
+	private String updatedBy;
 
 	@NotNull
 	@UniqueElements
@@ -27,16 +29,16 @@ public class DocumentResponsibilitiesUpdateRequest {
 		return new DocumentResponsibilitiesUpdateRequest();
 	}
 
-	public String getChangedBy() {
-		return changedBy;
+	public String getUpdatedBy() {
+		return updatedBy;
 	}
 
-	public void setChangedBy(final String changedBy) {
-		this.changedBy = changedBy;
+	public void setUpdatedBy(final String updatedBy) {
+		this.updatedBy = updatedBy;
 	}
 
-	public DocumentResponsibilitiesUpdateRequest withChangedBy(final String changedBy) {
-		this.changedBy = changedBy;
+	public DocumentResponsibilitiesUpdateRequest withUpdatedBy(final String updatedBy) {
+		this.updatedBy = updatedBy;
 		return this;
 	}
 
@@ -55,7 +57,7 @@ public class DocumentResponsibilitiesUpdateRequest {
 
 	@Override
 	public int hashCode() {
-		return Objects.hash(changedBy, responsibilities);
+		return Objects.hash(updatedBy, responsibilities);
 	}
 
 	@Override
@@ -66,13 +68,13 @@ public class DocumentResponsibilitiesUpdateRequest {
 		if (!(obj instanceof final DocumentResponsibilitiesUpdateRequest other)) {
 			return false;
 		}
-		return Objects.equals(changedBy, other.changedBy) && Objects.equals(responsibilities, other.responsibilities);
+		return Objects.equals(updatedBy, other.updatedBy) && Objects.equals(responsibilities, other.responsibilities);
 	}
 
 	@Override
 	public String toString() {
 		final var builder = new StringBuilder();
-		builder.append("DocumentResponsibilitiesUpdateRequest [changedBy=").append(changedBy).append(", responsibilities=").append(responsibilities).append("]");
+		builder.append("DocumentResponsibilitiesUpdateRequest [updatedBy=").append(updatedBy).append(", responsibilities=").append(responsibilities).append("]");
 		return builder.toString();
 	}
 }

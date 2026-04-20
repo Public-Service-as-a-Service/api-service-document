@@ -26,7 +26,7 @@ import static org.springframework.http.HttpStatus.NOT_FOUND;
 
 @ExtendWith(MockitoExtension.class)
 class DocumentTypeServiceTest {
-	private static final String CREATED_BY = "createdBy";
+	private static final String CREATED_BY = "b0000000-0000-0000-0000-0000000000c1";
 	private static final String DISPLAY_NAME = "displayName";
 	private static final String MUNICIPALITY_ID = "municipalityId";
 	private static final String TYPE = "type";
@@ -149,7 +149,7 @@ class DocumentTypeServiceTest {
 	@Test
 	void update() {
 		// Arrange
-		final var updatedBy = "updatedBy";
+		final var updatedBy = "b0000000-0000-0000-0000-0000000000d1";
 		final var updatedDisplayName = DISPLAY_NAME + "_UPDATED";
 		final var request = DocumentTypeUpdateRequest.create()
 			.withDisplayName(updatedDisplayName)

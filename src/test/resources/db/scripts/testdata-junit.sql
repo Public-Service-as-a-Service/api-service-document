@@ -1,32 +1,32 @@
 INSERT INTO document_type (id, created, last_updated, created_by, display_name, last_updated_by, municipality_id,
                            `type`)
-VALUES ('86b9efc9-c649-40d5-ade0-ac415ea146f1', '2024-10-25 14:00:00.000', null, 'User1', 'Anställningsbevis', null,
+VALUES ('86b9efc9-c649-40d5-ade0-ac415ea146f1', '2024-10-25 14:00:00.000', null, 'a0000001-0000-0000-0000-000000000001', 'Anställningsbevis', null,
         '2281', 'EMPLOYEE_CERTIFICATE'),
-       ('3fdecd8b-d295-4222-b60c-e95ba5f5075a', '2024-10-25 14:00:00.000', null, 'User2', 'Semesterväxlingsdokument',
+       ('3fdecd8b-d295-4222-b60c-e95ba5f5075a', '2024-10-25 14:00:00.000', null, 'a0000002-0000-0000-0000-000000000002', 'Semesterväxlingsdokument',
         null, '2281', 'HOLIDAY_EXCHANGE'),
-       ('257506b2-f870-470d-9a1b-d095acb212a7', '2024-10-25 14:00:00.000', null, 'User1', 'Anställningsbevis', null,
+       ('257506b2-f870-470d-9a1b-d095acb212a7', '2024-10-25 14:00:00.000', null, 'a0000001-0000-0000-0000-000000000001', 'Anställningsbevis', null,
         '2282', 'EMPLOYEE_CERTIFICATE'),
-       ('1e5447b7-8941-43a4-afb7-cab09375efad', '2024-10-25 14:00:00.000', null, 'User2', 'Sekretessavtal', null,
+       ('1e5447b7-8941-43a4-afb7-cab09375efad', '2024-10-25 14:00:00.000', null, 'a0000002-0000-0000-0000-000000000002', 'Sekretessavtal', null,
         '2262', 'CONFIDENTIALITY_AGREEMENT');
 
 INSERT INTO document (id, revision, created, created_by, registration_number, confidential, archive, description,
                       document_type_id, municipality_id, status)
-VALUES ('159c10bf-1b32-471b-b2d3-c4b4b13ea152', 1, '2023-06-28 12:01:00.000', "User1", '2023-2281-123', false, false,
+VALUES ('159c10bf-1b32-471b-b2d3-c4b4b13ea152', 1, '2023-06-28 12:01:00.000', 'a0000001-0000-0000-0000-000000000001', '2023-2281-123', false, false,
         'Document 1', '3fdecd8b-d295-4222-b60c-e95ba5f5075a', '2281', 'ACTIVE'), -- Document-1, revision 1
-       ('8efd63a3-b525-4581-8b0b-9759f381a5a5', 2, '2023-06-28 12:02:00.000', "User2", '2023-2281-123', false, false,
+       ('8efd63a3-b525-4581-8b0b-9759f381a5a5', 2, '2023-06-28 12:02:00.000', 'a0000002-0000-0000-0000-000000000002', '2023-2281-123', false, false,
         'Document 1', '3fdecd8b-d295-4222-b60c-e95ba5f5075a', '2281', 'ACTIVE'), -- Document-1, revision 2
-       ('612dc8d0-e6b7-426c-abcc-c9b49ae1e7e2', 3, '2023-06-28 12:03:00.000', "User3", '2023-2281-123', false, false,
+       ('612dc8d0-e6b7-426c-abcc-c9b49ae1e7e2', 3, '2023-06-28 12:03:00.000', 'a0000003-0000-0000-0000-000000000003', '2023-2281-123', false, false,
         'Document 1', '3fdecd8b-d295-4222-b60c-e95ba5f5075a', '2281', 'ACTIVE'), -- Document-1, revision 3
-       ('03d33a6a-bc8c-410c-95f6-2c890822967d', 1, '2023-06-28 12:01:00.000', "User4", '2024-2281-999', true, true,
+       ('03d33a6a-bc8c-410c-95f6-2c890822967d', 1, '2023-06-28 12:01:00.000', 'a0000004-0000-0000-0000-000000000004', '2024-2281-999', true, true,
         'Document 2', '86b9efc9-c649-40d5-ade0-ac415ea146f1', '2281', 'ACTIVE'), -- Document-2, revision 1
-       ('8901694b-8e3a-46b7-83ea-cd351ccc0f52', 1, '2023-06-28 12:04:00.000', "User5", '2024-2281-666', true, true,
+       ('8901694b-8e3a-46b7-83ea-cd351ccc0f52', 1, '2023-06-28 12:04:00.000', 'a0000005-0000-0000-0000-000000000005', '2024-2281-666', true, true,
         'Document 3', '257506b2-f870-470d-9a1b-d095acb212a7', '2281', 'ACTIVE'), -- Document-3, revision 1
 
-       ('1901694b-8e3a-46b7-83ea-cd351ccc0f52', 1, '2023-06-28 12:04:00.000', "User5", '2024-2281-601', true, true,
+       ('1901694b-8e3a-46b7-83ea-cd351ccc0f52', 1, '2023-06-28 12:04:00.000', 'a0000005-0000-0000-0000-000000000005', '2024-2281-601', true, true,
         'Document 4', '257506b2-f870-470d-9a1b-d095acb212a7', '2281', 'ACTIVE'), -- Document-4, revision 1
-       ('2901694b-8e3a-46b7-83ea-cd351ccc0f52', 1, '2023-06-28 12:04:00.000', "User5", '2024-2281-602', true, true,
+       ('2901694b-8e3a-46b7-83ea-cd351ccc0f52', 1, '2023-06-28 12:04:00.000', 'a0000005-0000-0000-0000-000000000005', '2024-2281-602', true, true,
         'Document 5', '257506b2-f870-470d-9a1b-d095acb212a7', '2281', 'ACTIVE'), -- Document-5, revision 1
-       ('3901694b-8e3a-46b7-83ea-cd351ccc0f52', 1, '2023-06-28 12:04:00.000', "User5", '2024-2281-603', true, true,
+       ('3901694b-8e3a-46b7-83ea-cd351ccc0f52', 1, '2023-06-28 12:04:00.000', 'a0000005-0000-0000-0000-000000000005', '2024-2281-603', true, true,
         'Document 6', '86b9efc9-c649-40d5-ade0-ac415ea146f1', '2281', 'ACTIVE'); -- Document-6, revision 1
 
 INSERT INTO document_data (id, document_id, storage_locator, file_name, file_size_in_bytes, mime_type)
@@ -72,13 +72,13 @@ VALUES ('159c10bf-1b32-471b-b2d3-c4b4b13ea152', "document1-key1", "value-1"),   
 
 INSERT INTO document_responsibility (id, municipality_id, registration_number, person_id, created_by,
                                      created)
-VALUES ('5ac3f0bd-0229-451a-9b66-736c510a0cf1', '2281', '2023-2281-123', '11111111-1111-1111-1111-111111111111', 'User3',
+VALUES ('5ac3f0bd-0229-451a-9b66-736c510a0cf1', '2281', '2023-2281-123', '11111111-1111-1111-1111-111111111111', 'a0000003-0000-0000-0000-000000000003',
         '2023-06-28 12:03:00.000'),
-       ('7c542b7c-9432-403a-af77-78eda79b4a9e', '2281', '2024-2281-601', '55555555-5555-5555-5555-555555555555', 'User5',
+       ('7c542b7c-9432-403a-af77-78eda79b4a9e', '2281', '2024-2281-601', '55555555-5555-5555-5555-555555555555', 'a0000005-0000-0000-0000-000000000005',
         '2023-06-28 12:04:00.000'),
-       ('3e8eb73b-e6be-4909-a7dc-0ad101bdc510', '2281', '2024-2281-602', '55555555-5555-5555-5555-555555555555', 'User5',
+       ('3e8eb73b-e6be-4909-a7dc-0ad101bdc510', '2281', '2024-2281-602', '55555555-5555-5555-5555-555555555555', 'a0000005-0000-0000-0000-000000000005',
         '2023-06-28 12:04:00.000'),
-       ('79223a90-c2a6-40fc-a52b-7fb2920d0373', '2281', '2024-2281-603', '55555555-5555-5555-5555-555555555555', 'User5',
+       ('79223a90-c2a6-40fc-a52b-7fb2920d0373', '2281', '2024-2281-603', '55555555-5555-5555-5555-555555555555', 'a0000005-0000-0000-0000-000000000005',
         '2023-06-28 12:04:00.000');
 
 INSERT INTO registration_number_sequence (sequence_number, created, modified, id, municipality_id)

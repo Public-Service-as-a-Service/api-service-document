@@ -67,7 +67,7 @@ class DocumentFileServiceTest {
 	private static final long FILE_SIZE_IN_BYTES = 227546L;
 	private static final OffsetDateTime CREATED = now(systemDefault());
 	private static final boolean CONFIDENTIAL = true;
-	private static final String CREATED_BY = "User";
+	private static final String CREATED_BY = "b0000000-0000-0000-0000-000000000099";
 	private static final String DESCRIPTION = "Description";
 	private static final String ID = randomUUID().toString();
 	private static final String LEGAL_CITATION = "legalCitation";

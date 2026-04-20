@@ -8,6 +8,7 @@ import java.util.List;
 import java.util.Objects;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.format.annotation.DateTimeFormat.ISO;
+import se.sundsvall.dept44.common.validators.annotation.ValidUuid;
 import se.sundsvall.dept44.models.api.paging.AbstractParameterPagingAndSortingBase;
 
 public class DocumentParameters extends AbstractParameterPagingAndSortingBase {
@@ -15,7 +16,8 @@ public class DocumentParameters extends AbstractParameterPagingAndSortingBase {
 	@Schema(description = "Municipality identifier", examples = "1234", accessMode = Schema.AccessMode.READ_ONLY)
 	private String municipalityId;
 
-	@Schema(description = "Filter by the user that created the document", examples = "User1")
+	@ValidUuid(nullable = true)
+	@Schema(description = "Filter by personId of the actor that created the document.", examples = "6c3e4f5a-7b8d-4e9c-a1f2-d3e4b5c6a7f8")
 	private String createdBy;
 
 	@Schema(description = "Should the search include confidential documents?", examples = "true", defaultValue = "false")

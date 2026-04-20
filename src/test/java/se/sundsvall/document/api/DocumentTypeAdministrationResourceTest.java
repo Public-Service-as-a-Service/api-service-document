@@ -43,7 +43,7 @@ class DocumentTypeAdministrationResourceTest {
 		// Arrange
 		final var displayName = "displayName";
 		final var type = "type";
-		final var createdBy = "createdBy";
+		final var createdBy = "b0000000-0000-0000-0000-0000000000c1";
 		final var request = DocumentTypeCreateRequest.create()
 			.withType(type)
 			.withDisplayName(displayName)
@@ -74,7 +74,7 @@ class DocumentTypeAdministrationResourceTest {
 		final var type = "type";
 		final var request = DocumentTypeUpdateRequest.create()
 			.withDisplayName("displayName")
-			.withUpdatedBy("updatedBy");
+			.withUpdatedBy("b0000000-0000-0000-0000-0000000000d1");
 
 		// Act
 		webTestClient.patch()

@@ -89,7 +89,7 @@ class DocumentServiceTest {
 	private static final long FILE_SIZE_IN_BYTES = 227546L;
 	private static final OffsetDateTime CREATED = now(systemDefault());
 	private static final boolean CONFIDENTIAL = true;
-	private static final String CREATED_BY = "User";
+	private static final String CREATED_BY = "b0000000-0000-0000-0000-000000000099";
 	private static final String PERSON_ID = "6b8d4a1c-34e2-4f73-a5f1-b7c2e9a0d8c4";
 	private static final String DESCRIPTION = "Description";
 	private static final String ID = randomUUID().toString();
@@ -534,7 +534,7 @@ class DocumentServiceTest {
 		final var newConfidentialValue = true;
 		final var existingEntities = List.of(createDocumentEntity(), createDocumentEntity().withRevision(REVISION + 1));
 		final var confidentialityUpdateRequest = ConfidentialityUpdateRequest.create()
-			.withChangedBy(CREATED_BY)
+			.withUpdatedBy(CREATED_BY)
 			.withConfidential(newConfidentialValue)
 			.withLegalCitation(LEGAL_CITATION);
 
@@ -568,7 +568,7 @@ class DocumentServiceTest {
 		assertThat(capturedEvent).isNotNull();
 		assertThat(capturedEvent.getExpires()).isCloseTo(now(systemDefault()).plusYears(10), within(2, ChronoUnit.SECONDS));
 		assertThat(capturedEvent.getType()).isEqualTo(UPDATE);
-		assertThat(capturedEvent.getMessage()).isEqualTo("Confidentiality flag updated to: 'true' with legal citation: 'legalCitation' for document with registrationNumber: '2023-2281-4'. Action performed by: 'User'");
+		assertThat(capturedEvent.getMessage()).isEqualTo("Confidentiality flag updated to: 'true' with legal citation: 'legalCitation' for document with registrationNumber: '2023-2281-4'. Action performed by: 'b0000000-0000-0000-0000-000000000099'");
 		assertThat(capturedEvent.getOwner()).isEqualTo("Document");
 		assertThat(capturedEvent.getMetadata())
 			.extracting(Metadata::getKey, Metadata::getValue)
@@ -585,7 +585,7 @@ class DocumentServiceTest {
 		final var otherPersonId = "11111111-2222-3333-4444-555555555555";
 		final var oldPersonId = "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee";
 		final var request = DocumentResponsibilitiesUpdateRequest.create()
-			.withChangedBy(CREATED_BY)
+			.withUpdatedBy(CREATED_BY)
 			.withResponsibilities(List.of(
 				DocumentResponsibility.create().withPersonId(PERSON_ID),
 				DocumentResponsibility.create().withPersonId(otherPersonId)));
@@ -634,7 +634,7 @@ class DocumentServiceTest {
 
 		// Arrange
 		final var request = DocumentResponsibilitiesUpdateRequest.create()
-			.withChangedBy(CREATED_BY)
+			.withUpdatedBy(CREATED_BY)
 			.withResponsibilities(List.of(DocumentResponsibility.create().withPersonId(PERSON_ID)));
 
 		when(documentRepositoryMock.existsByMunicipalityIdAndRegistrationNumber(MUNICIPALITY_ID, REGISTRATION_NUMBER)).thenReturn(false);

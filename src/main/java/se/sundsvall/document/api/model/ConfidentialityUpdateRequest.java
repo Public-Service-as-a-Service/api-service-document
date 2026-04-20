@@ -4,6 +4,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import java.util.Objects;
+import se.sundsvall.dept44.common.validators.annotation.ValidUuid;
 
 import static io.swagger.v3.oas.annotations.media.Schema.RequiredMode.REQUIRED;
 
@@ -22,8 +23,9 @@ public class ConfidentialityUpdateRequest {
 	private String legalCitation;
 
 	@NotBlank
-	@Schema(description = "Actor that performed this change", examples = "username123", requiredMode = REQUIRED)
-	private String changedBy;
+	@ValidUuid
+	@Schema(description = "PersonId of the actor that performed this change.", examples = "6c3e4f5a-7b8d-4e9c-a1f2-d3e4b5c6a7f8", requiredMode = REQUIRED)
+	private String updatedBy;
 
 	public static ConfidentialityUpdateRequest create() {
 		return new ConfidentialityUpdateRequest();
@@ -55,35 +57,35 @@ public class ConfidentialityUpdateRequest {
 		return this;
 	}
 
-	public String getChangedBy() {
-		return changedBy;
+	public String getUpdatedBy() {
+		return updatedBy;
 	}
 
-	public void setChangedBy(String changedBy) {
-		this.changedBy = changedBy;
+	public void setUpdatedBy(String updatedBy) {
+		this.updatedBy = updatedBy;
 	}
 
-	public ConfidentialityUpdateRequest withChangedBy(String changedBy) {
-		this.changedBy = changedBy;
+	public ConfidentialityUpdateRequest withUpdatedBy(String updatedBy) {
+		this.updatedBy = updatedBy;
 		return this;
 	}
 
 	@Override
 	public int hashCode() {
-		return Objects.hash(changedBy, confidential, legalCitation);
+		return Objects.hash(updatedBy, confidential, legalCitation);
 	}
 
 	@Override
 	public boolean equals(Object obj) {
 		if (this == obj) { return true; }
 		if (!(obj instanceof final ConfidentialityUpdateRequest other)) { return false; }
-		return Objects.equals(changedBy, other.changedBy) && Objects.equals(confidential, other.confidential) && Objects.equals(legalCitation, other.legalCitation);
+		return Objects.equals(updatedBy, other.updatedBy) && Objects.equals(confidential, other.confidential) && Objects.equals(legalCitation, other.legalCitation);
 	}
 
 	@Override
 	public String toString() {
 		final StringBuilder builder = new StringBuilder();
-		builder.append("ConfidentialityUpdateRequest [confidential=").append(confidential).append(", legalCitation=").append(legalCitation).append(", changedBy=").append(changedBy).append("]");
+		builder.append("ConfidentialityUpdateRequest [confidential=").append(confidential).append(", legalCitation=").append(legalCitation).append(", updatedBy=").append(updatedBy).append("]");
 		return builder.toString();
 	}
 }

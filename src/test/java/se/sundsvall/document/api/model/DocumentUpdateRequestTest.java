@@ -29,7 +29,7 @@ class DocumentUpdateRequestTest {
 	void testBuilderMethods() {
 
 		final var archive = true;
-		final var updatedBy = "user";
+		final var updatedBy = "b0000000-0000-0000-0000-000000000099";
 		final var description = "description";
 		final var metadataList = List.of(DocumentMetadata.create());
 		final var type = "type";

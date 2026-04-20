@@ -37,7 +37,7 @@ class DocumentParametersTest {
 	void testBuilderMethods() {
 
 		var municipalityId = "2281";
-		var createdBy = "User1";
+		var createdBy = "a0000001-0000-0000-0000-000000000001";
 		var includeConfidential = true;
 		var onlyLatestRevision = true;
 		var documentTypes = List.of("type1", "type2");

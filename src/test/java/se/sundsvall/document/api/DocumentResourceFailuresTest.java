@@ -83,7 +83,7 @@ class DocumentResourceFailuresTest {
 	void createWithInvalidContentType() {
 		final var documentCreateRequest = DocumentCreateRequest.create()
 			.withConfidentiality(Confidentiality.create().withConfidential(true).withLegalCitation("legalCitation"))
-			.withCreatedBy("user")
+			.withCreatedBy("b0000000-0000-0000-0000-000000000099")
 			.withDescription("description")
 			.withMetadataList(List.of(DocumentMetadata.create()
 				.withKey("key")
@@ -119,7 +119,7 @@ class DocumentResourceFailuresTest {
 	void createWithDuplicateFileNames() {
 		final var documentCreateRequest = DocumentCreateRequest.create()
 			.withConfidentiality(Confidentiality.create().withConfidential(true).withLegalCitation("legalCitation"))
-			.withCreatedBy("user")
+			.withCreatedBy("b0000000-0000-0000-0000-000000000099")
 			.withDescription("description")
 			.withType("type")
 			.withMetadataList(List.of(DocumentMetadata.create()
@@ -186,7 +186,7 @@ class DocumentResourceFailuresTest {
 		final var multipartBodyBuilder = new MultipartBodyBuilder();
 		multipartBodyBuilder.part("documentFiles", "file-content").filename("test.txt").contentType(TEXT_PLAIN);
 		multipartBodyBuilder.part("document", DocumentCreateRequest.create()
-			.withCreatedBy("user")
+			.withCreatedBy("b0000000-0000-0000-0000-000000000099")
 			.withMetadataList(List.of(DocumentMetadata.create()
 				.withKey("key")
 				.withValue("value"))));
@@ -222,7 +222,7 @@ class DocumentResourceFailuresTest {
 		multipartBodyBuilder.part("documentFiles", "file-content").filename("test.txt").contentType(TEXT_PLAIN);
 		multipartBodyBuilder.part("document", DocumentCreateRequest.create()
 			.withDescription(repeat("x", 8193)) // 8192 is max length on description.
-			.withCreatedBy("user")
+			.withCreatedBy("b0000000-0000-0000-0000-000000000099")
 			.withType("type")
 			.withMetadataList(List.of(DocumentMetadata.create()
 				.withKey("key")
@@ -254,7 +254,7 @@ class DocumentResourceFailuresTest {
 		doThrow(new ConstraintViolationProblem(BAD_REQUEST, List.of(new Violation("type", "error")))).when(validationUtilityMock).validate(any(), any());
 		final var documentCreateRequest = DocumentCreateRequest.create()
 			.withConfidentiality(Confidentiality.create().withConfidential(true).withLegalCitation("legalCitation"))
-			.withCreatedBy("user")
+			.withCreatedBy("b0000000-0000-0000-0000-000000000099")
 			.withDescription("description")
 			.withMetadataList(List.of(DocumentMetadata.create()
 				.withKey("key")
@@ -293,7 +293,7 @@ class DocumentResourceFailuresTest {
 		final var multipartBodyBuilder = new MultipartBodyBuilder();
 		multipartBodyBuilder.part("documentFiles", "file-content").filename("test.txt").contentType(TEXT_PLAIN);
 		multipartBodyBuilder.part("document", DocumentCreateRequest.create()
-			.withCreatedBy("user")
+			.withCreatedBy("b0000000-0000-0000-0000-000000000099")
 			.withDescription("description")
 			.withMetadataList(List.of(DocumentMetadata.create()
 				.withKey("key")
@@ -325,7 +325,7 @@ class DocumentResourceFailuresTest {
 
 		// Arrange
 		final var requestBody = DocumentUpdateRequest.create()
-			.withUpdatedBy("user")
+			.withUpdatedBy("b0000000-0000-0000-0000-000000000099")
 			.withDescription("description")
 			.withMetadataList(List.of(
 				DocumentMetadata.create()
@@ -358,7 +358,7 @@ class DocumentResourceFailuresTest {
 
 		// Arrange
 		final var requestBody = DocumentUpdateRequest.create()
-			.withUpdatedBy("user")
+			.withUpdatedBy("b0000000-0000-0000-0000-000000000099")
 			.withDescription("description")
 			.withMetadataList(List.of(
 				DocumentMetadata.create()
@@ -391,7 +391,7 @@ class DocumentResourceFailuresTest {
 
 		// Arrange
 		final var requestBody = DocumentUpdateRequest.create()
-			.withUpdatedBy("user")
+			.withUpdatedBy("b0000000-0000-0000-0000-000000000099")
 			.withDescription(repeat("x", 8193)) // 8192 is max length on description.
 			.withMetadataList(List.of(
 				DocumentMetadata.create()
@@ -423,7 +423,7 @@ class DocumentResourceFailuresTest {
 	void updateWithInvalidType() {
 		doThrow(new ConstraintViolationProblem(BAD_REQUEST, List.of(new Violation("type", "error")))).when(validationUtilityMock).validate(any(), any());
 		final var requestBody = DocumentUpdateRequest.create()
-			.withUpdatedBy("user")
+			.withUpdatedBy("b0000000-0000-0000-0000-000000000099")
 			.withType("type")
 			.withMetadataList(List.of(DocumentMetadata.create()
 				.withKey("key")
@@ -455,7 +455,7 @@ class DocumentResourceFailuresTest {
 
 		// Arrange
 		final var requestBody = ConfidentialityUpdateRequest.create()
-			.withChangedBy("user");
+			.withUpdatedBy("b0000000-0000-0000-0000-000000000099");
 
 		// Act
 		final var response = webTestClient.patch()
@@ -479,11 +479,11 @@ class DocumentResourceFailuresTest {
 	}
 
 	@Test
-	void updateConfidentialityWithBlankChangedBy() {
+	void updateConfidentialityWithBlankUpdatedBy() {
 
 		// Arrange
 		final var requestBody = ConfidentialityUpdateRequest.create()
-			.withChangedBy(" ")
+			.withUpdatedBy(" ")
 			.withConfidential(true)
 			.withLegalCitation("Lorum ipsum");
 
@@ -503,7 +503,9 @@ class DocumentResourceFailuresTest {
 		assertThat(response).isNotNull();
 		assertThat(response.getViolations())
 			.extracting(Violation::field, Violation::message)
-			.containsExactlyInAnyOrder(tuple("changedBy", "must not be blank"));
+			.containsExactlyInAnyOrder(
+				tuple("updatedBy", "must not be blank"),
+				tuple("updatedBy", "not a valid UUID"));
 
 		verifyNoInteractions(documentServiceMock);
 	}
@@ -631,7 +633,9 @@ class DocumentResourceFailuresTest {
 		assertThat(response).isNotNull();
 		assertThat(response.getViolations())
 			.extracting(Violation::field, Violation::message)
-			.containsExactlyInAnyOrder(tuple("createdBy", "must not be blank"));
+			.containsExactlyInAnyOrder(
+				tuple("createdBy", "must not be blank"),
+				tuple("createdBy", "not a valid UUID"));
 
 		verifyNoInteractions(documentServiceMock);
 	}

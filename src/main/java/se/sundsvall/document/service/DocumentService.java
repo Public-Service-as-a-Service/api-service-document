@@ -141,20 +141,20 @@ public class DocumentService {
 		return toDocumentWithResponsibilities(documentRepository.save(existingDocumentEntity));
 	}
 
-	public Document publish(String registrationNumber, String changedBy, String municipalityId, Integer revision) {
-		return transitionStatus(registrationNumber, changedBy, municipalityId, revision, "publish",
+	public Document publish(String registrationNumber, String updatedBy, String municipalityId, Integer revision) {
+		return transitionStatus(registrationNumber, updatedBy, municipalityId, revision, "publish",
 			EnumSet.of(DocumentStatus.DRAFT),
 			entity -> statusPolicy.resolvePublishedStatus(entity.getValidFrom(), entity.getValidTo(), registrationNumber));
 	}
 
-	public Document revoke(String registrationNumber, String changedBy, String municipalityId, Integer revision) {
-		return transitionStatus(registrationNumber, changedBy, municipalityId, revision, "revoke",
+	public Document revoke(String registrationNumber, String updatedBy, String municipalityId, Integer revision) {
+		return transitionStatus(registrationNumber, updatedBy, municipalityId, revision, "revoke",
 			EnumSet.of(DocumentStatus.ACTIVE, DocumentStatus.SCHEDULED),
 			entity -> DocumentStatus.REVOKED);
 	}
 
-	public Document unrevoke(String registrationNumber, String changedBy, String municipalityId, Integer revision) {
-		return transitionStatus(registrationNumber, changedBy, municipalityId, revision, "unrevoke",
+	public Document unrevoke(String registrationNumber, String updatedBy, String municipalityId, Integer revision) {
+		return transitionStatus(registrationNumber, updatedBy, municipalityId, revision, "unrevoke",
 			EnumSet.of(DocumentStatus.REVOKED),
 			entity -> statusPolicy.resolvePublishedStatus(entity.getValidFrom(), entity.getValidTo(), registrationNumber));
 	}
@@ -179,7 +179,7 @@ public class DocumentService {
 		}
 
 		final var oldResponsibilities = documentResponsibilityRepository.findByMunicipalityIdAndRegistrationNumberOrderByPersonIdAsc(municipalityId, registrationNumber);
-		final var newResponsibilities = toDocumentResponsibilityEntities(request.getResponsibilities(), municipalityId, registrationNumber, request.getChangedBy());
+		final var newResponsibilities = toDocumentResponsibilityEntities(request.getResponsibilities(), municipalityId, registrationNumber, request.getUpdatedBy());
 
 		documentResponsibilityRepository.deleteByMunicipalityIdAndRegistrationNumber(municipalityId, registrationNumber);
 		// Force DELETE before INSERT so the (municipality_id, registration_number, person_id) unique constraint
@@ -187,7 +187,7 @@ public class DocumentService {
 		documentResponsibilityRepository.flush();
 		documentResponsibilityRepository.saveAll(newResponsibilities);
 
-		eventPublisher.logResponsibilitiesChange(registrationNumber, request.getChangedBy(), oldResponsibilities, newResponsibilities, municipalityId);
+		eventPublisher.logResponsibilitiesChange(registrationNumber, request.getUpdatedBy(), oldResponsibilities, newResponsibilities, municipalityId);
 	}
 
 	public PagedDocumentResponse searchByParameters(final DocumentParameters parameters) {
@@ -221,7 +221,7 @@ public class DocumentService {
 		return response;
 	}
 
-	private Document transitionStatus(String registrationNumber, String changedBy, String municipalityId, Integer revision, String action,
+	private Document transitionStatus(String registrationNumber, String updatedBy, String municipalityId, Integer revision, String action,
 		Set<DocumentStatus> allowedFromStatuses, Function<DocumentEntity, DocumentStatus> nextStatusResolver) {
 
 		final var documentEntity = findDocumentForStatusTransition(municipalityId, registrationNumber, revision);
@@ -234,7 +234,7 @@ public class DocumentService {
 		final var newStatus = nextStatusResolver.apply(documentEntity);
 		documentEntity.setStatus(newStatus);
 
-		eventPublisher.logStatusChange(registrationNumber, documentEntity.getRevision(), previousStatus, newStatus, changedBy, municipalityId);
+		eventPublisher.logStatusChange(registrationNumber, documentEntity.getRevision(), previousStatus, newStatus, updatedBy, municipalityId);
 
 		return toDocumentWithResponsibilities(documentRepository.save(documentEntity));
 	}

@@ -32,32 +32,32 @@ public class DocumentEventPublisher {
 	}
 
 	public void logConfidentialityChange(final String registrationNumber, final ConfidentialityUpdateRequest request, final String municipalityId) {
-		publish(municipalityId, registrationNumber, request.getChangedBy(),
+		publish(municipalityId, registrationNumber, request.getUpdatedBy(),
 			TEMPLATE_EVENTLOG_MESSAGE_CONFIDENTIALITY_UPDATED_ON_DOCUMENT
-				.formatted(request.getConfidential(), request.getLegalCitation(), registrationNumber, request.getChangedBy()));
+				.formatted(request.getConfidential(), request.getLegalCitation(), registrationNumber, request.getUpdatedBy()));
 	}
 
-	public void logResponsibilitiesChange(final String registrationNumber, final String changedBy,
+	public void logResponsibilitiesChange(final String registrationNumber, final String updatedBy,
 		final List<DocumentResponsibilityEntity> oldResponsibilities, final List<DocumentResponsibilityEntity> newResponsibilities,
 		final String municipalityId) {
 
 		final var sortedNewResponsibilities = newResponsibilities.stream()
 			.sorted(Comparator.comparing(DocumentResponsibilityEntity::getPersonId))
 			.toList();
-		publish(municipalityId, registrationNumber, changedBy,
+		publish(municipalityId, registrationNumber, updatedBy,
 			TEMPLATE_EVENTLOG_MESSAGE_RESPONSIBILITIES_UPDATED_ON_DOCUMENT
-				.formatted(toDocumentResponsibilities(oldResponsibilities), toDocumentResponsibilities(sortedNewResponsibilities), registrationNumber, changedBy));
+				.formatted(toDocumentResponsibilities(oldResponsibilities), toDocumentResponsibilities(sortedNewResponsibilities), registrationNumber, updatedBy));
 	}
 
 	public void logStatusChange(final String registrationNumber, final int revision, final DocumentStatus from, final DocumentStatus to,
-		final String changedBy, final String municipalityId) {
+		final String updatedBy, final String municipalityId) {
 
-		publish(municipalityId, registrationNumber, changedBy,
-			TEMPLATE_EVENTLOG_MESSAGE_STATUS_UPDATED_ON_DOCUMENT.formatted(from, to, registrationNumber, revision, changedBy));
+		publish(municipalityId, registrationNumber, updatedBy,
+			TEMPLATE_EVENTLOG_MESSAGE_STATUS_UPDATED_ON_DOCUMENT.formatted(from, to, registrationNumber, revision, updatedBy));
 	}
 
-	private void publish(final String municipalityId, final String registrationNumber, final String changedBy, final String message) {
+	private void publish(final String municipalityId, final String registrationNumber, final String updatedBy, final String message) {
 		eventLogProperties.ifPresent(props -> eventLogClient.ifPresent(client -> client.createEvent(
-			municipalityId, props.logKeyUuid(), toEvent(UPDATE, registrationNumber, message, changedBy))));
+			municipalityId, props.logKeyUuid(), toEvent(UPDATE, registrationNumber, message, updatedBy))));
 	}
 }

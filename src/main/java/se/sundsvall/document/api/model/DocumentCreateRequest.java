@@ -10,6 +10,7 @@ import java.util.Objects;
 import org.hibernate.validator.constraints.UniqueElements;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.format.annotation.DateTimeFormat.ISO;
+import se.sundsvall.dept44.common.validators.annotation.ValidUuid;
 import se.sundsvall.document.api.validation.ValidValidityWindow;
 
 import static io.swagger.v3.oas.annotations.media.Schema.RequiredMode.NOT_REQUIRED;
@@ -20,7 +21,8 @@ import static io.swagger.v3.oas.annotations.media.Schema.RequiredMode.REQUIRED;
 public class DocumentCreateRequest {
 
 	@NotBlank
-	@Schema(description = "Actor that created this revision (all modifications will create new revisions)", examples = "username123", requiredMode = REQUIRED)
+	@ValidUuid
+	@Schema(description = "PersonId of the actor that created this revision (all modifications will create new revisions).", examples = "6c3e4f5a-7b8d-4e9c-a1f2-d3e4b5c6a7f8", requiredMode = REQUIRED)
 	private String createdBy;
 
 	@Schema(description = "Confidentiality")

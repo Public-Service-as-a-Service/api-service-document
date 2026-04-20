@@ -146,10 +146,10 @@ class DocumentResource {
 	ResponseEntity<Document> publish(
 		@PathVariable @ValidMunicipalityId final String municipalityId,
 		@PathVariable final String registrationNumber,
-		@RequestParam("changedBy") @NotBlank final String changedBy,
+		@RequestParam("updatedBy") @NotBlank @ValidUuid final String updatedBy,
 		@Parameter(description = "Revision to transition. Defaults to the latest revision.", example = "5") @RequestParam(name = "revision", required = false) @Min(1) final Integer revision) {
 
-		return ok(documentService.publish(registrationNumber, changedBy, municipalityId, revision));
+		return ok(documentService.publish(registrationNumber, updatedBy, municipalityId, revision));
 	}
 
 	@PostMapping(path = "/{registrationNumber}/revoke", produces = APPLICATION_JSON_VALUE)
@@ -157,10 +157,10 @@ class DocumentResource {
 	ResponseEntity<Document> revoke(
 		@PathVariable @ValidMunicipalityId final String municipalityId,
 		@PathVariable final String registrationNumber,
-		@RequestParam("changedBy") @NotBlank final String changedBy,
+		@RequestParam("updatedBy") @NotBlank @ValidUuid final String updatedBy,
 		@Parameter(description = "Revision to transition. Defaults to the latest revision.", example = "5") @RequestParam(name = "revision", required = false) @Min(1) final Integer revision) {
 
-		return ok(documentService.revoke(registrationNumber, changedBy, municipalityId, revision));
+		return ok(documentService.revoke(registrationNumber, updatedBy, municipalityId, revision));
 	}
 
 	@PostMapping(path = "/{registrationNumber}/unrevoke", produces = APPLICATION_JSON_VALUE)
@@ -168,10 +168,10 @@ class DocumentResource {
 	ResponseEntity<Document> unrevoke(
 		@PathVariable @ValidMunicipalityId final String municipalityId,
 		@PathVariable final String registrationNumber,
-		@RequestParam("changedBy") @NotBlank final String changedBy,
+		@RequestParam("updatedBy") @NotBlank @ValidUuid final String updatedBy,
 		@Parameter(description = "Revision to transition. Defaults to the latest revision.", example = "5") @RequestParam(name = "revision", required = false) @Min(1) final Integer revision) {
 
-		return ok(documentService.unrevoke(registrationNumber, changedBy, municipalityId, revision));
+		return ok(documentService.unrevoke(registrationNumber, updatedBy, municipalityId, revision));
 	}
 
 	@PatchMapping(path = "/{registrationNumber}/confidentiality", produces = {

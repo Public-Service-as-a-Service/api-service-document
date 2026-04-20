@@ -304,7 +304,7 @@ paths:
           required: true
           schema:
             type: string
-        - name: changedBy
+        - name: updatedBy
           in: query
           required: true
           schema:
@@ -351,7 +351,7 @@ paths:
           required: true
           schema:
             type: string
-        - name: changedBy
+        - name: updatedBy
           in: query
           required: true
           schema:
@@ -398,7 +398,7 @@ paths:
           required: true
           schema:
             type: string
-        - name: changedBy
+        - name: updatedBy
           in: query
           required: true
           schema:
@@ -1249,11 +1249,11 @@ components:
       type: object
       description: Document responsibilities update request model.
       properties:
-        changedBy:
+        updatedBy:
           type: string
-          description: Actor that performed this change.
+          description: PersonId of the actor that performed this change.
           examples:
-            - username123
+            - 6c3e4f5a-7b8d-4e9c-a1f2-d3e4b5c6a7f8
           minLength: 1
         responsibilities:
           type: array
@@ -1261,7 +1261,7 @@ components:
             $ref: "#/components/schemas/DocumentResponsibility"
             description: List of document responsibilities.
       required:
-        - changedBy
+        - updatedBy
         - responsibilities
     DocumentResponsibility:
       type: object
@@ -1327,9 +1327,9 @@ components:
       properties:
         createdBy:
           type: string
-          description: Actor that created this revision
+          description: PersonId of the actor that created this revision.
           examples:
-            - username123
+            - 6c3e4f5a-7b8d-4e9c-a1f2-d3e4b5c6a7f8
           minLength: 1
       required:
         - createdBy
@@ -1355,10 +1355,10 @@ components:
       properties:
         createdBy:
           type: string
-          description: Actor that created this revision (all modifications will create
-            new revisions)
+          description: PersonId of the actor that created this revision (all modifications
+            will create new revisions).
           examples:
-            - username123
+            - 6c3e4f5a-7b8d-4e9c-a1f2-d3e4b5c6a7f8
           minLength: 1
         confidentiality:
           $ref: "#/components/schemas/Confidentiality"
@@ -1471,9 +1471,9 @@ components:
           readOnly: true
         createdBy:
           type: string
-          description: Filter by the user that created the document
+          description: Filter by personId of the actor that created the document.
           examples:
-            - User1
+            - 6c3e4f5a-7b8d-4e9c-a1f2-d3e4b5c6a7f8
         includeConfidential:
           type: boolean
           default: false
@@ -1582,14 +1582,14 @@ components:
             - 2023-08-31T01:30:00.000+02:00
         createdBy:
           type: string
-          description: Actor that created this revision.
+          description: PersonId of the actor that created this revision.
           examples:
-            - username123
+            - 6c3e4f5a-7b8d-4e9c-a1f2-d3e4b5c6a7f8
         updatedBy:
           type: string
-          description: Actor that last updated this document.
+          description: PersonId of the actor that last updated this document.
           examples:
-            - username456
+            - 6c3e4f5a-7b8d-4e9c-a1f2-d3e4b5c6a7f8
         archive:
           type: boolean
           description: Tells if the document is eligible for archiving
@@ -1732,9 +1732,9 @@ components:
           minLength: 1
         createdBy:
           type: string
-          description: Identifier for performing person
+          description: PersonId of the actor that created this document type.
           examples:
-            - username123
+            - 6c3e4f5a-7b8d-4e9c-a1f2-d3e4b5c6a7f8
           minLength: 1
       required:
         - createdBy
@@ -1746,9 +1746,9 @@ components:
       properties:
         updatedBy:
           type: string
-          description: Actor that performed the update.
+          description: PersonId of the actor that performed the update.
           examples:
-            - username123
+            - 6c3e4f5a-7b8d-4e9c-a1f2-d3e4b5c6a7f8
         description:
           type: string
           description: Document description
@@ -1803,15 +1803,15 @@ components:
           description: Legal citation
           examples:
             - 25 kap. 1 § OSL
-        changedBy:
+        updatedBy:
           type: string
-          description: Actor that performed this change
+          description: PersonId of the actor that performed this change.
           examples:
-            - username123
+            - 6c3e4f5a-7b8d-4e9c-a1f2-d3e4b5c6a7f8
           minLength: 1
       required:
-        - changedBy
         - confidential
+        - updatedBy
     DocumentTypeUpdateRequest:
       type: object
       properties:
@@ -1827,9 +1827,9 @@ components:
             - EMPLOYMENT_CERTIFICATE
         updatedBy:
           type: string
-          description: Identifier for performing person
+          description: PersonId of the actor that updated this document type.
           examples:
-            - username123
+            - 6c3e4f5a-7b8d-4e9c-a1f2-d3e4b5c6a7f8
           minLength: 1
       required:
         - updatedBy

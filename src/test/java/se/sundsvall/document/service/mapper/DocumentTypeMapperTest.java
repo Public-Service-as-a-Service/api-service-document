@@ -12,10 +12,10 @@ import static org.assertj.core.api.Assertions.assertThat;
 class DocumentTypeMapperTest {
 
 	private static final String MUNICIPALITY_ID = "muncipalityId";
-	private static final String CREATED_BY = "createdBy";
+	private static final String CREATED_BY = "b0000000-0000-0000-0000-0000000000c1";
 	private static final String TYPE = "type";
 	private static final String DISPLAY_NAME = "displayName";
-	private static final String UPDATED_BY = "updatedBy";
+	private static final String UPDATED_BY = "b0000000-0000-0000-0000-0000000000d1";
 
 	@Test
 	void toDocumentTypeEntity() {

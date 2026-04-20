@@ -26,17 +26,17 @@ class ConfidentialityUpdateRequestTest {
 	@Test
 	void testBuilderMethods() {
 
-		final var changedBy = "user";
+		final var updatedBy = "b0000000-0000-0000-0000-000000000099";
 		final var confidential = true;
 		final var legalCitation = "legalCitation";
 
 		final var bean = ConfidentialityUpdateRequest.create()
-			.withChangedBy(changedBy)
+			.withUpdatedBy(updatedBy)
 			.withConfidential(confidential)
 			.withLegalCitation(legalCitation);
 
 		assertThat(bean).isNotNull().hasNoNullFieldsOrProperties();
-		assertThat(bean.getChangedBy()).isEqualTo(changedBy);
+		assertThat(bean.getUpdatedBy()).isEqualTo(updatedBy);
 		assertThat(bean.getConfidential()).isTrue();
 		assertThat(bean.getLegalCitation()).isEqualTo(legalCitation);
 	}

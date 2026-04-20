@@ -44,8 +44,8 @@ class DocumentTest {
 		final var archive = true;
 		final var confidentiality = Confidentiality.create().withConfidential(true).withLegalCitation("legalCitation");
 		final var created = now(systemDefault());
-		final var createdBy = "user";
-		final var updatedBy = "updater";
+		final var createdBy = "b0000000-0000-0000-0000-000000000099";
+		final var updatedBy = "b4444444-4444-4444-4444-444444444444";
 		final var description = "description";
 		final var documentData = List.of(DocumentData.create());
 		final var id = randomUUID().toString();

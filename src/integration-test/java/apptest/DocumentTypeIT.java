@@ -72,7 +72,7 @@ class DocumentTypeIT extends AbstractDocumentAppTest {
 		assertThat(repository.existsByMunicipalityIdAndType("2262", "MISSPELLED")).isFalse();
 		assertThat(repository.findByMunicipalityIdAndType("2262", "CONFIDENTIALITY_AGREEMENT")).isPresent().hasValueSatisfying(entity -> {
 			assertThat(entity.getDisplayName()).isEqualTo("Sekretessavtal");
-			assertThat(entity.getLastUpdatedBy()).isEqualTo("abc123");
+			assertThat(entity.getLastUpdatedBy()).isEqualTo("b0000000-0000-0000-0000-000000000def");
 			assertThat(entity.getType()).isEqualTo("CONFIDENTIALITY_AGREEMENT");
 		});
 	}

@@ -41,13 +41,13 @@ class DocumentTypeRepositoryTest {
 			assertThat(match.getMunicipalityId()).isEqualTo("2281");
 			assertThat(match.getType()).isEqualTo("EMPLOYEE_CERTIFICATE");
 			assertThat(match.getDisplayName()).isEqualTo("Anställningsbevis");
-			assertThat(match.getCreatedBy()).isEqualTo("User1");
+			assertThat(match.getCreatedBy()).isEqualTo("a0000001-0000-0000-0000-000000000001");
 		}, match -> {
 			assertThat(match.getId()).isEqualTo("3fdecd8b-d295-4222-b60c-e95ba5f5075a");
 			assertThat(match.getMunicipalityId()).isEqualTo("2281");
 			assertThat(match.getType()).isEqualTo("HOLIDAY_EXCHANGE");
 			assertThat(match.getDisplayName()).isEqualTo("Semesterväxlingsdokument");
-			assertThat(match.getCreatedBy()).isEqualTo("User2");
+			assertThat(match.getCreatedBy()).isEqualTo("a0000002-0000-0000-0000-000000000002");
 		});
 	}
 
@@ -60,7 +60,7 @@ class DocumentTypeRepositoryTest {
 			assertThat(match.getMunicipalityId()).isEqualTo("2281");
 			assertThat(match.getType()).isEqualTo("EMPLOYEE_CERTIFICATE");
 			assertThat(match.getDisplayName()).isEqualTo("Anställningsbevis");
-			assertThat(match.getCreatedBy()).isEqualTo("User1");
+			assertThat(match.getCreatedBy()).isEqualTo("a0000001-0000-0000-0000-000000000001");
 		});
 	}
 

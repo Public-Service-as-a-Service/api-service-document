@@ -22,14 +22,14 @@ class DocumentEventPublisherTest {
 
 	private static final String MUNICIPALITY_ID = "2281";
 	private static final String REGISTRATION_NUMBER = "2023-2281-4";
-	private static final String CHANGED_BY = "actor";
+	private static final String UPDATED_BY = "b0000000-0000-0000-0000-0000000000ac";
 	private static final String LOG_KEY = UUID.randomUUID().toString();
 
 	@Test
 	void logConfidentialityChange_emitsFormattedEvent() {
 		final var client = new TestEventLogClient();
 		final var publisher = publisherWithClient(client);
-		final var request = ConfidentialityUpdateRequest.create().withChangedBy(CHANGED_BY).withConfidential(true).withLegalCitation("citation");
+		final var request = ConfidentialityUpdateRequest.create().withUpdatedBy(UPDATED_BY).withConfidential(true).withLegalCitation("citation");
 
 		publisher.logConfidentialityChange(REGISTRATION_NUMBER, request, MUNICIPALITY_ID);
 
@@ -39,7 +39,7 @@ class DocumentEventPublisherTest {
 		assertThat(req.logKey()).isEqualTo(LOG_KEY);
 		assertThat(req.event().getType()).isEqualTo(UPDATE);
 		assertThat(req.event().getMessage()).isEqualTo(
-			"Confidentiality flag updated to: 'true' with legal citation: 'citation' for document with registrationNumber: '2023-2281-4'. Action performed by: 'actor'");
+			"Confidentiality flag updated to: 'true' with legal citation: 'citation' for document with registrationNumber: '2023-2281-4'. Action performed by: 'b0000000-0000-0000-0000-0000000000ac'");
 	}
 
 	@Test
@@ -52,13 +52,13 @@ class DocumentEventPublisherTest {
 		final var oldResp = List.of(responsibility(oldId));
 		final var newResp = List.of(responsibility(midId), responsibility(lowId));
 
-		publisher.logResponsibilitiesChange(REGISTRATION_NUMBER, CHANGED_BY, oldResp, newResp, MUNICIPALITY_ID);
+		publisher.logResponsibilitiesChange(REGISTRATION_NUMBER, UPDATED_BY, oldResp, newResp, MUNICIPALITY_ID);
 
 		assertThat(client.requests).hasSize(1);
 		final var message = client.requests.getFirst().event().getMessage();
 		assertThat(message)
 			.contains(REGISTRATION_NUMBER)
-			.contains(CHANGED_BY)
+			.contains(UPDATED_BY)
 			.contains(oldId)
 			.contains(lowId)
 			.contains(midId);
@@ -70,20 +70,20 @@ class DocumentEventPublisherTest {
 		final var client = new TestEventLogClient();
 		final var publisher = publisherWithClient(client);
 
-		publisher.logStatusChange(REGISTRATION_NUMBER, 5, DocumentStatus.DRAFT, DocumentStatus.ACTIVE, CHANGED_BY, MUNICIPALITY_ID);
+		publisher.logStatusChange(REGISTRATION_NUMBER, 5, DocumentStatus.DRAFT, DocumentStatus.ACTIVE, UPDATED_BY, MUNICIPALITY_ID);
 
 		assertThat(client.requests).hasSize(1);
 		assertThat(client.requests.getFirst().event().getMessage()).isEqualTo(
-			"Status changed from 'DRAFT' to 'ACTIVE' for document with registrationNumber: '2023-2281-4' and revision: '5'. Action performed by: 'actor'");
+			"Status changed from 'DRAFT' to 'ACTIVE' for document with registrationNumber: '2023-2281-4' and revision: '5'. Action performed by: 'b0000000-0000-0000-0000-0000000000ac'");
 	}
 
 	@Test
 	void silentlyNoOps_whenEventlogClientAbsent() {
 		final var publisher = new DocumentEventPublisher(Optional.empty(), Optional.of(propertiesMock()));
 
-		publisher.logStatusChange(REGISTRATION_NUMBER, 1, DocumentStatus.DRAFT, DocumentStatus.ACTIVE, CHANGED_BY, MUNICIPALITY_ID);
-		publisher.logConfidentialityChange(REGISTRATION_NUMBER, ConfidentialityUpdateRequest.create().withChangedBy(CHANGED_BY).withConfidential(true).withLegalCitation("c"), MUNICIPALITY_ID);
-		publisher.logResponsibilitiesChange(REGISTRATION_NUMBER, CHANGED_BY, emptyList(), emptyList(), MUNICIPALITY_ID);
+		publisher.logStatusChange(REGISTRATION_NUMBER, 1, DocumentStatus.DRAFT, DocumentStatus.ACTIVE, UPDATED_BY, MUNICIPALITY_ID);
+		publisher.logConfidentialityChange(REGISTRATION_NUMBER, ConfidentialityUpdateRequest.create().withUpdatedBy(UPDATED_BY).withConfidential(true).withLegalCitation("c"), MUNICIPALITY_ID);
+		publisher.logResponsibilitiesChange(REGISTRATION_NUMBER, UPDATED_BY, emptyList(), emptyList(), MUNICIPALITY_ID);
 		// No exception, no verification needed — absence of a client means no-op.
 	}
 
@@ -92,7 +92,7 @@ class DocumentEventPublisherTest {
 		final var client = new TestEventLogClient();
 		final var publisher = new DocumentEventPublisher(Optional.of(client), Optional.empty());
 
-		publisher.logStatusChange(REGISTRATION_NUMBER, 1, DocumentStatus.DRAFT, DocumentStatus.ACTIVE, CHANGED_BY, MUNICIPALITY_ID);
+		publisher.logStatusChange(REGISTRATION_NUMBER, 1, DocumentStatus.DRAFT, DocumentStatus.ACTIVE, UPDATED_BY, MUNICIPALITY_ID);
 
 		assertThat(client.requests).isEmpty();
 	}

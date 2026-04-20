@@ -8,13 +8,15 @@ import java.util.List;
 import java.util.Objects;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.format.annotation.DateTimeFormat.ISO;
+import se.sundsvall.dept44.common.validators.annotation.ValidUuid;
 import se.sundsvall.document.api.validation.ValidValidityWindow;
 
 @ValidValidityWindow
 @Schema(description = "DocumentUpdateRequest model.")
 public class DocumentUpdateRequest {
 
-	@Schema(description = "Actor that performed the update.", examples = "username123")
+	@ValidUuid(nullable = true)
+	@Schema(description = "PersonId of the actor that performed the update.", examples = "6c3e4f5a-7b8d-4e9c-a1f2-d3e4b5c6a7f8")
 	private String updatedBy;
 
 	@Size(max = 8192)

@@ -44,7 +44,7 @@ class DocumentTypeAdministrationResourceFailuresTest {
 			.bodyValue(DocumentTypeCreateRequest.create()
 				.withType("type")
 				.withDisplayName("displayName")
-				.withCreatedBy("createdBy"))
+				.withCreatedBy("b0000000-0000-0000-0000-0000000000c1"))
 			.exchange()
 			.expectStatus().isBadRequest()
 			.expectHeader().contentType(APPLICATION_PROBLEM_JSON)
@@ -104,6 +104,9 @@ class DocumentTypeAdministrationResourceFailuresTest {
 		assertThat(response.getViolations()).isNotEmpty().satisfiesExactlyInAnyOrder(violation -> {
 			assertThat(violation.field()).isEqualTo("createdBy");
 			assertThat(violation.message()).isEqualTo("must not be blank");
+		}, violation -> {
+			assertThat(violation.field()).isEqualTo("createdBy");
+			assertThat(violation.message()).isEqualTo("not a valid UUID");
 		}, violation -> {
 			assertThat(violation.field()).isEqualTo("displayName");
 			assertThat(violation.message()).isEqualTo("must not be blank");
@@ -169,7 +172,7 @@ class DocumentTypeAdministrationResourceFailuresTest {
 			.contentType(APPLICATION_JSON)
 			.bodyValue(DocumentTypeUpdateRequest.create()
 				.withDisplayName("displayName")
-				.withUpdatedBy("updatedBy"))
+				.withUpdatedBy("b0000000-0000-0000-0000-0000000000d1"))
 			.exchange()
 			.expectStatus().isBadRequest()
 			.expectHeader().contentType(APPLICATION_PROBLEM_JSON)
@@ -229,6 +232,9 @@ class DocumentTypeAdministrationResourceFailuresTest {
 		assertThat(response.getViolations()).isNotEmpty().satisfiesExactlyInAnyOrder(violation -> {
 			assertThat(violation.field()).isEqualTo("updatedBy");
 			assertThat(violation.message()).isEqualTo("must not be blank");
+		}, violation -> {
+			assertThat(violation.field()).isEqualTo("updatedBy");
+			assertThat(violation.message()).isEqualTo("not a valid UUID");
 		});
 
 		verifyNoInteractions(serviceMock);

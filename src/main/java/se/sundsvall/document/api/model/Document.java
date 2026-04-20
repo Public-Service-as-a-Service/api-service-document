@@ -35,10 +35,10 @@ public class Document {
 	@DateTimeFormat(iso = ISO.DATE_TIME)
 	private OffsetDateTime created;
 
-	@Schema(description = "Actor that created this revision.", examples = "username123")
+	@Schema(description = "PersonId of the actor that created this revision.", examples = "6c3e4f5a-7b8d-4e9c-a1f2-d3e4b5c6a7f8")
 	private String createdBy;
 
-	@Schema(description = "Actor that last updated this document.", examples = "username456")
+	@Schema(description = "PersonId of the actor that last updated this document.", examples = "6c3e4f5a-7b8d-4e9c-a1f2-d3e4b5c6a7f8")
 	private String updatedBy;
 
 	@Schema(description = "Tells if the document is eligible for archiving", examples = "false")

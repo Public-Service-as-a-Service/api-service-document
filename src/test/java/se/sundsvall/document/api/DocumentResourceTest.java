@@ -72,7 +72,7 @@ class DocumentResourceTest {
 		// Arrange
 		final var documentCreateRequest = DocumentCreateRequest.create()
 			.withConfidentiality(Confidentiality.create().withConfidential(true).withLegalCitation("legalCitation"))
-			.withCreatedBy("user")
+			.withCreatedBy("b0000000-0000-0000-0000-000000000099")
 			.withDescription("description")
 			.withMetadataList(List.of(DocumentMetadata.create()
 				.withKey("key")
@@ -112,7 +112,7 @@ class DocumentResourceTest {
 
 		// Arrange
 		final var documentCreateRequest = DocumentCreateRequest.create()
-			.withCreatedBy("user")
+			.withCreatedBy("b0000000-0000-0000-0000-000000000099")
 			.withDescription("description")
 			.withType("type");
 
@@ -144,7 +144,7 @@ class DocumentResourceTest {
 
 		// Arrange
 		final var documentCreateRequest = DocumentCreateRequest.create()
-			.withCreatedBy("user")
+			.withCreatedBy("b0000000-0000-0000-0000-000000000099")
 			.withDescription("description")
 			.withType("type")
 			.withMetadataList(emptyList());
@@ -178,7 +178,7 @@ class DocumentResourceTest {
 		// Arrange
 		final var registrationNumber = "2023-1337";
 		final var documentUpdateRequest = DocumentUpdateRequest.create()
-			.withUpdatedBy("user")
+			.withUpdatedBy("b0000000-0000-0000-0000-000000000099")
 			.withMetadataList(List.of(DocumentMetadata.create()
 				.withKey("key")
 				.withValue("value")));
@@ -208,7 +208,7 @@ class DocumentResourceTest {
 		// Arrange
 		final var registrationNumber = "2023-1337";
 		final var confidentialityUpdateRequest = ConfidentialityUpdateRequest.create()
-			.withChangedBy("user")
+			.withUpdatedBy("b0000000-0000-0000-0000-000000000099")
 			.withConfidential(true)
 			.withLegalCitation("Lorum ipsum");
 
@@ -232,7 +232,7 @@ class DocumentResourceTest {
 		// Arrange
 		final var registrationNumber = "2023-1337";
 		final var responsibilitiesUpdateRequest = DocumentResponsibilitiesUpdateRequest.create()
-			.withChangedBy("user")
+			.withUpdatedBy("b0000000-0000-0000-0000-000000000099")
 			.withResponsibilities(List.of(DocumentResponsibility.create()
 				.withPersonId("6b8d4a1c-34e2-4f73-a5f1-b7c2e9a0d8c4")));
 
@@ -259,13 +259,13 @@ class DocumentResourceTest {
 
 		// Act
 		webTestClient.post()
-			.uri("/2281/documents/" + registrationNumber + "/publish?changedBy=user")
+			.uri("/2281/documents/" + registrationNumber + "/publish?updatedBy=b0000000-0000-0000-0000-000000000099")
 			.exchange()
 			.expectStatus().isOk()
 			.expectHeader().contentType(APPLICATION_JSON);
 
 		// Assert
-		verify(documentServiceMock).publish(registrationNumber, "user", "2281", null);
+		verify(documentServiceMock).publish(registrationNumber, "b0000000-0000-0000-0000-000000000099", "2281", null);
 	}
 
 	@Test
@@ -277,13 +277,13 @@ class DocumentResourceTest {
 
 		// Act
 		webTestClient.post()
-			.uri("/2281/documents/" + registrationNumber + "/publish?changedBy=user&revision=5")
+			.uri("/2281/documents/" + registrationNumber + "/publish?updatedBy=b0000000-0000-0000-0000-000000000099&revision=5")
 			.exchange()
 			.expectStatus().isOk()
 			.expectHeader().contentType(APPLICATION_JSON);
 
 		// Assert
-		verify(documentServiceMock).publish(registrationNumber, "user", "2281", 5);
+		verify(documentServiceMock).publish(registrationNumber, "b0000000-0000-0000-0000-000000000099", "2281", 5);
 	}
 
 	@Test
@@ -295,13 +295,13 @@ class DocumentResourceTest {
 
 		// Act
 		webTestClient.post()
-			.uri("/2281/documents/" + registrationNumber + "/revoke?changedBy=user")
+			.uri("/2281/documents/" + registrationNumber + "/revoke?updatedBy=b0000000-0000-0000-0000-000000000099")
 			.exchange()
 			.expectStatus().isOk()
 			.expectHeader().contentType(APPLICATION_JSON);
 
 		// Assert
-		verify(documentServiceMock).revoke(registrationNumber, "user", "2281", null);
+		verify(documentServiceMock).revoke(registrationNumber, "b0000000-0000-0000-0000-000000000099", "2281", null);
 	}
 
 	@Test
@@ -313,13 +313,13 @@ class DocumentResourceTest {
 
 		// Act
 		webTestClient.post()
-			.uri("/2281/documents/" + registrationNumber + "/revoke?changedBy=user&revision=5")
+			.uri("/2281/documents/" + registrationNumber + "/revoke?updatedBy=b0000000-0000-0000-0000-000000000099&revision=5")
 			.exchange()
 			.expectStatus().isOk()
 			.expectHeader().contentType(APPLICATION_JSON);
 
 		// Assert
-		verify(documentServiceMock).revoke(registrationNumber, "user", "2281", 5);
+		verify(documentServiceMock).revoke(registrationNumber, "b0000000-0000-0000-0000-000000000099", "2281", 5);
 	}
 
 	@Test
@@ -331,13 +331,13 @@ class DocumentResourceTest {
 
 		// Act
 		webTestClient.post()
-			.uri("/2281/documents/" + registrationNumber + "/unrevoke?changedBy=user")
+			.uri("/2281/documents/" + registrationNumber + "/unrevoke?updatedBy=b0000000-0000-0000-0000-000000000099")
 			.exchange()
 			.expectStatus().isOk()
 			.expectHeader().contentType(APPLICATION_JSON);
 
 		// Assert
-		verify(documentServiceMock).unrevoke(registrationNumber, "user", "2281", null);
+		verify(documentServiceMock).unrevoke(registrationNumber, "b0000000-0000-0000-0000-000000000099", "2281", null);
 	}
 
 	@Test
@@ -349,13 +349,13 @@ class DocumentResourceTest {
 
 		// Act
 		webTestClient.post()
-			.uri("/2281/documents/" + registrationNumber + "/unrevoke?changedBy=user&revision=5")
+			.uri("/2281/documents/" + registrationNumber + "/unrevoke?updatedBy=b0000000-0000-0000-0000-000000000099&revision=5")
 			.exchange()
 			.expectStatus().isOk()
 			.expectHeader().contentType(APPLICATION_JSON);
 
 		// Assert
-		verify(documentServiceMock).unrevoke(registrationNumber, "user", "2281", 5);
+		verify(documentServiceMock).unrevoke(registrationNumber, "b0000000-0000-0000-0000-000000000099", "2281", 5);
 	}
 
 	@Test
@@ -365,7 +365,7 @@ class DocumentResourceTest {
 		final var includeConfidential = true;
 		final var registrationNumber = "2023-1337";
 		final var documentUpdateRequest = DocumentUpdateRequest.create()
-			.withUpdatedBy("user")
+			.withUpdatedBy("b0000000-0000-0000-0000-000000000099")
 			.withMetadataList(List.of(DocumentMetadata.create()
 				.withKey("key")
 				.withValue("value")));
@@ -590,7 +590,7 @@ class DocumentResourceTest {
 
 		// Arrange
 		final var documentDataCreateRequest = DocumentDataCreateRequest.create()
-			.withCreatedBy("user");
+			.withCreatedBy("b0000000-0000-0000-0000-000000000099");
 		final var multipartBodyBuilder = new MultipartBodyBuilder();
 		multipartBodyBuilder.part("documentFile", "file-content").filename("test1.txt").contentType(TEXT_PLAIN);
 		multipartBodyBuilder.part("document", documentDataCreateRequest);
@@ -618,7 +618,7 @@ class DocumentResourceTest {
 		final var registrationNumber = "2023-1337";
 
 		final var documentDataCreateRequest = DocumentDataCreateRequest.create()
-			.withCreatedBy("user");
+			.withCreatedBy("b0000000-0000-0000-0000-000000000099");
 		final var multipartBodyBuilder = new MultipartBodyBuilder();
 		multipartBodyBuilder.part("documentFiles", "file-content-1").filename("test1.txt").contentType(TEXT_PLAIN);
 		multipartBodyBuilder.part("documentFiles", "file-content-2").filename("test2.txt").contentType(TEXT_PLAIN);

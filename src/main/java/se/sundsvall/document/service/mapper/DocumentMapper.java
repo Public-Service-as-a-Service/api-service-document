@@ -21,11 +21,14 @@ import se.sundsvall.document.api.model.DocumentResponsibility;
 import se.sundsvall.document.api.model.DocumentStatus;
 import se.sundsvall.document.api.model.DocumentUpdateRequest;
 import se.sundsvall.document.api.model.PagedDocumentResponse;
+import se.sundsvall.document.integration.db.DocumentDataRepository;
 import se.sundsvall.document.integration.db.model.ConfidentialityEmbeddable;
 import se.sundsvall.document.integration.db.model.DocumentDataEntity;
 import se.sundsvall.document.integration.db.model.DocumentEntity;
 import se.sundsvall.document.integration.db.model.DocumentMetadataEmbeddable;
 import se.sundsvall.document.integration.db.model.DocumentResponsibilityEntity;
+import se.sundsvall.document.service.extraction.ExtractionStatus;
+import se.sundsvall.document.service.extraction.TextExtractor;
 import se.sundsvall.document.service.storage.BinaryStore;
 import se.sundsvall.document.service.storage.StorageRef;
 
@@ -56,21 +59,50 @@ public class DocumentMapper {
 			.withValidTo(documentCreateRequest.getValidTo());
 	}
 
-	public static List<DocumentDataEntity> toDocumentDataEntities(final DocumentFiles documentFiles, final BinaryStore binaryStore, final String municipalityId) {
+	public static List<DocumentDataEntity> toDocumentDataEntities(final DocumentFiles documentFiles, final BinaryStore binaryStore,
+		final TextExtractor textExtractor, final DocumentDataRepository documentDataRepository, final String municipalityId) {
 		return Optional.ofNullable(documentFiles).map(DocumentFiles::getFiles)
 			.map(files -> files.stream()
-				.map(file -> toDocumentDataEntity(file, binaryStore, municipalityId))
+				.map(file -> toDocumentDataEntity(file, binaryStore, textExtractor, documentDataRepository, municipalityId))
 				.toList())
 			.orElse(null);
 	}
 
-	public static DocumentDataEntity toDocumentDataEntity(MultipartFile multipartFile, BinaryStore binaryStore, String municipalityId) {
+	public static DocumentDataEntity toDocumentDataEntity(MultipartFile multipartFile, BinaryStore binaryStore,
+		TextExtractor textExtractor, DocumentDataRepository documentDataRepository, String municipalityId) {
 		if (multipartFile == null) {
 			return null;
 		}
-		final StorageRef ref;
+		final var putResult = writeAndHash(multipartFile, binaryStore, municipalityId);
+
+		// Dedupe: if the same bytes have already been extracted successfully on a previous upload
+		// (e.g. same file attached to a new revision) reuse that text instead of running Tika again.
+		final var dedup = documentDataRepository.findFirstByContentHashAndExtractionStatus(putResult.sha256(), ExtractionStatus.SUCCESS);
+
+		final String extractedText;
+		final ExtractionStatus extractionStatus;
+		if (dedup.isPresent()) {
+			extractedText = dedup.get().getExtractedText();
+			extractionStatus = dedup.get().getExtractionStatus();
+		} else {
+			final var extraction = runExtraction(multipartFile, textExtractor);
+			extractedText = extraction.text();
+			extractionStatus = extraction.status();
+		}
+
+		return DocumentDataEntity.create()
+			.withStorageLocator(putResult.ref().locator())
+			.withMimeType(multipartFile.getContentType())
+			.withFileName(multipartFile.getOriginalFilename())
+			.withFileSizeInBytes(multipartFile.getSize())
+			.withContentHash(putResult.sha256())
+			.withExtractedText(extractedText)
+			.withExtractionStatus(extractionStatus);
+	}
+
+	private static se.sundsvall.document.service.storage.PutResult writeAndHash(MultipartFile multipartFile, BinaryStore binaryStore, String municipalityId) {
 		try {
-			ref = binaryStore.put(
+			return binaryStore.put(
 				multipartFile.getInputStream(),
 				multipartFile.getSize(),
 				multipartFile.getContentType(),
@@ -78,11 +110,16 @@ public class DocumentMapper {
 		} catch (final IOException e) {
 			throw Problem.valueOf(INTERNAL_SERVER_ERROR, "Failed to read upload for " + multipartFile.getOriginalFilename() + ": " + e.getMessage());
 		}
-		return DocumentDataEntity.create()
-			.withStorageLocator(ref.locator())
-			.withMimeType(multipartFile.getContentType())
-			.withFileName(multipartFile.getOriginalFilename())
-			.withFileSizeInBytes(multipartFile.getSize());
+	}
+
+	private static TextExtractor.ExtractedText runExtraction(MultipartFile multipartFile, TextExtractor textExtractor) {
+		try (var stream = multipartFile.getInputStream()) {
+			return textExtractor.extract(stream, multipartFile.getContentType(), multipartFile.getSize());
+		} catch (final IOException e) {
+			// Re-reading a Spring StandardMultipartFile gives a fresh temp-file stream, so this is
+			// unexpected. Fail the extraction but keep the upload — the file is already persisted.
+			return TextExtractor.ExtractedText.failed(multipartFile.getContentType(), "Failed to reopen upload for extraction: " + e.getMessage());
+		}
 	}
 
 	private static Map<String, String> buildUserMetadata(String originalFilename, String municipalityId) {
@@ -255,11 +292,16 @@ public class DocumentMapper {
 		}
 		final var sourceRef = StorageRef.s3(documentDataEntity.getStorageLocator());
 		final var newRef = binaryStore.copy(sourceRef);
+		// Copy-on-write preserves the bytes → the content hash, extracted text and extraction status
+		// are identical on the new revision. Don't re-run Tika.
 		return DocumentDataEntity.create()
 			.withMimeType(documentDataEntity.getMimeType())
 			.withFileName(documentDataEntity.getFileName())
 			.withFileSizeInBytes(documentDataEntity.getFileSizeInBytes())
-			.withStorageLocator(newRef.locator());
+			.withStorageLocator(newRef.locator())
+			.withContentHash(documentDataEntity.getContentHash())
+			.withExtractedText(documentDataEntity.getExtractedText())
+			.withExtractionStatus(documentDataEntity.getExtractionStatus());
 	}
 
 	/**

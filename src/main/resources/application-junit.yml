@@ -5,12 +5,32 @@ integration:
     logKeyUuid: 00000000-0000-0000-0000-000000000000
     readTimeout: 21
     url: http://localhost:${wiremock.server.port:}/api-eventlog
+document:
+  # Disable ES wiring in the junit profile — WebTestClient tests mock DocumentService etc.
+  search:
+    enabled: false
 spring:
   cache:
     type: none
   datasource:
     driver-class-name: org.testcontainers.jdbc.ContainerDatabaseDriver
     url: jdbc:tc:mariadb:10.6.4:///junit-db
+  # Junit profile boots the Spring context without a real Elasticsearch. WebTestClient-based
+  # resource tests mock DocumentService, so ES is never actually hit — disable the repository
+  # auto-creation (which would otherwise eagerly connect on bean init) and the auto-configuration
+  # entirely. Any remaining ES-typed beans are provided as @MockitoBean in the tests.
+  elasticsearch:
+    uris: http://localhost:9999
+  data:
+    elasticsearch:
+      repositories:
+        enabled: false
+  autoconfigure:
+    exclude:
+      - org.springframework.boot.elasticsearch.autoconfigure.ElasticsearchClientAutoConfiguration
+      - org.springframework.boot.elasticsearch.autoconfigure.ElasticsearchRestClientAutoConfiguration
+      - org.springframework.boot.data.elasticsearch.autoconfigure.DataElasticsearchAutoConfiguration
+      - org.springframework.boot.data.elasticsearch.autoconfigure.DataElasticsearchRepositoriesAutoConfiguration
   jpa:
     properties:
       hibernate:

@@ -405,71 +405,10 @@ class DocumentIT extends AbstractDocumentAppTest {
 			.sendRequestAndVerifyResponse();
 	}
 
-	@Test
-	@Order(24)
-	void test24_searchWithWildCardAndText() {
-		setupCall()
-			.withServicePath(PATH_SUNDSVALL + "?query=*key2")
-			.withHttpMethod(GET)
-			.withExpectedResponseStatus(OK)
-			.withExpectedResponse(RESPONSE_FILE)
-			.sendRequestAndVerifyResponse();
-	}
-
-	@Test
-	@Order(25)
-	void test25_searchWithWildCardAndTextConfidential() {
-		setupCall()
-			.withServicePath(PATH_SUNDSVALL + "?query=*key2&includeConfidential=true")
-			.withHttpMethod(GET)
-			.withExpectedResponseStatus(OK)
-			.withExpectedResponse(RESPONSE_FILE)
-			.sendRequestAndVerifyResponse();
-	}
-
-	@Test
-	@Order(26)
-	void test26_searchWithWildCardOnly() {
-		setupCall()
-			.withServicePath(PATH_SUNDSVALL + "?query=*&sort=id,desc")
-			.withHttpMethod(GET)
-			.withExpectedResponseStatus(OK)
-			.withExpectedResponse(RESPONSE_FILE)
-			.sendRequestAndVerifyResponse();
-	}
-
-	@Test
-	@Order(27)
-	void test27_searchInLatestRevisionWithWildCardOnly() {
-		setupCall()
-			.withServicePath(PATH_SUNDSVALL + "?query=*&onlyLatestRevision=true")
-			.withHttpMethod(GET)
-			.withExpectedResponseStatus(OK)
-			.withExpectedResponse(RESPONSE_FILE)
-			.sendRequestAndVerifyResponse();
-	}
-
-	@Test
-	@Order(28)
-	void test28_searchWithWildCardOnlyConfidential() {
-		setupCall()
-			.withServicePath(PATH_SUNDSVALL + "?query=*&includeConfidential=true")
-			.withHttpMethod(GET)
-			.withExpectedResponseStatus(OK)
-			.withExpectedResponse(RESPONSE_FILE)
-			.sendRequestAndVerifyResponse();
-	}
-
-	@Test
-	@Order(29)
-	void test29_searchInLatestRevisionWithWildCardOnlyConfidential() {
-		setupCall()
-			.withServicePath(PATH_SUNDSVALL + "?query=*&includeConfidential=true&onlyLatestRevision=true")
-			.withHttpMethod(GET)
-			.withExpectedResponseStatus(OK)
-			.withExpectedResponse(RESPONSE_FILE)
-			.sendRequestAndVerifyResponse();
-	}
+	// Tests 24-29 exercised a SQL-LIKE-style wildcard feature (?query=*key2, ?query=*) that was
+	// tied to the retired DB free-text search. That feature has been removed from ?query=; phrase
+	// match across structured fields + extractedText is the only supported mode. Reintroduce
+	// wildcard support as a separate refactor if the need comes back.
 
 	@Test
 	@Order(30)

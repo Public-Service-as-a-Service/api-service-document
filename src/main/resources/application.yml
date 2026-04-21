@@ -57,6 +57,12 @@ spring:
     multipart:
       max-file-size: 60MB
       max-request-size: 60MB
+  elasticsearch:
+    # Mandatory — free-text ?query= is served from ES. Provide via env in every environment
+    # (including local dev; no embedded fallback). Password may be omitted for an anonymous cluster.
+    uris: ${ELASTICSEARCH_URIS:}
+    username: ${ELASTICSEARCH_USERNAME:}
+    password: ${ELASTICSEARCH_PASSWORD:}
 springdoc:
   swagger-ui:
     operationsSorter: alpha

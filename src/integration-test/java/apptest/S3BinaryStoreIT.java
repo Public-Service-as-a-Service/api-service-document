@@ -1,4 +1,4 @@
-package se.sundsvall.document.service.storage;
+package apptest;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -8,9 +8,14 @@ import java.util.Map;
 import java.util.UUID;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.testcontainers.containers.MinIOContainer;
 import se.sundsvall.dept44.problem.ThrowableProblem;
+import se.sundsvall.document.service.storage.S3BinaryStore;
+import se.sundsvall.document.service.storage.S3StorageProperties;
+import se.sundsvall.document.service.storage.StorageRef;
+
 import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
 import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
 import software.amazon.awssdk.regions.Region;
@@ -76,26 +81,27 @@ class S3BinaryStoreIT {
 	void put_thenStreamTo_roundTripsBytes() throws Exception {
 		final var payload = randomBytes(5 * 1024 * 1024); // 5 MB
 
-		final var ref = binaryStore.put(new ByteArrayInputStream(payload), payload.length, "application/octet-stream", Map.of());
+		final var result = binaryStore.put(new ByteArrayInputStream(payload), payload.length, "application/octet-stream", Map.of());
 
-		assertThat(ref).isNotNull();
-		assertThat(ref.backend()).isEqualTo("s3");
-		assertThat(ref.locator()).isNotBlank();
+		assertThat(result).isNotNull();
+		assertThat(result.ref().backend()).isEqualTo("s3");
+		assertThat(result.ref().locator()).isNotBlank();
+		assertThat(result.sha256()).hasSize(64);
 
 		final var sink = new ByteArrayOutputStream();
-		binaryStore.streamTo(ref, sink);
-
+		binaryStore.streamTo(result.ref(), sink);
+		
 		assertThat(sink.toByteArray()).isEqualTo(payload);
 	}
-
+	
 	@Test
 	void put_persistsUserMetadata_andHeadObjectReturnsIt() {
 		final var payload = "metadata sample".getBytes();
 		final var userMetadata = Map.of("original-filename", "invoice.pdf", "municipality-id", "2281");
 
-		final var ref = binaryStore.put(new ByteArrayInputStream(payload), payload.length, "application/pdf", userMetadata);
+		final var result = binaryStore.put(new ByteArrayInputStream(payload), payload.length, "application/pdf", userMetadata);
 
-		final var head = s3Client.headObject(HeadObjectRequest.builder().bucket(BUCKET).key(ref.locator()).build());
+		final var head = s3Client.headObject(HeadObjectRequest.builder().bucket(BUCKET).key(result.ref().locator()).build());
 
 		assertThat(head.metadata())
 			.containsEntry("original-filename", "invoice.pdf")
@@ -108,24 +114,24 @@ class S3BinaryStoreIT {
 		final var payload = "svenska".getBytes();
 		final var userMetadata = Map.of("original-filename", "fet_säl.jpg");
 
-		final var ref = binaryStore.put(new ByteArrayInputStream(payload), payload.length, "image/jpeg", userMetadata);
+		final var result = binaryStore.put(new ByteArrayInputStream(payload), payload.length, "image/jpeg", userMetadata);
 
-		final var head = s3Client.headObject(HeadObjectRequest.builder().bucket(BUCKET).key(ref.locator()).build());
+		final var head = s3Client.headObject(HeadObjectRequest.builder().bucket(BUCKET).key(result.ref().locator()).build());
 		assertThat(head.metadata()).containsEntry("original-filename", "fet_s%C3%A4l.jpg");
 	}
-
+	
 	@Test
 	void copy_createsIndependentObjectWithSameContent() throws Exception {
 		final var payload = "hello storage".getBytes();
 
 		final var original = binaryStore.put(new ByteArrayInputStream(payload), payload.length, "text/plain", Map.of());
-		final var copy = binaryStore.copy(original);
+		final var copy = binaryStore.copy(original.ref());
 
 		assertThat(copy.backend()).isEqualTo("s3");
-		assertThat(copy.locator()).isNotEqualTo(original.locator());
+		assertThat(copy.locator()).isNotEqualTo(original.ref().locator());
 
 		// Delete the original; the copy must still be readable.
-		binaryStore.delete(original);
+		binaryStore.delete(original.ref());
 
 		final var sink = new ByteArrayOutputStream();
 		binaryStore.streamTo(copy, sink);
@@ -135,11 +141,11 @@ class S3BinaryStoreIT {
 	@Test
 	void delete_removesObject_andStreamToThrowsNotFound() {
 		final var payload = "temp".getBytes();
-		final var ref = binaryStore.put(new ByteArrayInputStream(payload), payload.length, "text/plain", Map.of());
+		final var result = binaryStore.put(new ByteArrayInputStream(payload), payload.length, "text/plain", Map.of());
 
-		binaryStore.delete(ref);
+		binaryStore.delete(result.ref());
 
-		assertThatThrownBy(() -> binaryStore.streamTo(ref, new ByteArrayOutputStream()))
+		assertThatThrownBy(() -> binaryStore.streamTo(result.ref(), new ByteArrayOutputStream()))
 			.isInstanceOf(ThrowableProblem.class)
 			.satisfies(ex -> assertThat(((ThrowableProblem) ex).getStatus()).isEqualTo(NOT_FOUND));
 	}

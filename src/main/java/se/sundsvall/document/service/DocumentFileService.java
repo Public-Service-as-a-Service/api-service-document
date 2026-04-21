@@ -9,6 +9,7 @@ import java.util.Optional;
 import org.apache.commons.lang3.Strings;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.http.ContentDisposition;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -17,10 +18,13 @@ import se.sundsvall.dept44.problem.Problem;
 import se.sundsvall.document.api.model.Document;
 import se.sundsvall.document.api.model.DocumentDataCreateRequest;
 import se.sundsvall.document.api.model.DocumentFiles;
+import se.sundsvall.document.integration.db.DocumentDataRepository;
 import se.sundsvall.document.integration.db.DocumentRepository;
 import se.sundsvall.document.integration.db.DocumentResponsibilityRepository;
 import se.sundsvall.document.integration.db.model.DocumentDataEntity;
 import se.sundsvall.document.integration.db.model.DocumentEntity;
+import se.sundsvall.document.service.extraction.TextExtractor;
+import se.sundsvall.document.service.indexing.DocumentIndexingEvent;
 import se.sundsvall.document.service.mapper.DocumentMapper;
 import se.sundsvall.document.service.storage.BinaryStore;
 import se.sundsvall.document.service.storage.StorageRef;
@@ -51,18 +55,27 @@ public class DocumentFileService {
 	private final BinaryStore binaryStore;
 	private final DocumentRepository documentRepository;
 	private final DocumentResponsibilityRepository documentResponsibilityRepository;
+	private final DocumentDataRepository documentDataRepository;
 	private final DocumentStatusPolicy statusPolicy;
+	private final TextExtractor textExtractor;
+	private final ApplicationEventPublisher applicationEventPublisher;
 
 	public DocumentFileService(
 		final BinaryStore binaryStore,
 		final DocumentRepository documentRepository,
 		final DocumentResponsibilityRepository documentResponsibilityRepository,
-		final DocumentStatusPolicy statusPolicy) {
+		final DocumentDataRepository documentDataRepository,
+		final DocumentStatusPolicy statusPolicy,
+		final TextExtractor textExtractor,
+		final ApplicationEventPublisher applicationEventPublisher) {
 
 		this.binaryStore = binaryStore;
 		this.documentRepository = documentRepository;
 		this.documentResponsibilityRepository = documentResponsibilityRepository;
+		this.documentDataRepository = documentDataRepository;
 		this.statusPolicy = statusPolicy;
+		this.textExtractor = textExtractor;
+		this.applicationEventPublisher = applicationEventPublisher;
 	}
 
 	public void readFile(String registrationNumber, String documentDataId, boolean includeConfidential, boolean includeNonPublic, HttpServletResponse response, String municipalityId) {
@@ -108,7 +121,7 @@ public class DocumentFileService {
 		final var documentEntity = documentRepository.findTopByMunicipalityIdAndRegistrationNumberAndConfidentialityConfidentialInOrderByRevisionDesc(municipalityId, registrationNumber, CONFIDENTIAL_AND_PUBLIC.getValue())
 			.orElseThrow(() -> Problem.valueOf(NOT_FOUND, ERROR_DOCUMENT_BY_REGISTRATION_NUMBER_NOT_FOUND.formatted(registrationNumber)));
 
-		final var newDocumentDataEntities = toDocumentDataEntities(documentFiles, binaryStore, municipalityId);
+		final var newDocumentDataEntities = toDocumentDataEntities(documentFiles, binaryStore, textExtractor, documentDataRepository, municipalityId);
 
 		final var newDocumentEntity = copyDocumentEntity(documentEntity, binaryStore)
 			.withRevision(documentEntity.getRevision() + 1)
@@ -116,7 +129,9 @@ public class DocumentFileService {
 
 		newDocumentDataEntities.forEach(entity -> addOrReplaceDocumentDataEntity(newDocumentEntity, entity));
 
-		return toDocumentWithResponsibilities(documentRepository.save(newDocumentEntity));
+		final var saved = documentRepository.save(newDocumentEntity);
+		applicationEventPublisher.publishEvent(DocumentIndexingEvent.reindex(saved.getId()));
+		return toDocumentWithResponsibilities(saved);
 	}
 
 	public void deleteFile(String registrationNumber, String documentDataId, String municipalityId) {
@@ -139,7 +154,11 @@ public class DocumentFileService {
 			throw Problem.valueOf(NOT_FOUND, ERROR_DOCUMENT_FILE_BY_ID_NOT_FOUND.formatted(documentDataId));
 		}
 
-		documentRepository.save(newDocumentEntity);
+		final var saved = documentRepository.save(newDocumentEntity);
+		// The removed file's ES doc keeps referencing the old revision; drop it so search doesn't
+		// return the deleted file. The new revision's remaining files are indexed by the reindex.
+		applicationEventPublisher.publishEvent(
+			DocumentIndexingEvent.reindexAfterDelete(saved.getId(), List.of(documentDataId)));
 	}
 
 	private void addFileContentToResponse(DocumentDataEntity documentDataEntity, HttpServletResponse response) {

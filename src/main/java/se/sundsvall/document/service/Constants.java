@@ -41,6 +41,19 @@ public final class Constants {
 
 		""";
 
+	public static final String SEARCH_FILE_MATCHES_DOCUMENTATION = """
+		Same input signature as the standard search, but returns a stripped response: for each
+		matching document, only the document ID plus the IDs and filenames of the files that
+		actually matched the query. No document metadata, responsibilities, or other fields are
+		included. Backed entirely by Elasticsearch — no database hydration.
+
+		Parameters:
+		- includeConfidential: Should the search include confidential documents? Datatype - boolean (default: false)
+		- onlyLatestRevision: Should the search include only the latest revision of the documents? Datatype - boolean (default: false)
+		- query: Search query. Datatype - String
+
+		""";
+
 	public static final String SEARCH_BY_PARAMETERS_DOCUMENTATION = """
 		Parameters:
 		- createdBy: Filter by the user that created the document. Datatype - String

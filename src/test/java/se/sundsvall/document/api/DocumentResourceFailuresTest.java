@@ -630,6 +630,50 @@ class DocumentResourceFailuresTest {
 	}
 
 	@Test
+	void searchFileMatchesWithMissingQuery() {
+
+		// Act
+		final var response = webTestClient.get()
+			.uri("/2281/documents/file-matches")
+			.exchange()
+			.expectStatus().isBadRequest()
+			.expectHeader().contentType(APPLICATION_PROBLEM_JSON)
+			.expectBody(Problem.class)
+			.returnResult()
+			.getResponseBody();
+
+		// Assert
+		assertThat(response).isNotNull();
+		assertThat(response.getDetail()).isEqualTo("Required parameter 'query' is not present.");
+
+		verifyNoInteractions(documentServiceMock);
+	}
+
+	@Test
+	void searchFileMatchesWithBlankQuery() {
+
+		// Act
+		final var response = webTestClient.get()
+			.uri(uriBuilder -> uriBuilder.path("/2281/documents/file-matches")
+				.queryParam("query", " ")
+				.build())
+			.exchange()
+			.expectStatus().isBadRequest()
+			.expectHeader().contentType(APPLICATION_PROBLEM_JSON)
+			.expectBody(ConstraintViolationProblem.class)
+			.returnResult()
+			.getResponseBody();
+
+		// Assert
+		assertThat(response).isNotNull();
+		assertThat(response.getViolations())
+			.extracting(Violation::field, Violation::message)
+			.containsExactlyInAnyOrder(tuple("searchFileMatches.query", "must not be blank"));
+
+		verifyNoInteractions(documentServiceMock);
+	}
+
+	@Test
 	void readFileWithInvalidDocumentDataId() {
 
 		// Arrange

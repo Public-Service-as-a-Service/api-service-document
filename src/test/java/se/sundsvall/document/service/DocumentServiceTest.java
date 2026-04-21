@@ -28,6 +28,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.elasticsearch.core.ElasticsearchOperations;
+import org.springframework.data.elasticsearch.core.SearchHit;
 import org.springframework.data.elasticsearch.core.SearchHits;
 import org.springframework.http.ResponseEntity;
 import org.springframework.mock.web.MockMultipartFile;
@@ -443,6 +444,116 @@ class DocumentServiceTest {
 		assertThat(result).isNotNull();
 		assertThat(result.getDocuments()).isEmpty();
 		verify(elasticsearchOperationsMock).search(any(org.springframework.data.elasticsearch.core.query.Query.class), eq(DocumentIndexEntity.class));
+	}
+
+	@Test
+	void searchFileMatches_whenEsReturnsNoHits_returnsEmptyPage() {
+
+		// Arrange
+		final var pageRequest = PageRequest.of(0, 10);
+		org.mockito.Mockito.lenient().when(statusPolicyMock.effectivePublishedStatuses(any())).thenReturn(java.util.List.of(DocumentStatus.SCHEDULED, DocumentStatus.ACTIVE, DocumentStatus.EXPIRED));
+		when(elasticsearchOperationsMock.search(any(org.springframework.data.elasticsearch.core.query.Query.class), eq(DocumentIndexEntity.class))).thenReturn(searchHitsMock);
+		when(searchHitsMock.getSearchHits()).thenReturn(java.util.List.of());
+		when(searchHitsMock.getTotalHits()).thenReturn(0L);
+
+		// Act
+		final var result = documentService.searchFileMatches("no-hits", false, false, pageRequest, MUNICIPALITY_ID);
+
+		// Assert
+		assertThat(result).isNotNull();
+		assertThat(result.getDocuments()).isEmpty();
+		assertThat(result.getMetadata().getTotalRecords()).isZero();
+		verifyNoInteractions(documentRepositoryMock);
+	}
+
+	@Test
+	void searchFileMatches_groupsFilesByDocumentIdPreservingOrder() {
+
+		// Arrange
+		final var pageRequest = PageRequest.of(0, 10);
+		final var docA = "doc-a";
+		final var docB = "doc-b";
+		final var hits = java.util.List.of(
+			fileHit(docA, "reg-a", 1, "file-a1", "alpha.pdf"),
+			fileHit(docB, "reg-b", 1, "file-b1", "beta.pdf"),
+			fileHit(docA, "reg-a", 1, "file-a2", "alpha-2.pdf"));
+		org.mockito.Mockito.lenient().when(statusPolicyMock.effectivePublishedStatuses(any())).thenReturn(java.util.List.of(DocumentStatus.SCHEDULED, DocumentStatus.ACTIVE, DocumentStatus.EXPIRED));
+		when(elasticsearchOperationsMock.search(any(org.springframework.data.elasticsearch.core.query.Query.class), eq(DocumentIndexEntity.class))).thenReturn(searchHitsMock);
+		when(searchHitsMock.getSearchHits()).thenReturn(hits);
+		when(searchHitsMock.getTotalHits()).thenReturn(3L);
+
+		// Act
+		final var result = documentService.searchFileMatches("any", false, false, pageRequest, MUNICIPALITY_ID);
+
+		// Assert
+		assertThat(result.getDocuments()).hasSize(2);
+		assertThat(result.getDocuments().get(0).getId()).isEqualTo(docA);
+		assertThat(result.getDocuments().get(0).getFiles())
+			.extracting("id", "fileName")
+			.containsExactly(tuple("file-a1", "alpha.pdf"), tuple("file-a2", "alpha-2.pdf"));
+		assertThat(result.getDocuments().get(1).getId()).isEqualTo(docB);
+		assertThat(result.getDocuments().get(1).getFiles())
+			.extracting("id", "fileName")
+			.containsExactly(tuple("file-b1", "beta.pdf"));
+		verifyNoInteractions(documentRepositoryMock);
+	}
+
+	@Test
+	void searchFileMatches_onlyLatestRevision_dropsOlderRevisionsOfSameRegistrationNumber() {
+
+		// Arrange
+		final var pageRequest = PageRequest.of(0, 10);
+		final var hits = java.util.List.of(
+			fileHit("doc-rev1", "reg-shared", 1, "file-1", "v1.pdf"),
+			fileHit("doc-rev2", "reg-shared", 2, "file-2", "v2.pdf"),
+			fileHit("doc-other", "reg-other", 1, "file-3", "other.pdf"));
+		org.mockito.Mockito.lenient().when(statusPolicyMock.effectivePublishedStatuses(any())).thenReturn(java.util.List.of(DocumentStatus.SCHEDULED, DocumentStatus.ACTIVE, DocumentStatus.EXPIRED));
+		when(elasticsearchOperationsMock.search(any(org.springframework.data.elasticsearch.core.query.Query.class), eq(DocumentIndexEntity.class))).thenReturn(searchHitsMock);
+		when(searchHitsMock.getSearchHits()).thenReturn(hits);
+		when(searchHitsMock.getTotalHits()).thenReturn(3L);
+
+		// Act
+		final var result = documentService.searchFileMatches("any", false, true, pageRequest, MUNICIPALITY_ID);
+
+		// Assert — doc-rev1 (revision 1 of reg-shared) should be dropped because reg-shared has a revision 2 on the page.
+		assertThat(result.getDocuments()).extracting("id").containsExactly("doc-rev2", "doc-other");
+	}
+
+	@Test
+	void searchFileMatches_propagatesHitTotalAsMetaTotalRecords() {
+
+		// Arrange
+		final var pageRequest = PageRequest.of(2, 5);
+		final var hits = java.util.List.of(
+			fileHit("doc-a", "reg-a", 1, "file-a1", "alpha.pdf"),
+			fileHit("doc-a", "reg-a", 1, "file-a2", "alpha-2.pdf"));
+		org.mockito.Mockito.lenient().when(statusPolicyMock.effectivePublishedStatuses(any())).thenReturn(java.util.List.of(DocumentStatus.SCHEDULED, DocumentStatus.ACTIVE, DocumentStatus.EXPIRED));
+		when(elasticsearchOperationsMock.search(any(org.springframework.data.elasticsearch.core.query.Query.class), eq(DocumentIndexEntity.class))).thenReturn(searchHitsMock);
+		when(searchHitsMock.getSearchHits()).thenReturn(hits);
+		when(searchHitsMock.getTotalHits()).thenReturn(42L);
+
+		// Act
+		final var result = documentService.searchFileMatches("any", false, false, pageRequest, MUNICIPALITY_ID);
+
+		// Assert — file-level total (same as existing search endpoint), page + size reflect pageable.
+		assertThat(result.getMetadata().getTotalRecords()).isEqualTo(42L);
+		assertThat(result.getMetadata().getPage()).isEqualTo(2);
+		assertThat(result.getMetadata().getLimit()).isEqualTo(5);
+		assertThat(result.getMetadata().getCount()).isEqualTo(1); // one grouped DocumentMatch
+		assertThat(result.getMetadata().getTotalPages()).isEqualTo(9); // ceil(42 / 5)
+	}
+
+	@SuppressWarnings("unchecked")
+	private static SearchHit<DocumentIndexEntity> fileHit(String documentId, String registrationNumber, int revision, String fileId, String fileName) {
+		final var entity = new DocumentIndexEntity();
+		entity.setId(fileId);
+		entity.setDocumentId(documentId);
+		entity.setRegistrationNumber(registrationNumber);
+		entity.setRevision(revision);
+		entity.setFileName(fileName);
+		final var hit = (SearchHit<DocumentIndexEntity>) org.mockito.Mockito.mock(SearchHit.class);
+		org.mockito.Mockito.when(hit.getContent()).thenReturn(entity);
+		return hit;
 	}
 
 	@Test

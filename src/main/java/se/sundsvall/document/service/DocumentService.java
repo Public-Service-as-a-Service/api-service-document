@@ -26,6 +26,7 @@ import se.sundsvall.document.api.model.DocumentParameters;
 import se.sundsvall.document.api.model.DocumentResponsibilitiesUpdateRequest;
 import se.sundsvall.document.api.model.DocumentStatus;
 import se.sundsvall.document.api.model.DocumentUpdateRequest;
+import se.sundsvall.document.api.model.PagedDocumentMatchResponse;
 import se.sundsvall.document.api.model.PagedDocumentResponse;
 import se.sundsvall.document.integration.db.DocumentDataRepository;
 import se.sundsvall.document.integration.db.DocumentRepository;
@@ -55,6 +56,7 @@ import static se.sundsvall.document.service.mapper.DocumentMapper.toDocumentEnti
 import static se.sundsvall.document.service.mapper.DocumentMapper.toDocumentResponsibilities;
 import static se.sundsvall.document.service.mapper.DocumentMapper.toDocumentResponsibilityEntities;
 import static se.sundsvall.document.service.mapper.DocumentMapper.toInclusionFilter;
+import static se.sundsvall.document.service.mapper.DocumentMapper.toPagedDocumentMatchResponse;
 import static se.sundsvall.document.service.mapper.DocumentMapper.toPagedDocumentResponse;
 
 @Service
@@ -148,6 +150,43 @@ public class DocumentService {
 	}
 
 	public PagedDocumentResponse search(String query, boolean includeConfidential, boolean onlyLatestRevision, Pageable pageable, String municipalityId) {
+		final var hits = runFulltextSearch(query, includeConfidential, municipalityId, pageable);
+
+		// Collapse the per-file hits into unique documents, preserving ES relevance order.
+		final var orderedDocumentIds = hits.getSearchHits().stream()
+			.map(h -> h.getContent().getDocumentId())
+			.distinct()
+			.toList();
+
+		if (orderedDocumentIds.isEmpty()) {
+			return toPagedDocumentResponseWithResponsibilities(new PageImpl<>(List.of(), pageable, 0));
+		}
+
+		final var byId = documentRepository.findAllById(orderedDocumentIds).stream()
+			.collect(Collectors.toMap(DocumentEntity::getId, e -> e, (a, b) -> a));
+
+		var hydrated = orderedDocumentIds.stream()
+			.map(byId::get)
+			.filter(Objects::nonNull)
+			.toList();
+
+		if (onlyLatestRevision) {
+			// Reduce to one entity per registrationNumber (the one with the highest revision).
+			hydrated = hydrated.stream()
+				.collect(Collectors.groupingBy(DocumentEntity::getRegistrationNumber)).values().stream()
+				.map(group -> group.stream().max(Comparator.comparingInt(DocumentEntity::getRevision)).orElseThrow())
+				.toList();
+		}
+
+		return toPagedDocumentResponseWithResponsibilities(new PageImpl<>(hydrated, pageable, hits.getTotalHits()));
+	}
+
+	public PagedDocumentMatchResponse searchFileMatches(String query, boolean includeConfidential, boolean onlyLatestRevision, Pageable pageable, String municipalityId) {
+		final var hits = runFulltextSearch(query, includeConfidential, municipalityId, pageable);
+		return toPagedDocumentMatchResponse(hits, pageable, onlyLatestRevision);
+	}
+
+	private org.springframework.data.elasticsearch.core.SearchHits<DocumentIndexEntity> runFulltextSearch(String query, boolean includeConfidential, String municipalityId, Pageable pageable) {
 		final var effectiveStatuses = statusPolicy.effectivePublishedStatuses(null);
 
 		final var esQuery = NativeQuery.builder()
@@ -177,37 +216,9 @@ public class DocumentService {
 			.withPageable(pageable)
 			.build();
 
-		final var hits = elasticsearchOperations
+		return elasticsearchOperations
 			.orElseThrow(() -> Problem.valueOf(org.springframework.http.HttpStatus.SERVICE_UNAVAILABLE, "Search is not available — Elasticsearch is not configured"))
 			.search(esQuery, DocumentIndexEntity.class);
-
-		// Collapse the per-file hits into unique documents, preserving ES relevance order.
-		final var orderedDocumentIds = hits.getSearchHits().stream()
-			.map(h -> h.getContent().getDocumentId())
-			.distinct()
-			.toList();
-
-		if (orderedDocumentIds.isEmpty()) {
-			return toPagedDocumentResponseWithResponsibilities(new PageImpl<>(List.of(), pageable, 0));
-		}
-
-		final var byId = documentRepository.findAllById(orderedDocumentIds).stream()
-			.collect(Collectors.toMap(DocumentEntity::getId, e -> e, (a, b) -> a));
-
-		var hydrated = orderedDocumentIds.stream()
-			.map(byId::get)
-			.filter(Objects::nonNull)
-			.toList();
-
-		if (onlyLatestRevision) {
-			// Reduce to one entity per registrationNumber (the one with the highest revision).
-			hydrated = hydrated.stream()
-				.collect(Collectors.groupingBy(DocumentEntity::getRegistrationNumber)).values().stream()
-				.map(group -> group.stream().max(Comparator.comparingInt(DocumentEntity::getRevision)).orElseThrow())
-				.toList();
-		}
-
-		return toPagedDocumentResponseWithResponsibilities(new PageImpl<>(hydrated, pageable, hits.getTotalHits()));
 	}
 
 	public Document update(String registrationNumber, boolean includeConfidential, DocumentUpdateRequest documentUpdateRequest, String municipalityId) {

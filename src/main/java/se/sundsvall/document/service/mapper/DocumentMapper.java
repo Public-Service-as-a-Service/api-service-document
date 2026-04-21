@@ -2,11 +2,14 @@ package se.sundsvall.document.service.mapper;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.elasticsearch.core.SearchHits;
 import org.springframework.web.multipart.MultipartFile;
 import se.sundsvall.dept44.models.api.paging.PagingMetaData;
 import se.sundsvall.dept44.problem.Problem;
@@ -16,10 +19,13 @@ import se.sundsvall.document.api.model.Document;
 import se.sundsvall.document.api.model.DocumentCreateRequest;
 import se.sundsvall.document.api.model.DocumentData;
 import se.sundsvall.document.api.model.DocumentFiles;
+import se.sundsvall.document.api.model.DocumentMatch;
 import se.sundsvall.document.api.model.DocumentMetadata;
 import se.sundsvall.document.api.model.DocumentResponsibility;
 import se.sundsvall.document.api.model.DocumentStatus;
 import se.sundsvall.document.api.model.DocumentUpdateRequest;
+import se.sundsvall.document.api.model.FileMatch;
+import se.sundsvall.document.api.model.PagedDocumentMatchResponse;
 import se.sundsvall.document.api.model.PagedDocumentResponse;
 import se.sundsvall.document.integration.db.DocumentDataRepository;
 import se.sundsvall.document.integration.db.model.ConfidentialityEmbeddable;
@@ -27,6 +33,7 @@ import se.sundsvall.document.integration.db.model.DocumentDataEntity;
 import se.sundsvall.document.integration.db.model.DocumentEntity;
 import se.sundsvall.document.integration.db.model.DocumentMetadataEmbeddable;
 import se.sundsvall.document.integration.db.model.DocumentResponsibilityEntity;
+import se.sundsvall.document.integration.elasticsearch.DocumentIndexEntity;
 import se.sundsvall.document.service.extraction.ExtractionStatus;
 import se.sundsvall.document.service.extraction.TextExtractor;
 import se.sundsvall.document.service.storage.BinaryStore;
@@ -215,6 +222,52 @@ public class DocumentMapper {
 					.withTotalRecords(page.getTotalElements())
 					.withTotalPages(page.getTotalPages())))
 			.orElse(null);
+	}
+
+	public static PagedDocumentMatchResponse toPagedDocumentMatchResponse(SearchHits<DocumentIndexEntity> hits, Pageable pageable, boolean onlyLatestRevision) {
+		// ES hits are file-level (one doc per file). Group by parent documentId, preserving
+		// ES relevance order, so the response lists each matched document once with only
+		// the files that actually matched. All data needed is on DocumentIndexEntity — no
+		// DB hydration.
+
+		final var maxRevisionByRegistrationNumber = new HashMap<String, Integer>();
+		if (onlyLatestRevision) {
+			for (final var hit : hits.getSearchHits()) {
+				final var entity = hit.getContent();
+				maxRevisionByRegistrationNumber.merge(entity.getRegistrationNumber(), entity.getRevision(), Math::max);
+			}
+		}
+
+		final var filesByDocumentId = new LinkedHashMap<String, List<FileMatch>>();
+		for (final var hit : hits.getSearchHits()) {
+			final var entity = hit.getContent();
+			if (onlyLatestRevision && entity.getRevision() < maxRevisionByRegistrationNumber.get(entity.getRegistrationNumber())) {
+				continue;
+			}
+			filesByDocumentId.computeIfAbsent(entity.getDocumentId(), k -> new ArrayList<>())
+				.add(FileMatch.create()
+					.withId(entity.getId())
+					.withFileName(entity.getFileName()));
+		}
+
+		final var documents = filesByDocumentId.entrySet().stream()
+			.map(entry -> DocumentMatch.create()
+				.withId(entry.getKey())
+				.withFiles(entry.getValue()))
+			.toList();
+
+		final var totalRecords = hits.getTotalHits();
+		final var pageSize = pageable.getPageSize();
+		final var totalPages = pageSize == 0 ? 0 : (int) Math.ceil((double) totalRecords / pageSize);
+
+		return PagedDocumentMatchResponse.create()
+			.withDocuments(documents)
+			.withMetaData(PagingMetaData.create()
+				.withPage(pageable.getPageNumber())
+				.withLimit(pageSize)
+				.withCount(documents.size())
+				.withTotalRecords(totalRecords)
+				.withTotalPages(totalPages));
 	}
 
 	public static Document toDocument(DocumentEntity documentEntity) {

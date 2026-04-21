@@ -428,6 +428,101 @@ paths:
             application/problem+json:
               schema:
                 $ref: "#/components/schemas/Problem"
+  /{municipalityId}/documents/file-matches:
+    get:
+      tags:
+        - Documents
+      summary: Search documents — stripped response with only matching files.
+      description: |+
+        Same input signature as the standard search, but returns a stripped response: for each
+        matching document, only the document ID plus the IDs and filenames of the files that
+        actually matched the query. No document metadata, responsibilities, or other fields are
+        included. Backed entirely by Elasticsearch — no database hydration.
+
+        Parameters:
+        - includeConfidential: Should the search include confidential documents? Datatype - boolean (default: false)
+        - onlyLatestRevision: Should the search include only the latest revision of the documents? Datatype - boolean (default: false)
+        - query: Search query. Datatype - String
+
+      operationId: searchFileMatches
+      parameters:
+        - name: municipalityId
+          in: path
+          description: Municipality ID
+          required: true
+          schema:
+            type: string
+          example: 2281
+        - name: query
+          in: query
+          description: Search query.
+          required: true
+          schema:
+            type: string
+            minLength: 1
+          example: hello
+        - name: includeConfidential
+          in: query
+          description: Include confidential records
+          required: false
+          schema:
+            type: boolean
+            default: false
+          example: true
+        - name: onlyLatestRevision
+          in: query
+          description: Only perform search against the latest document revision
+          required: false
+          schema:
+            type: boolean
+            default: false
+          example: true
+        - name: page
+          in: query
+          description: Zero-based page index (0..N)
+          required: false
+          schema:
+            type: integer
+            default: 0
+            minimum: 0
+        - name: size
+          in: query
+          description: The size of the page to be returned
+          required: false
+          schema:
+            type: integer
+            default: 20
+            minimum: 1
+        - name: sort
+          in: query
+          description: "Sorting criteria in the format: property,(asc|desc). Default\
+          \ sort order is ascending. Multiple sort criteria are supported."
+          required: false
+          schema:
+            type: array
+            items:
+              type: string
+      responses:
+        "200":
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PagedDocumentMatchResponse"
+        "400":
+          description: Bad request
+          content:
+            application/problem+json:
+              schema:
+                oneOf:
+                  - $ref: "#/components/schemas/Problem"
+                  - $ref: "#/components/schemas/ConstraintViolationProblem"
+        "500":
+          description: Internal Server error
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problem"
   /{municipalityId}/documents/filter:
     post:
       tags:
@@ -1688,6 +1783,48 @@ components:
             $ref: "#/components/schemas/Document"
         _meta:
           $ref: "#/components/schemas/PagingMetaData"
+      readOnly: true
+    PagedDocumentMatchResponse:
+      type: object
+      description: "Paged document match response — documents that matched a fulltext\
+        \ search, stripped to the matching files."
+      properties:
+        documents:
+          type: array
+          items:
+            $ref: "#/components/schemas/DocumentMatch"
+        _meta:
+          $ref: "#/components/schemas/PagingMetaData"
+      readOnly: true
+    DocumentMatch:
+      type: object
+      description: Document match — a document that contains one or more files matching
+        a fulltext search.
+      properties:
+        id:
+          type: string
+          description: ID of the matching document.
+          examples:
+            - 082ba08f-03c7-409f-b8a6-940a1397ba38
+        files:
+          type: array
+          items:
+            $ref: "#/components/schemas/FileMatch"
+      readOnly: true
+    FileMatch:
+      type: object
+      description: File match — identifies a file that matched a fulltext search.
+      properties:
+        id:
+          type: string
+          description: ID of the matching file.
+          examples:
+            - 082ba08f-03c7-409f-b8a6-940a1397ba38
+        fileName:
+          type: string
+          description: File name.
+          examples:
+            - my-file.pdf
       readOnly: true
     PagingMetaData:
       type: object

@@ -45,10 +45,15 @@ public final class DocumentSearchMapper {
 			if (onlyLatestRevision && entity.getRevision() < maxRevisionByRegistrationNumber.get(entity.getRegistrationNumber())) {
 				continue;
 			}
+			// getHighlightFields() returns an empty map (never null) when no highlights matched —
+			// still normalize to null on empty so the JSON field is omitted rather than rendered as {}.
+			final var rawHighlights = hit.getHighlightFields();
+			final var highlights = (rawHighlights == null || rawHighlights.isEmpty()) ? null : rawHighlights;
 			filesByDocumentId.computeIfAbsent(entity.getDocumentId(), k -> new ArrayList<>())
 				.add(FileMatch.create()
 					.withId(entity.getId())
-					.withFileName(entity.getFileName()));
+					.withFileName(entity.getFileName())
+					.withHighlights(highlights));
 		}
 
 		final var documents = filesByDocumentId.entrySet().stream()

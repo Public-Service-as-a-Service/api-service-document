@@ -520,6 +520,51 @@ class DocumentServiceTest {
 	}
 
 	@Test
+	void searchFileMatches_propagatesHighlightsPerFile() {
+
+		// Arrange
+		final var pageRequest = PageRequest.of(0, 10);
+		final var highlightsForA = java.util.Map.of(
+			"extractedText", java.util.List.of("The max <em>bandwidth</em> of this router is 10Gbit/s"),
+			"title", java.util.List.of("Router <em>bandwidth</em> spec"));
+		final var highlightsForB = java.util.Map.of(
+			"extractedText", java.util.List.of("total <em>bandwidth</em> per node"));
+		final var hits = java.util.List.of(
+			fileHitWithHighlights("doc-a", "reg-a", 1, "file-a1", "alpha.pdf", highlightsForA),
+			fileHitWithHighlights("doc-b", "reg-b", 1, "file-b1", "beta.pdf", highlightsForB));
+		org.mockito.Mockito.lenient().when(statusPolicyMock.effectivePublishedStatuses(any())).thenReturn(java.util.List.of(DocumentStatus.SCHEDULED, DocumentStatus.ACTIVE, DocumentStatus.EXPIRED));
+		when(elasticsearchOperationsMock.search(any(org.springframework.data.elasticsearch.core.query.Query.class), eq(DocumentIndexEntity.class))).thenReturn(searchHitsMock);
+		when(searchHitsMock.getSearchHits()).thenReturn(hits);
+		when(searchHitsMock.getTotalHits()).thenReturn(2L);
+
+		// Act
+		final var result = documentService.searchFileMatches("bandwidth", false, false, pageRequest, MUNICIPALITY_ID);
+
+		// Assert
+		assertThat(result.getDocuments()).hasSize(2);
+		assertThat(result.getDocuments().get(0).getFiles().get(0).getHighlights()).isEqualTo(highlightsForA);
+		assertThat(result.getDocuments().get(1).getFiles().get(0).getHighlights()).isEqualTo(highlightsForB);
+	}
+
+	@Test
+	void searchFileMatches_omitsHighlightsWhenNoneMatched() {
+
+		// Arrange — existing fileHit() helper doesn't stub getHighlightFields(), so it returns null.
+		final var pageRequest = PageRequest.of(0, 10);
+		final var hits = java.util.List.of(fileHit("doc-a", "reg-a", 1, "file-a1", "alpha.pdf"));
+		org.mockito.Mockito.lenient().when(statusPolicyMock.effectivePublishedStatuses(any())).thenReturn(java.util.List.of(DocumentStatus.SCHEDULED, DocumentStatus.ACTIVE, DocumentStatus.EXPIRED));
+		when(elasticsearchOperationsMock.search(any(org.springframework.data.elasticsearch.core.query.Query.class), eq(DocumentIndexEntity.class))).thenReturn(searchHitsMock);
+		when(searchHitsMock.getSearchHits()).thenReturn(hits);
+		when(searchHitsMock.getTotalHits()).thenReturn(1L);
+
+		// Act
+		final var result = documentService.searchFileMatches("any", false, false, pageRequest, MUNICIPALITY_ID);
+
+		// Assert
+		assertThat(result.getDocuments().get(0).getFiles().get(0).getHighlights()).isNull();
+	}
+
+	@Test
 	void searchFileMatches_propagatesHitTotalAsMetaTotalRecords() {
 
 		// Arrange
@@ -553,6 +598,12 @@ class DocumentServiceTest {
 		entity.setFileName(fileName);
 		final var hit = (SearchHit<DocumentIndexEntity>) org.mockito.Mockito.mock(SearchHit.class);
 		org.mockito.Mockito.when(hit.getContent()).thenReturn(entity);
+		return hit;
+	}
+
+	private static SearchHit<DocumentIndexEntity> fileHitWithHighlights(String documentId, String registrationNumber, int revision, String fileId, String fileName, java.util.Map<String, java.util.List<String>> highlights) {
+		final var hit = fileHit(documentId, registrationNumber, revision, fileId, fileName);
+		org.mockito.Mockito.when(hit.getHighlightFields()).thenReturn(highlights);
 		return hit;
 	}
 

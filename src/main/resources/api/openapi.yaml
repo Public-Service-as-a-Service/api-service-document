@@ -1825,6 +1825,15 @@ components:
           description: File name.
           examples:
             - my-file.pdf
+        highlights:
+          type: object
+          additionalProperties:
+            type: array
+            items:
+              type: string
+          description: "Highlighted fragments grouped by matched field (e.g. extractedText,\
+            \ title, description, fileName). Matches are wrapped in <em>…</em>. Only\
+            \ fields with matches appear."
       readOnly: true
     PagingMetaData:
       type: object

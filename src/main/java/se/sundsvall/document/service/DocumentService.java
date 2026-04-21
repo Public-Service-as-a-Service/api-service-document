@@ -15,6 +15,10 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.elasticsearch.client.elc.NativeQuery;
 import org.springframework.data.elasticsearch.core.ElasticsearchOperations;
+import org.springframework.data.elasticsearch.core.query.HighlightQuery;
+import org.springframework.data.elasticsearch.core.query.highlight.Highlight;
+import org.springframework.data.elasticsearch.core.query.highlight.HighlightField;
+import org.springframework.data.elasticsearch.core.query.highlight.HighlightParameters;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import se.sundsvall.dept44.problem.Problem;
@@ -219,12 +223,30 @@ public class DocumentService {
 				}
 				return b;
 			}))
+			.withHighlightQuery(buildHighlightQuery())
 			.withPageable(pageable)
 			.build();
 
 		return elasticsearchOperations
 			.orElseThrow(() -> Problem.valueOf(org.springframework.http.HttpStatus.SERVICE_UNAVAILABLE, "Search is not available — Elasticsearch is not configured"))
 			.search(esQuery, DocumentIndexEntity.class);
+	}
+
+	private static HighlightQuery buildHighlightQuery() {
+		// Matched fragments for each text-ish field. Fragment size is approximate — ES expands to
+		// token/sentence boundaries. Tags default to <em>…</em>; callers can restyle on display.
+		final var parameters = HighlightParameters.builder()
+			.withFragmentSize(150)
+			.withNumberOfFragments(3)
+			.withPreTags("<em>")
+			.withPostTags("</em>")
+			.build();
+		final var fields = List.of(
+			new HighlightField("title"),
+			new HighlightField("description"),
+			new HighlightField("fileName"),
+			new HighlightField("extractedText"));
+		return new HighlightQuery(new Highlight(parameters, fields), DocumentIndexEntity.class);
 	}
 
 	public Document update(String registrationNumber, boolean includeConfidential, DocumentUpdateRequest documentUpdateRequest, String municipalityId) {

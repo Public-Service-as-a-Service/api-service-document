@@ -1,5 +1,7 @@
 package se.sundsvall.document.api.model;
 
+import java.util.List;
+import java.util.Map;
 import org.junit.jupiter.api.Test;
 
 import static com.google.code.beanmatchers.BeanMatchers.hasValidBeanConstructor;
@@ -29,14 +31,17 @@ class FileMatchTest {
 
 		final var id = randomUUID().toString();
 		final var fileName = "report.pdf";
+		final var highlights = Map.of("extractedText", List.of("...<em>bandwidth</em>..."));
 
 		final var bean = FileMatch.create()
 			.withId(id)
-			.withFileName(fileName);
+			.withFileName(fileName)
+			.withHighlights(highlights);
 
 		assertThat(bean).isNotNull().hasNoNullFieldsOrProperties();
 		assertThat(bean.getId()).isEqualTo(id);
 		assertThat(bean.getFileName()).isEqualTo(fileName);
+		assertThat(bean.getHighlights()).isEqualTo(highlights);
 	}
 
 	@Test

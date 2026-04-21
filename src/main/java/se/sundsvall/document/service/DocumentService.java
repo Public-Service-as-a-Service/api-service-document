@@ -48,16 +48,16 @@ import static se.sundsvall.document.service.Constants.ERROR_DOCUMENT_BY_REGISTRA
 import static se.sundsvall.document.service.Constants.ERROR_STATUS_TRANSITION_NOT_ALLOWED;
 import static se.sundsvall.document.service.Constants.ERROR_VALID_FROM_AFTER_VALID_TO;
 import static se.sundsvall.document.service.InclusionFilter.CONFIDENTIAL_AND_PUBLIC;
+import static se.sundsvall.document.service.mapper.DocumentDataMapper.toDocumentDataEntities;
 import static se.sundsvall.document.service.mapper.DocumentMapper.applyUpdate;
 import static se.sundsvall.document.service.mapper.DocumentMapper.toConfidentialityEmbeddable;
 import static se.sundsvall.document.service.mapper.DocumentMapper.toDocument;
-import static se.sundsvall.document.service.mapper.DocumentMapper.toDocumentDataEntities;
 import static se.sundsvall.document.service.mapper.DocumentMapper.toDocumentEntity;
 import static se.sundsvall.document.service.mapper.DocumentMapper.toDocumentResponsibilities;
 import static se.sundsvall.document.service.mapper.DocumentMapper.toDocumentResponsibilityEntities;
 import static se.sundsvall.document.service.mapper.DocumentMapper.toInclusionFilter;
-import static se.sundsvall.document.service.mapper.DocumentMapper.toPagedDocumentMatchResponse;
 import static se.sundsvall.document.service.mapper.DocumentMapper.toPagedDocumentResponse;
+import static se.sundsvall.document.service.mapper.DocumentSearchMapper.toPagedDocumentMatchResponse;
 
 @Service
 @Transactional

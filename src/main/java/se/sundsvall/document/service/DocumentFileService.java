@@ -25,7 +25,7 @@ import se.sundsvall.document.integration.db.model.DocumentDataEntity;
 import se.sundsvall.document.integration.db.model.DocumentEntity;
 import se.sundsvall.document.service.extraction.TextExtractor;
 import se.sundsvall.document.service.indexing.DocumentIndexingEvent;
-import se.sundsvall.document.service.mapper.DocumentMapper;
+import se.sundsvall.document.service.mapper.DocumentDataMapper;
 import se.sundsvall.document.service.storage.BinaryStore;
 import se.sundsvall.document.service.storage.StorageRef;
 
@@ -41,9 +41,9 @@ import static se.sundsvall.document.service.Constants.ERROR_DOCUMENT_FILE_BY_REG
 import static se.sundsvall.document.service.Constants.ERROR_DOCUMENT_FILE_BY_REGISTRATION_NUMBER_COULD_NOT_READ;
 import static se.sundsvall.document.service.Constants.ERROR_DOCUMENT_FILE_BY_REGISTRATION_NUMBER_NOT_FOUND;
 import static se.sundsvall.document.service.InclusionFilter.CONFIDENTIAL_AND_PUBLIC;
+import static se.sundsvall.document.service.mapper.DocumentDataMapper.toDocumentDataEntities;
 import static se.sundsvall.document.service.mapper.DocumentMapper.copyDocumentEntity;
 import static se.sundsvall.document.service.mapper.DocumentMapper.toDocument;
-import static se.sundsvall.document.service.mapper.DocumentMapper.toDocumentDataEntities;
 import static se.sundsvall.document.service.mapper.DocumentMapper.toInclusionFilter;
 
 @Service
@@ -147,7 +147,7 @@ public class DocumentFileService {
 			.withRevision(documentEntity.getRevision() + 1)
 			.withDocumentData(documentEntity.getDocumentData().stream()
 				.filter(docDataEntity -> !docDataEntity.getId().equals(documentDataId))
-				.map(d -> DocumentMapper.copyDocumentDataEntity(d, binaryStore))
+				.map(d -> DocumentDataMapper.copyDocumentDataEntity(d, binaryStore))
 				.toList());
 
 		if (documentEntity.getDocumentData().size() == newDocumentEntity.getDocumentData().size()) {

@@ -32,6 +32,11 @@ public class DocumentCreateRequest {
 	private boolean archive;
 
 	@NotBlank
+	@Size(max = 255)
+	@Schema(description = "Document title", examples = "Employment certificate for John Doe. Maximum 255 characters.", requiredMode = REQUIRED)
+	private String title;
+
+	@NotBlank
 	@Size(max = 8192)
 	@Schema(description = "Document description", examples = "A brief description of this object. Maximum 8192 characters.", requiredMode = REQUIRED)
 	private String description;
@@ -96,6 +101,19 @@ public class DocumentCreateRequest {
 
 	public DocumentCreateRequest withArchive(boolean archive) {
 		this.archive = archive;
+		return this;
+	}
+
+	public String getTitle() {
+		return title;
+	}
+
+	public void setTitle(String title) {
+		this.title = title;
+	}
+
+	public DocumentCreateRequest withTitle(String title) {
+		this.title = title;
 		return this;
 	}
 
@@ -179,7 +197,7 @@ public class DocumentCreateRequest {
 
 	@Override
 	public int hashCode() {
-		return Objects.hash(archive, confidentiality, createdBy, description, metadataList, responsibilities, type, validFrom, validTo);
+		return Objects.hash(archive, confidentiality, createdBy, description, metadataList, responsibilities, title, type, validFrom, validTo);
 	}
 
 	@Override
@@ -191,14 +209,14 @@ public class DocumentCreateRequest {
 			return false;
 		}
 		return archive == other.archive && Objects.equals(confidentiality, other.confidentiality) && Objects.equals(createdBy, other.createdBy) && Objects.equals(description, other.description) && Objects.equals(metadataList, other.metadataList)
-			&& Objects.equals(responsibilities, other.responsibilities) && Objects.equals(type, other.type) && Objects.equals(validFrom, other.validFrom) && Objects.equals(validTo, other.validTo);
+			&& Objects.equals(responsibilities, other.responsibilities) && Objects.equals(title, other.title) && Objects.equals(type, other.type) && Objects.equals(validFrom, other.validFrom) && Objects.equals(validTo, other.validTo);
 	}
 
 	@Override
 	public String toString() {
 		final var builder = new StringBuilder();
-		builder.append("DocumentCreateRequest [createdBy=").append(createdBy).append(", confidentiality=").append(confidentiality).append(", archive=").append(archive).append(", description=").append(description).append(", metadataList=").append(
-			metadataList).append(", responsibilities=").append(responsibilities).append(", type=").append(type).append(", validFrom=").append(validFrom).append(", validTo=").append(validTo).append("]");
+		builder.append("DocumentCreateRequest [createdBy=").append(createdBy).append(", confidentiality=").append(confidentiality).append(", archive=").append(archive).append(", title=").append(title).append(", description=").append(description)
+			.append(", metadataList=").append(metadataList).append(", responsibilities=").append(responsibilities).append(", type=").append(type).append(", validFrom=").append(validFrom).append(", validTo=").append(validTo).append("]");
 		return builder.toString();
 	}
 }

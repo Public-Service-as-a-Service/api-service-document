@@ -9,6 +9,7 @@
 				"legalCitation": "Law §7.2",
 				"confidential": false
 			},
+			"title": "Generated Document 7",
 			"description": "Generated Document 7",
 			"archive": false,
 			"id": "019d0963-b6c6-49fb-9f88-31ef5e525a1c",
@@ -39,6 +40,7 @@
 				"legalCitation": "Law §7.2",
 				"confidential": false
 			},
+			"title": "Generated Document 4",
 			"description": "Generated Document 4",
 			"archive": false,
 			"id": "1cc8599b-8726-4cf7-869d-36737044400c",
@@ -67,6 +69,7 @@
 			"confidentiality": {
 				"confidential": true
 			},
+			"title": "Generated Document 2",
 			"description": "Generated Document 2",
 			"archive": false,
 			"id": "34095a16-68c5-48f8-ac1e-9d6b7dd08562",

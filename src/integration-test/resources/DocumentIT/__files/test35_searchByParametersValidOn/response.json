@@ -8,6 +8,7 @@
 			"confidentiality": {
 				"confidential": false
 			},
+			"title": "Valid from 2026 onwards",
 			"description": "Valid from 2026 onwards",
 			"archive": false,
 			"id": "b0000001-0000-0000-0000-000000000002",
@@ -27,6 +28,7 @@
 			"confidentiality": {
 				"confidential": false
 			},
+			"title": "Always valid",
 			"description": "Always valid",
 			"archive": false,
 			"id": "b0000001-0000-0000-0000-000000000004",

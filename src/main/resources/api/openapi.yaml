@@ -1368,6 +1368,13 @@ components:
           description: Tells if the document is eligible for archiving
           examples:
             - "false"
+        title:
+          type: string
+          description: Document title
+          examples:
+            - Employment certificate for John Doe. Maximum 255 characters.
+          maxLength: 255
+          minLength: 0
         description:
           type: string
           description: Document description
@@ -1407,6 +1414,7 @@ components:
       required:
         - createdBy
         - description
+        - title
         - type
     DocumentMetadata:
       type: object
@@ -1569,6 +1577,11 @@ components:
         confidentiality:
           $ref: "#/components/schemas/Confidentiality"
           description: Confidentiality
+        title:
+          type: string
+          description: Document title
+          examples:
+            - Employment certificate for John Doe.
         description:
           type: string
           description: Document description
@@ -1749,6 +1762,13 @@ components:
           description: PersonId of the actor that performed the update.
           examples:
             - 6c3e4f5a-7b8d-4e9c-a1f2-d3e4b5c6a7f8
+        title:
+          type: string
+          description: Document title
+          examples:
+            - Employment certificate for John Doe. Maximum 255 characters.
+          maxLength: 255
+          minLength: 0
         description:
           type: string
           description: Document description

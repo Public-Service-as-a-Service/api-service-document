@@ -9,6 +9,7 @@
 				"legalCitation": "Law §7.1",
 				"confidential": true
 			},
+			"title": "Document 2",
 			"description": "Document 2",
 			"archive": true,
 			"id": "03d33a6a-bc8c-410c-95f6-2c890822967d",
@@ -58,6 +59,7 @@
 				"legalCitation": "Law §7.2",
 				"confidential": true
 			},
+			"title": "Document 2",
 			"description": "Document 2",
 			"archive": true,
 			"id": "435bb041-2b02-4bb3-b3e7-3782a13f47d5",

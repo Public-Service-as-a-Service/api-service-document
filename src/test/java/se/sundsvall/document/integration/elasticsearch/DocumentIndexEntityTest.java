@@ -30,6 +30,7 @@ class DocumentIndexEntityTest {
 			.setValidTo(validTo)
 			.setFileName("invoice.pdf")
 			.setMimeType("application/pdf")
+			.setTitle("Invoice March 2026")
 			.setDescription("Monthly invoice")
 			.setCreatedBy("martin")
 			.setMetadataKeys(metadataKeys)
@@ -49,6 +50,7 @@ class DocumentIndexEntityTest {
 		assertThat(bean.getValidTo()).isEqualTo(validTo);
 		assertThat(bean.getFileName()).isEqualTo("invoice.pdf");
 		assertThat(bean.getMimeType()).isEqualTo("application/pdf");
+		assertThat(bean.getTitle()).isEqualTo("Invoice March 2026");
 		assertThat(bean.getDescription()).isEqualTo("Monthly invoice");
 		assertThat(bean.getCreatedBy()).isEqualTo("martin");
 		assertThat(bean.getMetadataKeys()).isEqualTo(metadataKeys);

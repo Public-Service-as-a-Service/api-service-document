@@ -51,6 +51,7 @@ public class DocumentMapper {
 			.withArchive(documentCreateRequest.isArchive())
 			.withConfidentiality(toConfidentialityEmbeddable(documentCreateRequest.getConfidentiality()))
 			.withCreatedBy(documentCreateRequest.getCreatedBy())
+			.withTitle(documentCreateRequest.getTitle())
 			.withDescription(documentCreateRequest.getDescription())
 			.withMetadata(toDocumentMetadataEmbeddableList(documentCreateRequest.getMetadataList()))
 			.withMunicipalityId(municipalityId)
@@ -142,6 +143,7 @@ public class DocumentMapper {
 
 	public static void applyUpdate(DocumentUpdateRequest request, DocumentEntity entity) {
 		Optional.ofNullable(request.getArchive()).ifPresent(entity::setArchive);
+		Optional.ofNullable(request.getTitle()).ifPresent(entity::setTitle);
 		Optional.ofNullable(request.getDescription()).ifPresent(entity::setDescription);
 		Optional.ofNullable(request.getUpdatedBy()).ifPresent(entity::setUpdatedBy);
 		Optional.ofNullable(request.getValidFrom()).ifPresent(entity::setValidFrom);
@@ -227,6 +229,7 @@ public class DocumentMapper {
 				.withCreated(docEntity.getCreated())
 				.withCreatedBy(docEntity.getCreatedBy())
 				.withUpdatedBy(docEntity.getUpdatedBy())
+				.withTitle(docEntity.getTitle())
 				.withDescription(docEntity.getDescription())
 				.withDocumentData(toDocumentDataList(docEntity.getDocumentData()))
 				.withId(docEntity.getId())
@@ -273,6 +276,7 @@ public class DocumentMapper {
 				.withConfidentiality(docEntity.getConfidentiality())
 				.withArchive(documentEntity.isArchive())
 				.withCreatedBy(docEntity.getCreatedBy())
+				.withTitle(docEntity.getTitle())
 				.withDescription(docEntity.getDescription())
 				.withDocumentData(copyDocumentDataEntities(docEntity.getDocumentData(), binaryStore))
 				.withMetadata(copyDocumentMetadataEmbeddableList(docEntity.getMetadata()))

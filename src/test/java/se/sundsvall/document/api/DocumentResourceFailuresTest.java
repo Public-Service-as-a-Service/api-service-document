@@ -84,6 +84,7 @@ class DocumentResourceFailuresTest {
 		final var documentCreateRequest = DocumentCreateRequest.create()
 			.withConfidentiality(Confidentiality.create().withConfidential(true).withLegalCitation("legalCitation"))
 			.withCreatedBy("b0000000-0000-0000-0000-000000000099")
+			.withTitle("title")
 			.withDescription("description")
 			.withMetadataList(List.of(DocumentMetadata.create()
 				.withKey("key")
@@ -120,6 +121,7 @@ class DocumentResourceFailuresTest {
 		final var documentCreateRequest = DocumentCreateRequest.create()
 			.withConfidentiality(Confidentiality.create().withConfidential(true).withLegalCitation("legalCitation"))
 			.withCreatedBy("b0000000-0000-0000-0000-000000000099")
+			.withTitle("title")
 			.withDescription("description")
 			.withType("type")
 			.withMetadataList(List.of(DocumentMetadata.create()
@@ -180,7 +182,7 @@ class DocumentResourceFailuresTest {
 	}
 
 	@Test
-	void createWithMissingDescriptionAndType() {
+	void createWithMissingTitleAndDescriptionAndType() {
 
 		// Arrange
 		final var multipartBodyBuilder = new MultipartBodyBuilder();
@@ -208,8 +210,45 @@ class DocumentResourceFailuresTest {
 		assertThat(response.getViolations())
 			.extracting(Violation::field, Violation::message)
 			.containsExactlyInAnyOrder(
+				tuple("title", "must not be blank"),
 				tuple("description", "must not be blank"),
 				tuple("type", "must not be blank"));
+
+		verifyNoInteractions(documentServiceMock);
+	}
+
+	@Test
+	void createWithTooLongTitle() {
+
+		// Arrange
+		final var multipartBodyBuilder = new MultipartBodyBuilder();
+		multipartBodyBuilder.part("documentFiles", "file-content").filename("test.txt").contentType(TEXT_PLAIN);
+		multipartBodyBuilder.part("document", DocumentCreateRequest.create()
+			.withTitle(repeat("x", 256)) // 255 is max length on title.
+			.withDescription("description")
+			.withCreatedBy("b0000000-0000-0000-0000-000000000099")
+			.withType("type")
+			.withMetadataList(List.of(DocumentMetadata.create()
+				.withKey("key")
+				.withValue("value"))));
+
+		// Act
+		final var response = webTestClient.post()
+			.uri("/2281/documents")
+			.contentType(MULTIPART_FORM_DATA)
+			.body(fromMultipartData(multipartBodyBuilder.build()))
+			.exchange()
+			.expectStatus().isBadRequest()
+			.expectHeader().contentType(APPLICATION_PROBLEM_JSON)
+			.expectBody(ConstraintViolationProblem.class)
+			.returnResult()
+			.getResponseBody();
+
+		// Assert
+		assertThat(response).isNotNull();
+		assertThat(response.getViolations())
+			.extracting(Violation::field, Violation::message)
+			.containsExactlyInAnyOrder(tuple("title", "size must be between 0 and 255"));
 
 		verifyNoInteractions(documentServiceMock);
 	}
@@ -221,6 +260,7 @@ class DocumentResourceFailuresTest {
 		final var multipartBodyBuilder = new MultipartBodyBuilder();
 		multipartBodyBuilder.part("documentFiles", "file-content").filename("test.txt").contentType(TEXT_PLAIN);
 		multipartBodyBuilder.part("document", DocumentCreateRequest.create()
+			.withTitle("title")
 			.withDescription(repeat("x", 8193)) // 8192 is max length on description.
 			.withCreatedBy("b0000000-0000-0000-0000-000000000099")
 			.withType("type")
@@ -255,6 +295,7 @@ class DocumentResourceFailuresTest {
 		final var documentCreateRequest = DocumentCreateRequest.create()
 			.withConfidentiality(Confidentiality.create().withConfidential(true).withLegalCitation("legalCitation"))
 			.withCreatedBy("b0000000-0000-0000-0000-000000000099")
+			.withTitle("title")
 			.withDescription("description")
 			.withMetadataList(List.of(DocumentMetadata.create()
 				.withKey("key")
@@ -294,6 +335,7 @@ class DocumentResourceFailuresTest {
 		multipartBodyBuilder.part("documentFiles", "file-content").filename("test.txt").contentType(TEXT_PLAIN);
 		multipartBodyBuilder.part("document", DocumentCreateRequest.create()
 			.withCreatedBy("b0000000-0000-0000-0000-000000000099")
+			.withTitle("title")
 			.withDescription("description")
 			.withMetadataList(List.of(DocumentMetadata.create()
 				.withKey("key")
@@ -382,6 +424,39 @@ class DocumentResourceFailuresTest {
 		assertThat(response.getViolations())
 			.extracting(Violation::field, Violation::message)
 			.containsExactlyInAnyOrder(tuple("metadataList[0].value", "must not be blank"));
+
+		verifyNoInteractions(documentServiceMock);
+	}
+
+	@Test
+	void updateWithTooLongTitle() {
+
+		// Arrange
+		final var requestBody = DocumentUpdateRequest.create()
+			.withUpdatedBy("b0000000-0000-0000-0000-000000000099")
+			.withTitle(repeat("x", 256)) // 255 is max length on title.
+			.withMetadataList(List.of(
+				DocumentMetadata.create()
+					.withKey("key")
+					.withValue("value")));
+
+		// Act
+		final var response = webTestClient.patch()
+			.uri("/2281/documents/2023-1337")
+			.contentType(APPLICATION_JSON)
+			.bodyValue(requestBody)
+			.exchange()
+			.expectStatus().isBadRequest()
+			.expectHeader().contentType(APPLICATION_PROBLEM_JSON)
+			.expectBody(ConstraintViolationProblem.class)
+			.returnResult()
+			.getResponseBody();
+
+		// Assert
+		assertThat(response).isNotNull();
+		assertThat(response.getViolations())
+			.extracting(Violation::field, Violation::message)
+			.containsExactlyInAnyOrder(tuple("title", "size must be between 0 and 255"));
 
 		verifyNoInteractions(documentServiceMock);
 	}

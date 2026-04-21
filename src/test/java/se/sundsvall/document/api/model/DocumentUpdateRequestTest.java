@@ -30,6 +30,7 @@ class DocumentUpdateRequestTest {
 
 		final var archive = true;
 		final var updatedBy = "b0000000-0000-0000-0000-000000000099";
+		final var title = "title";
 		final var description = "description";
 		final var metadataList = List.of(DocumentMetadata.create());
 		final var type = "type";
@@ -39,6 +40,7 @@ class DocumentUpdateRequestTest {
 		final var bean = DocumentUpdateRequest.create()
 			.withArchive(archive)
 			.withUpdatedBy(updatedBy)
+			.withTitle(title)
 			.withDescription(description)
 			.withMetadataList(metadataList)
 			.withType(type)
@@ -48,6 +50,7 @@ class DocumentUpdateRequestTest {
 		assertThat(bean).isNotNull().hasNoNullFieldsOrProperties();
 		assertThat(bean.getArchive()).isEqualTo(archive);
 		assertThat(bean.getUpdatedBy()).isEqualTo(updatedBy);
+		assertThat(bean.getTitle()).isEqualTo(title);
 		assertThat(bean.getDescription()).isEqualTo(description);
 		assertThat(bean.getMetadataList()).isEqualTo(metadataList);
 		assertThat(bean.getType()).isEqualTo(type);

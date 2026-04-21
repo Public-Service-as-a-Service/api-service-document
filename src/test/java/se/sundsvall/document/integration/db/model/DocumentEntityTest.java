@@ -47,6 +47,7 @@ class DocumentEntityTest {
 		final var created = now(systemDefault());
 		final var createdBy = "b0000000-0000-0000-0000-000000000099";
 		final var updatedBy = "b4444444-4444-4444-4444-444444444444";
+		final var title = "title";
 		final var description = "description";
 		final var documentDatas = List.of(DocumentDataEntity.create());
 		final var id = randomUUID().toString();
@@ -65,6 +66,7 @@ class DocumentEntityTest {
 			.withCreated(created)
 			.withCreatedBy(createdBy)
 			.withUpdatedBy(updatedBy)
+			.withTitle(title)
 			.withDescription(description)
 			.withDocumentData(documentDatas)
 			.withId(id)
@@ -83,6 +85,7 @@ class DocumentEntityTest {
 		assertThat(bean.getCreated()).isEqualTo(created);
 		assertThat(bean.getCreatedBy()).isEqualTo(createdBy);
 		assertThat(bean.getUpdatedBy()).isEqualTo(updatedBy);
+		assertThat(bean.getTitle()).isEqualTo(title);
 		assertThat(bean.getDescription()).isEqualTo(description);
 		assertThat(bean.getDocumentData()).isEqualTo(documentDatas);
 		assertThat(bean.getId()).isEqualTo(id);

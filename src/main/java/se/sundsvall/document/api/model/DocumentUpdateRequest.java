@@ -19,6 +19,10 @@ public class DocumentUpdateRequest {
 	@Schema(description = "PersonId of the actor that performed the update.", examples = "6c3e4f5a-7b8d-4e9c-a1f2-d3e4b5c6a7f8")
 	private String updatedBy;
 
+	@Size(max = 255)
+	@Schema(description = "Document title", examples = "Employment certificate for John Doe. Maximum 255 characters.")
+	private String title;
+
 	@Size(max = 8192)
 	@Schema(description = "Document description", examples = "A brief description of this object. Maximum 8192 characters.")
 	private String description;
@@ -54,6 +58,19 @@ public class DocumentUpdateRequest {
 
 	public DocumentUpdateRequest withUpdatedBy(String updatedBy) {
 		this.updatedBy = updatedBy;
+		return this;
+	}
+
+	public String getTitle() {
+		return title;
+	}
+
+	public void setTitle(String title) {
+		this.title = title;
+	}
+
+	public DocumentUpdateRequest withTitle(String title) {
+		this.title = title;
 		return this;
 	}
 
@@ -137,7 +154,7 @@ public class DocumentUpdateRequest {
 
 	@Override
 	public int hashCode() {
-		return Objects.hash(archive, updatedBy, description, metadataList, type, validFrom, validTo);
+		return Objects.hash(archive, updatedBy, description, metadataList, title, type, validFrom, validTo);
 	}
 
 	@Override
@@ -148,15 +165,15 @@ public class DocumentUpdateRequest {
 		if (!(obj instanceof final DocumentUpdateRequest other)) {
 			return false;
 		}
-		return Objects.equals(archive, other.archive) && Objects.equals(updatedBy, other.updatedBy) && Objects.equals(description, other.description) && Objects.equals(metadataList, other.metadataList) && Objects.equals(type, other.type)
-			&& Objects.equals(validFrom, other.validFrom) && Objects.equals(validTo, other.validTo);
+		return Objects.equals(archive, other.archive) && Objects.equals(updatedBy, other.updatedBy) && Objects.equals(description, other.description) && Objects.equals(metadataList, other.metadataList) && Objects.equals(title, other.title)
+			&& Objects.equals(type, other.type) && Objects.equals(validFrom, other.validFrom) && Objects.equals(validTo, other.validTo);
 	}
 
 	@Override
 	public String toString() {
 		final var builder = new StringBuilder();
-		builder.append("DocumentUpdateRequest [updatedBy=").append(updatedBy).append(", description=").append(description).append(", archive=").append(archive).append(", metadataList=").append(metadataList).append(", type=").append(type).append(
-			", validFrom=").append(validFrom).append(", validTo=").append(validTo).append("]");
+		builder.append("DocumentUpdateRequest [updatedBy=").append(updatedBy).append(", title=").append(title).append(", description=").append(description).append(", archive=").append(archive).append(", metadataList=").append(metadataList).append(
+			", type=").append(type).append(", validFrom=").append(validFrom).append(", validTo=").append(validTo).append("]");
 		return builder.toString();
 	}
 

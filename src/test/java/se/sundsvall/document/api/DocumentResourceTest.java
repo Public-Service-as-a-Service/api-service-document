@@ -73,6 +73,7 @@ class DocumentResourceTest {
 		final var documentCreateRequest = DocumentCreateRequest.create()
 			.withConfidentiality(Confidentiality.create().withConfidential(true).withLegalCitation("legalCitation"))
 			.withCreatedBy("b0000000-0000-0000-0000-000000000099")
+			.withTitle("title")
 			.withDescription("description")
 			.withMetadataList(List.of(DocumentMetadata.create()
 				.withKey("key")
@@ -113,6 +114,7 @@ class DocumentResourceTest {
 		// Arrange
 		final var documentCreateRequest = DocumentCreateRequest.create()
 			.withCreatedBy("b0000000-0000-0000-0000-000000000099")
+			.withTitle("title")
 			.withDescription("description")
 			.withType("type");
 
@@ -145,6 +147,7 @@ class DocumentResourceTest {
 		// Arrange
 		final var documentCreateRequest = DocumentCreateRequest.create()
 			.withCreatedBy("b0000000-0000-0000-0000-000000000099")
+			.withTitle("title")
 			.withDescription("description")
 			.withType("type")
 			.withMetadataList(emptyList());

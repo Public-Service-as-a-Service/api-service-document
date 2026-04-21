@@ -15,6 +15,10 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.elasticsearch.client.elc.NativeQuery;
 import org.springframework.data.elasticsearch.core.ElasticsearchOperations;
+import org.springframework.data.elasticsearch.core.query.HighlightQuery;
+import org.springframework.data.elasticsearch.core.query.highlight.Highlight;
+import org.springframework.data.elasticsearch.core.query.highlight.HighlightField;
+import org.springframework.data.elasticsearch.core.query.highlight.HighlightParameters;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import se.sundsvall.dept44.problem.Problem;
@@ -26,6 +30,7 @@ import se.sundsvall.document.api.model.DocumentParameters;
 import se.sundsvall.document.api.model.DocumentResponsibilitiesUpdateRequest;
 import se.sundsvall.document.api.model.DocumentStatus;
 import se.sundsvall.document.api.model.DocumentUpdateRequest;
+import se.sundsvall.document.api.model.PagedDocumentMatchResponse;
 import se.sundsvall.document.api.model.PagedDocumentResponse;
 import se.sundsvall.document.integration.db.DocumentDataRepository;
 import se.sundsvall.document.integration.db.DocumentRepository;
@@ -47,15 +52,16 @@ import static se.sundsvall.document.service.Constants.ERROR_DOCUMENT_BY_REGISTRA
 import static se.sundsvall.document.service.Constants.ERROR_STATUS_TRANSITION_NOT_ALLOWED;
 import static se.sundsvall.document.service.Constants.ERROR_VALID_FROM_AFTER_VALID_TO;
 import static se.sundsvall.document.service.InclusionFilter.CONFIDENTIAL_AND_PUBLIC;
+import static se.sundsvall.document.service.mapper.DocumentDataMapper.toDocumentDataEntities;
 import static se.sundsvall.document.service.mapper.DocumentMapper.applyUpdate;
 import static se.sundsvall.document.service.mapper.DocumentMapper.toConfidentialityEmbeddable;
 import static se.sundsvall.document.service.mapper.DocumentMapper.toDocument;
-import static se.sundsvall.document.service.mapper.DocumentMapper.toDocumentDataEntities;
 import static se.sundsvall.document.service.mapper.DocumentMapper.toDocumentEntity;
 import static se.sundsvall.document.service.mapper.DocumentMapper.toDocumentResponsibilities;
 import static se.sundsvall.document.service.mapper.DocumentMapper.toDocumentResponsibilityEntities;
 import static se.sundsvall.document.service.mapper.DocumentMapper.toInclusionFilter;
 import static se.sundsvall.document.service.mapper.DocumentMapper.toPagedDocumentResponse;
+import static se.sundsvall.document.service.mapper.DocumentSearchMapper.toPagedDocumentMatchResponse;
 
 @Service
 @Transactional
@@ -148,6 +154,49 @@ public class DocumentService {
 	}
 
 	public PagedDocumentResponse search(String query, boolean includeConfidential, boolean onlyLatestRevision, Pageable pageable, String municipalityId) {
+		final var hits = runFulltextSearch(query, includeConfidential, municipalityId, pageable);
+		return hydrateHitsToPagedDocumentResponse(hits, pageable, onlyLatestRevision);
+	}
+
+	public PagedDocumentMatchResponse searchFileMatches(String query, boolean includeConfidential, boolean onlyLatestRevision, Pageable pageable, String municipalityId) {
+		final var hits = runFulltextSearch(query, includeConfidential, municipalityId, pageable);
+		return toPagedDocumentMatchResponse(hits, pageable, onlyLatestRevision);
+	}
+
+	private PagedDocumentResponse hydrateHitsToPagedDocumentResponse(org.springframework.data.elasticsearch.core.SearchHits<DocumentIndexEntity> hits, Pageable pageable, boolean onlyLatestRevision) {
+		// Collapse the per-file hits into unique documents, preserving ES relevance order.
+		final var orderedDocumentIds = hits.getSearchHits().stream()
+			.map(h -> h.getContent().getDocumentId())
+			.distinct()
+			.toList();
+
+		if (orderedDocumentIds.isEmpty()) {
+			return toPagedDocumentResponseWithResponsibilities(new PageImpl<>(List.of(), pageable, 0));
+		}
+
+		final var byId = documentRepository.findAllById(orderedDocumentIds).stream()
+			.collect(Collectors.toMap(DocumentEntity::getId, e -> e, (a, b) -> a));
+
+		var hydrated = orderedDocumentIds.stream()
+			.map(byId::get)
+			.filter(Objects::nonNull)
+			.toList();
+
+		if (onlyLatestRevision) {
+			// Page-local: we only compare revisions among hits on this page, so a document whose
+			// latest revision lives on another page will still survive the filter here. This keeps
+			// _meta.totalRecords (file-level ES hit total) coherent with what the page actually
+			// shows — a global filter would require a second ES roundtrip per registrationNumber.
+			hydrated = hydrated.stream()
+				.collect(Collectors.groupingBy(DocumentEntity::getRegistrationNumber)).values().stream()
+				.map(group -> group.stream().max(Comparator.comparingInt(DocumentEntity::getRevision)).orElseThrow())
+				.toList();
+		}
+
+		return toPagedDocumentResponseWithResponsibilities(new PageImpl<>(hydrated, pageable, hits.getTotalHits()));
+	}
+
+	private org.springframework.data.elasticsearch.core.SearchHits<DocumentIndexEntity> runFulltextSearch(String query, boolean includeConfidential, String municipalityId, Pageable pageable) {
 		final var effectiveStatuses = statusPolicy.effectivePublishedStatuses(null);
 
 		final var esQuery = NativeQuery.builder()
@@ -174,40 +223,30 @@ public class DocumentService {
 				}
 				return b;
 			}))
+			.withHighlightQuery(buildHighlightQuery())
 			.withPageable(pageable)
 			.build();
 
-		final var hits = elasticsearchOperations
+		return elasticsearchOperations
 			.orElseThrow(() -> Problem.valueOf(org.springframework.http.HttpStatus.SERVICE_UNAVAILABLE, "Search is not available — Elasticsearch is not configured"))
 			.search(esQuery, DocumentIndexEntity.class);
+	}
 
-		// Collapse the per-file hits into unique documents, preserving ES relevance order.
-		final var orderedDocumentIds = hits.getSearchHits().stream()
-			.map(h -> h.getContent().getDocumentId())
-			.distinct()
-			.toList();
-
-		if (orderedDocumentIds.isEmpty()) {
-			return toPagedDocumentResponseWithResponsibilities(new PageImpl<>(List.of(), pageable, 0));
-		}
-
-		final var byId = documentRepository.findAllById(orderedDocumentIds).stream()
-			.collect(Collectors.toMap(DocumentEntity::getId, e -> e, (a, b) -> a));
-
-		var hydrated = orderedDocumentIds.stream()
-			.map(byId::get)
-			.filter(Objects::nonNull)
-			.toList();
-
-		if (onlyLatestRevision) {
-			// Reduce to one entity per registrationNumber (the one with the highest revision).
-			hydrated = hydrated.stream()
-				.collect(Collectors.groupingBy(DocumentEntity::getRegistrationNumber)).values().stream()
-				.map(group -> group.stream().max(Comparator.comparingInt(DocumentEntity::getRevision)).orElseThrow())
-				.toList();
-		}
-
-		return toPagedDocumentResponseWithResponsibilities(new PageImpl<>(hydrated, pageable, hits.getTotalHits()));
+	private static HighlightQuery buildHighlightQuery() {
+		// Matched fragments for each text-ish field. Fragment size is approximate — ES expands to
+		// token/sentence boundaries. Tags default to <em>…</em>; callers can restyle on display.
+		final var parameters = HighlightParameters.builder()
+			.withFragmentSize(150)
+			.withNumberOfFragments(3)
+			.withPreTags("<em>")
+			.withPostTags("</em>")
+			.build();
+		final var fields = List.of(
+			new HighlightField("title"),
+			new HighlightField("description"),
+			new HighlightField("fileName"),
+			new HighlightField("extractedText"));
+		return new HighlightQuery(new Highlight(parameters, fields), DocumentIndexEntity.class);
 	}
 
 	public Document update(String registrationNumber, boolean includeConfidential, DocumentUpdateRequest documentUpdateRequest, String municipalityId) {

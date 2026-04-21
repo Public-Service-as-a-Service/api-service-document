@@ -45,6 +45,7 @@ import se.sundsvall.document.api.model.DocumentFiles;
 import se.sundsvall.document.api.model.DocumentParameters;
 import se.sundsvall.document.api.model.DocumentResponsibilitiesUpdateRequest;
 import se.sundsvall.document.api.model.DocumentUpdateRequest;
+import se.sundsvall.document.api.model.PagedDocumentMatchResponse;
 import se.sundsvall.document.api.model.PagedDocumentResponse;
 import se.sundsvall.document.api.validation.DocumentTypeValidator;
 import se.sundsvall.document.api.validation.ValidContentType;
@@ -67,6 +68,7 @@ import static org.springframework.web.util.UriComponentsBuilder.fromPath;
 import static se.sundsvall.document.api.Constants.DOCUMENTS_BASE_PATH;
 import static se.sundsvall.document.service.Constants.SEARCH_BY_PARAMETERS_DOCUMENTATION;
 import static se.sundsvall.document.service.Constants.SEARCH_DOCUMENTATION;
+import static se.sundsvall.document.service.Constants.SEARCH_FILE_MATCHES_DOCUMENTATION;
 
 @RestController
 @Validated
@@ -314,6 +316,22 @@ class DocumentResource {
 		@ParameterObject final Pageable pageable) {
 
 		return ok(documentService.search(query, includeConfidential, onlyLatestRevision, pageable, municipalityId));
+	}
+
+	@GetMapping(path = "/file-matches", produces = {
+		APPLICATION_JSON_VALUE
+	})
+	@Operation(summary = "Search documents — stripped response with only matching files.", description = SEARCH_FILE_MATCHES_DOCUMENTATION, responses = {
+		@ApiResponse(responseCode = "200", description = "Successful operation", useReturnTypeSchema = true)
+	})
+	ResponseEntity<PagedDocumentMatchResponse> searchFileMatches(
+		@PathVariable @Parameter(name = "municipalityId", description = "Municipality ID", example = "2281") @ValidMunicipalityId final String municipalityId,
+		@Parameter(name = "query", description = "Search query.", example = "hello") @RequestParam(value = "query") @NotBlank final String query,
+		@Parameter(name = "includeConfidential", description = "Include confidential records", example = "true") @RequestParam(name = "includeConfidential", defaultValue = "false") final boolean includeConfidential,
+		@Parameter(name = "onlyLatestRevision", description = "Only perform search against the latest document revision", example = "true") @RequestParam(name = "onlyLatestRevision", defaultValue = "false") final boolean onlyLatestRevision,
+		@ParameterObject final Pageable pageable) {
+
+		return ok(documentService.searchFileMatches(query, includeConfidential, onlyLatestRevision, pageable, municipalityId));
 	}
 
 	@PostMapping(path = "/filter", produces = {

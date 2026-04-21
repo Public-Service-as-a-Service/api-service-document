@@ -1,14 +1,9 @@
 package se.sundsvall.document.service.mapper;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.io.InputStream;
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -19,15 +14,12 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
-import org.springframework.mock.web.MockMultipartFile;
-import org.springframework.web.multipart.MultipartFile;
 import se.sundsvall.dept44.models.api.paging.PagingMetaData;
 import se.sundsvall.document.api.model.Confidentiality;
 import se.sundsvall.document.api.model.ConfidentialityUpdateRequest;
 import se.sundsvall.document.api.model.Document;
 import se.sundsvall.document.api.model.DocumentCreateRequest;
 import se.sundsvall.document.api.model.DocumentData;
-import se.sundsvall.document.api.model.DocumentFiles;
 import se.sundsvall.document.api.model.DocumentMetadata;
 import se.sundsvall.document.api.model.DocumentResponsibility;
 import se.sundsvall.document.api.model.DocumentStatus;
@@ -39,24 +31,16 @@ import se.sundsvall.document.integration.db.model.DocumentEntity;
 import se.sundsvall.document.integration.db.model.DocumentMetadataEmbeddable;
 import se.sundsvall.document.integration.db.model.DocumentResponsibilityEntity;
 import se.sundsvall.document.integration.db.model.DocumentTypeEntity;
-import se.sundsvall.document.service.extraction.ExtractionStatus;
 import se.sundsvall.document.service.extraction.TextExtractor;
 import se.sundsvall.document.service.storage.BinaryStore;
-import se.sundsvall.document.service.storage.PutResult;
 import se.sundsvall.document.service.storage.StorageRef;
 
 import static java.time.OffsetDateTime.now;
 import static java.time.ZoneId.systemDefault;
 import static java.util.Collections.emptyList;
-import static java.util.UUID.randomUUID;
-import static org.apache.commons.io.IOUtils.toByteArray;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.tuple;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyLong;
-import static org.mockito.ArgumentMatchers.anyMap;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.data.domain.Sort.Direction.ASC;
@@ -543,59 +527,6 @@ class DocumentMapperTest {
 			.extracting(DocumentResponsibilityEntity::getMunicipalityId, DocumentResponsibilityEntity::getRegistrationNumber, DocumentResponsibilityEntity::getPersonId,
 				DocumentResponsibilityEntity::getCreatedBy)
 			.containsExactly(tuple(MUNICIPALITY_ID, REGISTRATION_NUMBER, personId, CREATED_BY));
-	}
-
-	@Test
-	void toDocumentDataEntitiesFromMultipart() throws IOException {
-
-		// Arrange
-		final var newLocator = randomUUID().toString();
-		final var mimeType = "image/png";
-		final var file = new File("src/test/resources/files/image.png");
-		final var fileName = file.getName();
-		final var multipartFile = (MultipartFile) new MockMultipartFile("file", fileName, mimeType, toByteArray(new FileInputStream(file)));
-		final var documents = DocumentFiles.create().withFiles(List.of(multipartFile));
-
-		when(binaryStoreMock.put(any(InputStream.class), anyLong(), anyString(), anyMap())).thenReturn(new PutResult(StorageRef.s3(newLocator), "deadbeef"));
-		when(textExtractorMock.extract(any(InputStream.class), anyString(), anyLong())).thenReturn(TextExtractor.ExtractedText.unsupported(mimeType));
-
-		// Act
-		final var result = DocumentMapper.toDocumentDataEntities(documents, binaryStoreMock, textExtractorMock, documentDataRepositoryMock, MUNICIPALITY_ID);
-
-		// Assert
-		assertThat(result)
-			.isNotNull()
-			.isNotEmpty()
-			.extracting(
-				DocumentDataEntity::getFileName,
-				DocumentDataEntity::getMimeType,
-				DocumentDataEntity::getFileSizeInBytes,
-				DocumentDataEntity::getStorageLocator,
-				DocumentDataEntity::getContentHash,
-				DocumentDataEntity::getExtractionStatus)
-			.containsExactly(tuple(
-				fileName,
-				mimeType,
-				file.length(),
-				newLocator,
-				"deadbeef",
-				ExtractionStatus.UNSUPPORTED));
-
-		verify(binaryStoreMock).put(
-			any(InputStream.class),
-			eq(file.length()),
-			eq(mimeType),
-			eq(Map.of("original-filename", fileName, "municipality-id", MUNICIPALITY_ID)));
-	}
-
-	@Test
-	void toDocumentDataEntitiesFromMultipartWhenInputIsNull() {
-
-		// Act
-		final var result = DocumentMapper.toDocumentDataEntities(null, binaryStoreMock, textExtractorMock, documentDataRepositoryMock, MUNICIPALITY_ID);
-
-		// Assert
-		assertThat(result).isNull();
 	}
 
 	@Test

@@ -230,6 +230,10 @@ public class DocumentMapper {
 		// the files that actually matched. All data needed is on DocumentIndexEntity — no
 		// DB hydration.
 
+		// onlyLatestRevision is page-local: we only compare revisions among hits on this page, so a
+		// document whose latest revision lives on another page will still survive the filter here.
+		// This keeps _meta.totalRecords (file-level ES hit total) coherent with what the page shows
+		// — a global filter would require a second ES roundtrip per registrationNumber.
 		final var maxRevisionByRegistrationNumber = new HashMap<String, Integer>();
 		if (onlyLatestRevision) {
 			for (final var hit : hits.getSearchHits()) {

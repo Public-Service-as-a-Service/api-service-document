@@ -151,7 +151,15 @@ public class DocumentService {
 
 	public PagedDocumentResponse search(String query, boolean includeConfidential, boolean onlyLatestRevision, Pageable pageable, String municipalityId) {
 		final var hits = runFulltextSearch(query, includeConfidential, municipalityId, pageable);
+		return hydrateHitsToPagedDocumentResponse(hits, pageable, onlyLatestRevision);
+	}
 
+	public PagedDocumentMatchResponse searchFileMatches(String query, boolean includeConfidential, boolean onlyLatestRevision, Pageable pageable, String municipalityId) {
+		final var hits = runFulltextSearch(query, includeConfidential, municipalityId, pageable);
+		return toPagedDocumentMatchResponse(hits, pageable, onlyLatestRevision);
+	}
+
+	private PagedDocumentResponse hydrateHitsToPagedDocumentResponse(org.springframework.data.elasticsearch.core.SearchHits<DocumentIndexEntity> hits, Pageable pageable, boolean onlyLatestRevision) {
 		// Collapse the per-file hits into unique documents, preserving ES relevance order.
 		final var orderedDocumentIds = hits.getSearchHits().stream()
 			.map(h -> h.getContent().getDocumentId())
@@ -171,7 +179,10 @@ public class DocumentService {
 			.toList();
 
 		if (onlyLatestRevision) {
-			// Reduce to one entity per registrationNumber (the one with the highest revision).
+			// Page-local: we only compare revisions among hits on this page, so a document whose
+			// latest revision lives on another page will still survive the filter here. This keeps
+			// _meta.totalRecords (file-level ES hit total) coherent with what the page actually
+			// shows — a global filter would require a second ES roundtrip per registrationNumber.
 			hydrated = hydrated.stream()
 				.collect(Collectors.groupingBy(DocumentEntity::getRegistrationNumber)).values().stream()
 				.map(group -> group.stream().max(Comparator.comparingInt(DocumentEntity::getRevision)).orElseThrow())
@@ -179,11 +190,6 @@ public class DocumentService {
 		}
 
 		return toPagedDocumentResponseWithResponsibilities(new PageImpl<>(hydrated, pageable, hits.getTotalHits()));
-	}
-
-	public PagedDocumentMatchResponse searchFileMatches(String query, boolean includeConfidential, boolean onlyLatestRevision, Pageable pageable, String municipalityId) {
-		final var hits = runFulltextSearch(query, includeConfidential, municipalityId, pageable);
-		return toPagedDocumentMatchResponse(hits, pageable, onlyLatestRevision);
 	}
 
 	private org.springframework.data.elasticsearch.core.SearchHits<DocumentIndexEntity> runFulltextSearch(String query, boolean includeConfidential, String municipalityId, Pageable pageable) {

@@ -6,6 +6,7 @@
 	"confidentiality": {
 		"confidential": false
 	},
+	"title": "This is a document",
 	"description": "This is a document",
 	"archive": true,
 	"id": "${json-unit.any-string}",

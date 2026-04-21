@@ -62,6 +62,9 @@ public class DocumentEntity {
 	@JoinColumn(name = "document_type_id", referencedColumnName = "id", foreignKey = @ForeignKey(name = "fk_document_document_type"), nullable = false)
 	private DocumentTypeEntity type;
 
+	@Column(name = "title", nullable = false, length = 255)
+	private String title;
+
 	@Column(name = "description", nullable = false, columnDefinition = "varchar(8192)")
 	private String description;
 
@@ -167,6 +170,19 @@ public class DocumentEntity {
 
 	public DocumentEntity withType(DocumentTypeEntity type) {
 		this.type = type;
+		return this;
+	}
+
+	public String getTitle() {
+		return title;
+	}
+
+	public void setTitle(String title) {
+		this.title = title;
+	}
+
+	public DocumentEntity withTitle(String title) {
+		this.title = title;
 		return this;
 	}
 
@@ -315,7 +331,7 @@ public class DocumentEntity {
 
 	@Override
 	public int hashCode() {
-		return Objects.hash(archive, confidentiality, created, createdBy, description, documentData, id, metadata, municipalityId, registrationNumber, revision, status, type, updatedBy, validFrom, validTo);
+		return Objects.hash(archive, confidentiality, created, createdBy, description, documentData, id, metadata, municipalityId, registrationNumber, revision, status, title, type, updatedBy, validFrom, validTo);
 	}
 
 	@Override
@@ -328,15 +344,17 @@ public class DocumentEntity {
 		}
 		return archive == other.archive && Objects.equals(confidentiality, other.confidentiality) && Objects.equals(created, other.created) && Objects.equals(createdBy, other.createdBy) && Objects.equals(description, other.description) && Objects
 			.equals(documentData, other.documentData) && Objects.equals(id, other.id) && Objects.equals(metadata, other.metadata) && Objects.equals(municipalityId, other.municipalityId) && Objects.equals(registrationNumber, other.registrationNumber)
-			&& revision == other.revision && status == other.status && Objects.equals(type, other.type) && Objects.equals(updatedBy, other.updatedBy) && Objects.equals(validFrom, other.validFrom) && Objects.equals(validTo, other.validTo);
+			&& revision == other.revision && status == other.status && Objects.equals(title, other.title) && Objects.equals(type, other.type) && Objects.equals(updatedBy, other.updatedBy) && Objects.equals(validFrom, other.validFrom) && Objects
+				.equals(validTo, other.validTo);
 	}
 
 	@Override
 	public String toString() {
 		final var builder = new StringBuilder();
 		builder.append("DocumentEntity [id=").append(id).append(", revision=").append(revision).append(", municipalityId=").append(municipalityId).append(", registrationNumber=").append(registrationNumber).append(", type=").append(type).append(
-			", description=").append(description).append(", confidentiality=").append(confidentiality).append(", archive=").append(archive).append(", createdBy=").append(createdBy).append(", updatedBy=").append(updatedBy).append(", created=").append(
-				created).append(", validFrom=").append(validFrom).append(", validTo=").append(validTo).append(", status=").append(status).append(", documentData=").append(documentData).append(", metadata=").append(metadata).append("]");
+			", title=").append(title).append(", description=").append(description).append(", confidentiality=").append(confidentiality).append(", archive=").append(archive).append(", createdBy=").append(createdBy).append(", updatedBy=").append(
+				updatedBy).append(", created=").append(created).append(", validFrom=").append(validFrom).append(", validTo=").append(validTo).append(", status=").append(status).append(", documentData=").append(documentData).append(", metadata=")
+			.append(metadata).append("]");
 		return builder.toString();
 	}
 }

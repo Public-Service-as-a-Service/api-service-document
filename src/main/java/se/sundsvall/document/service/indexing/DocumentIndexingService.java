@@ -108,6 +108,7 @@ public class DocumentIndexingService {
 			.setValidTo(revision.getValidTo())
 			.setFileName(data.getFileName())
 			.setMimeType(data.getMimeType())
+			.setTitle(revision.getTitle())
 			.setDescription(revision.getDescription())
 			.setCreatedBy(revision.getCreatedBy())
 			.setMetadataKeys(metadataKeys)

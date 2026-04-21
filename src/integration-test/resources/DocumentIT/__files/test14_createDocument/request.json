@@ -1,6 +1,7 @@
 {
 	"municipalityId": "2281",
 	"createdBy": "b1111111-1111-1111-1111-111111111111",
+	"title": "This is a document",
 	"description": "This is a document",
 	"archive": true,
 	"type": "HOLIDAY_EXCHANGE",

@@ -13,6 +13,7 @@
         id varchar(255) not null,
         legal_citation varchar(255),
         registration_number varchar(255) not null,
+        title varchar(255) not null,
         updated_by varchar(255),
         status enum ('ACTIVE','DRAFT','EXPIRED','REVOKED','SCHEDULED') not null,
         primary key (id)

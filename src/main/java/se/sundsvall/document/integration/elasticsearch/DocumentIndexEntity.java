@@ -61,6 +61,9 @@ public class DocumentIndexEntity {
 	private String mimeType;
 
 	@Field(type = FieldType.Text)
+	private String title;
+
+	@Field(type = FieldType.Text)
 	private String description;
 
 	@Field(type = FieldType.Text)
@@ -186,6 +189,15 @@ public class DocumentIndexEntity {
 
 	public DocumentIndexEntity setMimeType(String mimeType) {
 		this.mimeType = mimeType;
+		return this;
+	}
+
+	public String getTitle() {
+		return title;
+	}
+
+	public DocumentIndexEntity setTitle(String title) {
+		this.title = title;
 		return this;
 	}
 

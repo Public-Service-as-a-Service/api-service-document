@@ -66,6 +66,7 @@ class DocumentMapperTest {
 
 	private static final boolean ARCHIVE = true;
 	private static final boolean CONFIDENTIAL = true;
+	private static final String TITLE = "Title";
 	private static final String DESCRIPTION = "Description";
 	private static final OffsetDateTime CREATED = now(systemDefault());
 	private static final String CREATED_BY = "b0000000-0000-0000-0000-0000000000c1";
@@ -112,6 +113,7 @@ class DocumentMapperTest {
 				.withConfidential(CONFIDENTIAL)
 				.withLegalCitation(LEGAL_CITATION))
 			.withCreatedBy(CREATED_BY)
+			.withTitle(TITLE)
 			.withDescription(DESCRIPTION)
 			.withMetadataList(List.of(DocumentMetadata.create()
 				.withKey(METADATA_KEY)
@@ -130,6 +132,7 @@ class DocumentMapperTest {
 					.withConfidential(CONFIDENTIAL)
 					.withLegalCitation(LEGAL_CITATION))
 				.withCreatedBy(CREATED_BY)
+				.withTitle(TITLE)
 				.withDescription(DESCRIPTION)
 				.withMetadata(List.of(DocumentMetadataEmbeddable.create()
 					.withKey(METADATA_KEY)
@@ -165,6 +168,7 @@ class DocumentMapperTest {
 
 		final var documentUpdateRequest = DocumentUpdateRequest.create()
 			.withArchive(archive)
+			.withTitle("Updated title")
 			.withDescription("Updated text")
 			.withMetadataList(List.of(DocumentMetadata.create()
 				.withKey("Updated-key")
@@ -176,6 +180,7 @@ class DocumentMapperTest {
 				.withConfidential(CONFIDENTIAL)
 				.withLegalCitation(LEGAL_CITATION))
 			.withCreatedBy(CREATED_BY)
+			.withTitle(TITLE)
 			.withDescription(DESCRIPTION)
 			.withDocumentData(originalDocumentData)
 			.withMetadata(new ArrayList<>(List.of(DocumentMetadataEmbeddable.create()
@@ -201,6 +206,7 @@ class DocumentMapperTest {
 
 		// Assert — fields from request are applied
 		assertThat(existingDocumentEntity.isArchive()).isEqualTo(archive == null ? ARCHIVE : archive);
+		assertThat(existingDocumentEntity.getTitle()).isEqualTo("Updated title");
 		assertThat(existingDocumentEntity.getDescription()).isEqualTo("Updated text");
 		assertThat(existingDocumentEntity.getMetadata()).isEqualTo(List.of(DocumentMetadataEmbeddable.create()
 			.withKey("Updated-key")
@@ -355,6 +361,7 @@ class DocumentMapperTest {
 				.withLegalCitation(LEGAL_CITATION))
 			.withCreated(CREATED)
 			.withCreatedBy(CREATED_BY)
+			.withTitle(TITLE)
 			.withDescription(DESCRIPTION)
 			.withDocumentData(List.of(
 				DocumentDataEntity.create()
@@ -390,6 +397,7 @@ class DocumentMapperTest {
 					.withLegalCitation(LEGAL_CITATION))
 				.withCreated(CREATED)
 				.withCreatedBy(CREATED_BY)
+				.withTitle(TITLE)
 				.withDescription(DESCRIPTION)
 				.withDocumentData(List.of(
 					DocumentData.create()
@@ -429,6 +437,7 @@ class DocumentMapperTest {
 				.withLegalCitation(LEGAL_CITATION))
 			.withCreated(CREATED)
 			.withCreatedBy(CREATED_BY)
+			.withTitle(TITLE)
 			.withDescription(DESCRIPTION)
 			.withDocumentData(List.of(
 				DocumentDataEntity.create()
@@ -466,6 +475,7 @@ class DocumentMapperTest {
 					.withLegalCitation(LEGAL_CITATION))
 				.withCreated(CREATED)
 				.withCreatedBy(CREATED_BY)
+				.withTitle(TITLE)
 				.withDescription(DESCRIPTION)
 				.withDocumentData(List.of(
 					DocumentData.create()
@@ -599,6 +609,7 @@ class DocumentMapperTest {
 				.withLegalCitation(LEGAL_CITATION))
 			.withCreated(CREATED)
 			.withCreatedBy(CREATED_BY)
+			.withTitle(TITLE)
 			.withDescription(DESCRIPTION)
 			.withDocumentData(List.of(
 				DocumentDataEntity.create()
@@ -647,6 +658,7 @@ class DocumentMapperTest {
 					.withConfidential(CONFIDENTIAL)
 					.withLegalCitation(LEGAL_CITATION))
 				.withCreatedBy(CREATED_BY)
+				.withTitle(TITLE)
 				.withDescription(DESCRIPTION)
 				.withDocumentData(List.of(
 					DocumentDataEntity.create()
@@ -707,6 +719,7 @@ class DocumentMapperTest {
 				.withLegalCitation(LEGAL_CITATION))
 			.withCreated(CREATED)
 			.withCreatedBy(CREATED_BY)
+			.withTitle(TITLE)
 			.withDescription(DESCRIPTION)
 			.withId(ID)
 			.withMetadata(List.of(DocumentMetadataEmbeddable.create()
@@ -747,6 +760,7 @@ class DocumentMapperTest {
 					.withLegalCitation(LEGAL_CITATION))
 				.withCreated(CREATED)
 				.withCreatedBy(CREATED_BY)
+				.withTitle(TITLE)
 				.withDescription(DESCRIPTION)
 				.withId(ID)
 				.withMetadataList(List.of(DocumentMetadata.create()

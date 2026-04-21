@@ -31,6 +31,7 @@ class DocumentCreateRequestTest {
 		final var archive = true;
 		final var confidentiality = Confidentiality.create().withConfidential(true).withLegalCitation("legalCitation");
 		final var createdBy = "b0000000-0000-0000-0000-000000000099";
+		final var title = "title";
 		final var description = "description";
 		final var metadataList = List.of(DocumentMetadata.create());
 		final var responsibilities = List.of(DocumentResponsibility.create().withPersonId("6b8d4a1c-34e2-4f73-a5f1-b7c2e9a0d8c4"));
@@ -42,6 +43,7 @@ class DocumentCreateRequestTest {
 			.withArchive(archive)
 			.withConfidentiality(confidentiality)
 			.withCreatedBy(createdBy)
+			.withTitle(title)
 			.withDescription(description)
 			.withMetadataList(metadataList)
 			.withResponsibilities(responsibilities)
@@ -53,6 +55,7 @@ class DocumentCreateRequestTest {
 		assertThat(bean.isArchive()).isEqualTo(archive);
 		assertThat(bean.getConfidentiality()).isEqualTo(confidentiality);
 		assertThat(bean.getCreatedBy()).isEqualTo(createdBy);
+		assertThat(bean.getTitle()).isEqualTo(title);
 		assertThat(bean.getDescription()).isEqualTo(description);
 		assertThat(bean.getMetadataList()).isEqualTo(metadataList);
 		assertThat(bean.getResponsibilities()).isEqualTo(responsibilities);

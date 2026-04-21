@@ -161,7 +161,7 @@ public class DocumentService {
 					b.must(m -> m.multiMatch(mm -> mm
 						.query(query)
 						.type(co.elastic.clients.elasticsearch._types.query_dsl.TextQueryType.Phrase)
-						.fields("extractedText", "description", "fileName", "mimeType",
+						.fields("title", "extractedText", "description", "fileName", "mimeType",
 							"registrationNumber", "createdBy", "metadataKeys", "metadataValues")));
 				}
 				b.filter(f -> f.term(t -> t.field("municipalityId").value(municipalityId)));

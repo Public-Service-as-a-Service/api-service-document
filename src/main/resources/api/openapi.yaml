@@ -1942,9 +1942,21 @@ components:
       properties:
         id:
           type: string
-          description: ID of the matching document.
+          description: "ID of the matching document (revision-specific, copy-on-write\
+            \ creates a new ID per revision)."
           examples:
             - 082ba08f-03c7-409f-b8a6-940a1397ba38
+        registrationNumber:
+          type: string
+          description: Registration number of the matching document.
+          examples:
+            - 2023-2281-1337
+        revision:
+          type: integer
+          format: int32
+          description: Revision that the matched files belong to.
+          examples:
+            - "3"
         files:
           type: array
           items:

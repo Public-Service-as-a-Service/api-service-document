@@ -29,14 +29,20 @@ class DocumentMatchTest {
 	void testBuilderMethods() {
 
 		final var id = randomUUID().toString();
+		final var registrationNumber = "2023-2281-1337";
+		final var revision = 3;
 		final var files = List.of(FileMatch.create());
 
 		final var bean = DocumentMatch.create()
 			.withId(id)
+			.withRegistrationNumber(registrationNumber)
+			.withRevision(revision)
 			.withFiles(files);
 
 		assertThat(bean).isNotNull().hasNoNullFieldsOrProperties();
 		assertThat(bean.getId()).isEqualTo(id);
+		assertThat(bean.getRegistrationNumber()).isEqualTo(registrationNumber);
+		assertThat(bean.getRevision()).isEqualTo(revision);
 		assertThat(bean.getFiles()).isEqualTo(files);
 	}
 

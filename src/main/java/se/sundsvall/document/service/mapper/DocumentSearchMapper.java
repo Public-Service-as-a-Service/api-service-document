@@ -39,7 +39,12 @@ public final class DocumentSearchMapper {
 			}
 		}
 
+		// Carry the first hit per documentId into a small metadata record so we can set
+		// registrationNumber/revision on the DocumentMatch without a second pass. Every hit under
+		// the same documentId reports the same regNum+revision anyway (documentId is the
+		// revision-scoped DocumentEntity ID — copy-on-write mints a new one per revision).
 		final var filesByDocumentId = new LinkedHashMap<String, List<FileMatch>>();
+		final var metaByDocumentId = new LinkedHashMap<String, DocumentMeta>();
 		for (final var hit : hits.getSearchHits()) {
 			final var entity = hit.getContent();
 			if (onlyLatestRevision && entity.getRevision() < maxRevisionByRegistrationNumber.get(entity.getRegistrationNumber())) {
@@ -54,12 +59,18 @@ public final class DocumentSearchMapper {
 					.withId(entity.getId())
 					.withFileName(entity.getFileName())
 					.withHighlights(highlights));
+			metaByDocumentId.putIfAbsent(entity.getDocumentId(), new DocumentMeta(entity.getRegistrationNumber(), entity.getRevision()));
 		}
 
 		final var documents = filesByDocumentId.entrySet().stream()
-			.map(entry -> DocumentMatch.create()
-				.withId(entry.getKey())
-				.withFiles(entry.getValue()))
+			.map(entry -> {
+				final var meta = metaByDocumentId.get(entry.getKey());
+				return DocumentMatch.create()
+					.withId(entry.getKey())
+					.withRegistrationNumber(meta.registrationNumber())
+					.withRevision(meta.revision())
+					.withFiles(entry.getValue());
+			})
 			.toList();
 
 		final var totalRecords = hits.getTotalHits();
@@ -74,5 +85,8 @@ public final class DocumentSearchMapper {
 				.withCount(documents.size())
 				.withTotalRecords(totalRecords)
 				.withTotalPages(totalPages));
+	}
+
+	private record DocumentMeta(String registrationNumber, int revision) {
 	}
 }

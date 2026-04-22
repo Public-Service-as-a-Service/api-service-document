@@ -4,6 +4,8 @@ import java.time.OffsetDateTime;
 import java.time.Year;
 import java.time.ZoneId;
 import java.util.UUID;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import se.sundsvall.document.integration.db.RegistrationNumberSequenceRepository;
@@ -26,6 +28,8 @@ import static se.sundsvall.document.service.Constants.TEMPLATE_REGISTRATION_NUMB
 @Service
 @Transactional
 public class RegistrationNumberService {
+
+	private static final Logger LOGGER = LoggerFactory.getLogger(RegistrationNumberService.class);
 
 	private static final int SEQUENCE_START = 1;
 
@@ -50,7 +54,16 @@ public class RegistrationNumberService {
 		final var existing = registrationNumberSequenceRepository.findByMunicipalityId(municipalityId)
 			.orElseThrow(() -> new IllegalStateException("Sequence row missing for municipalityId=" + municipalityId + " after seed"));
 
-		final var updated = registrationNumberSequenceRepository.save(existing.withSequenceNumber(nextSequenceNumber(existing, currentYear)));
+		final var next = nextSequenceNumber(existing, currentYear);
+		if (next == SEQUENCE_START && existing.getSequenceNumber() >= SEQUENCE_START) {
+			final var lastTouched = existing.getModified() != null ? existing.getModified() : existing.getCreated();
+			final var lastTouchedYear = lastTouched.atZoneSameInstant(CANONICAL_ZONE).getYear();
+			LOGGER.info("Registration number sequence reset on year rollover (municipalityId='{}', {}→{}, previousSequence={})",
+				municipalityId, lastTouchedYear, currentYear, existing.getSequenceNumber());
+		}
+		final var updated = registrationNumberSequenceRepository.save(existing.withSequenceNumber(next));
+		LOGGER.debug("Generated registration number (municipalityId='{}', year={}, sequence={})",
+			municipalityId, currentYear, updated.getSequenceNumber());
 
 		return TEMPLATE_REGISTRATION_NUMBER.formatted(currentYear, updated.getMunicipalityId(), updated.getSequenceNumber());
 	}

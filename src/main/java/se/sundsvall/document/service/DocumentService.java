@@ -9,6 +9,8 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
@@ -66,6 +68,8 @@ import static se.sundsvall.document.service.mapper.DocumentSearchMapper.toPagedD
 @Service
 @Transactional
 public class DocumentService {
+
+	private static final Logger LOGGER = LoggerFactory.getLogger(DocumentService.class);
 
 	private static final String ERROR_DOCUMENT_TYPE_NOT_FOUND = "Document type with identifier %s was not found within municipality with id %s";
 
@@ -127,6 +131,12 @@ public class DocumentService {
 
 		final var savedDocumentEntity = documentRepository.save(documentEntity);
 		final var responsibilities = documentResponsibilityRepository.saveAll(toDocumentResponsibilityEntities(documentCreateRequest.getResponsibilities(), municipalityId, registrationNumber, documentCreateRequest.getCreatedBy()));
+
+		LOGGER.info("Created document (registrationNumber='{}', type='{}', files={}, responsibilities={}, status={}, createdBy='{}')",
+			registrationNumber, documentCreateRequest.getType(),
+			documentDataEntities != null ? documentDataEntities.size() : 0,
+			responsibilities != null ? responsibilities.size() : 0,
+			savedDocumentEntity.getStatus(), documentCreateRequest.getCreatedBy());
 
 		applicationEventPublisher.publishEvent(DocumentIndexingEvent.reindex(savedDocumentEntity.getId()));
 
@@ -198,10 +208,15 @@ public class DocumentService {
 
 	private org.springframework.data.elasticsearch.core.SearchHits<DocumentIndexEntity> runFulltextSearch(String query, boolean includeConfidential, String municipalityId, Pageable pageable) {
 		final var effectiveStatuses = statusPolicy.effectivePublishedStatuses(null);
+		final var phraseMatching = query != null && !query.isBlank();
+
+		LOGGER.debug("ES search (municipalityId='{}', query='{}', phraseMatching={}, includeConfidential={}, statuses={}, page={}, size={})",
+			municipalityId, query, phraseMatching, includeConfidential, effectiveStatuses,
+			pageable.getPageNumber(), pageable.getPageSize());
 
 		final var esQuery = NativeQuery.builder()
 			.withQuery(q -> q.bool(b -> {
-				if (query != null && !query.isBlank()) {
+				if (phraseMatching) {
 					// Phrase match: the user's query must appear as adjacent tokens in at least one
 					// of the listed fields. No wildcard support — callers type the phrase they want
 					// and it's matched literally (modulo the standard analyzer). This is narrower
@@ -227,9 +242,13 @@ public class DocumentService {
 			.withPageable(pageable)
 			.build();
 
-		return elasticsearchOperations
+		final var hits = elasticsearchOperations
 			.orElseThrow(() -> Problem.valueOf(org.springframework.http.HttpStatus.SERVICE_UNAVAILABLE, "Search is not available — Elasticsearch is not configured"))
 			.search(esQuery, DocumentIndexEntity.class);
+
+		LOGGER.debug("ES search returned {} file hit(s) (totalHits={}, municipalityId='{}')",
+			hits.getSearchHits().size(), hits.getTotalHits(), municipalityId);
+		return hits;
 	}
 
 	private static HighlightQuery buildHighlightQuery() {
@@ -266,6 +285,9 @@ public class DocumentService {
 		}
 
 		final var saved = documentRepository.save(existingDocumentEntity);
+		LOGGER.info("Updated document in place (registrationNumber='{}', revision={}, status→DRAFT, type='{}')",
+			registrationNumber, saved.getRevision(),
+			saved.getType() != null ? saved.getType().getType() : null);
 		applicationEventPublisher.publishEvent(DocumentIndexingEvent.reindex(saved.getId()));
 		return toDocumentWithResponsibilities(saved);
 	}
@@ -294,6 +316,11 @@ public class DocumentService {
 
 		final var newConfidentialitySettings = toConfidentialityEmbeddable(confidentialityUpdateRequest);
 
+		LOGGER.info("Updating confidentiality (registrationNumber='{}', revisions={}, confidential={}, legalCitation='{}', updatedBy='{}')",
+			registrationNumber, documentEntities.size(),
+			confidentialityUpdateRequest.getConfidential(), confidentialityUpdateRequest.getLegalCitation(),
+			confidentialityUpdateRequest.getUpdatedBy());
+
 		documentEntities.forEach(documentEntity -> documentEntity.setConfidentiality(newConfidentialitySettings));
 
 		eventPublisher.logConfidentialityChange(registrationNumber, confidentialityUpdateRequest, municipalityId);
@@ -317,6 +344,8 @@ public class DocumentService {
 		// isn't violated when a personId is both removed and re-added in the same call.
 		documentResponsibilityRepository.flush();
 		documentResponsibilityRepository.saveAll(newResponsibilities);
+		LOGGER.info("Updated responsibilities (registrationNumber='{}', removed={}, added={}, updatedBy='{}')",
+			registrationNumber, oldResponsibilities.size(), newResponsibilities.size(), request.getUpdatedBy());
 
 		eventPublisher.logResponsibilitiesChange(registrationNumber, request.getUpdatedBy(), oldResponsibilities, newResponsibilities, municipalityId);
 	}
@@ -364,6 +393,8 @@ public class DocumentService {
 
 		final var newStatus = nextStatusResolver.apply(documentEntity);
 		documentEntity.setStatus(newStatus);
+		LOGGER.info("Status transition '{}' (registrationNumber='{}', revision={}, {}→{}, updatedBy='{}')",
+			action, registrationNumber, documentEntity.getRevision(), previousStatus, newStatus, updatedBy);
 
 		eventPublisher.logStatusChange(registrationNumber, documentEntity.getRevision(), previousStatus, newStatus, updatedBy, municipalityId);
 
@@ -396,8 +427,12 @@ public class DocumentService {
 	private void reconcileStatusIfStale(DocumentEntity documentEntity) {
 		statusPolicy.reconcile(documentEntity.getStatus(), documentEntity.getValidFrom(), documentEntity.getValidTo())
 			.ifPresent(newStatus -> {
+				final var oldStatus = documentEntity.getStatus();
 				documentEntity.setStatus(newStatus);
 				documentRepository.save(documentEntity);
+				LOGGER.info("Status auto-reconciled on read (registrationNumber='{}', revision={}, {}→{}, validFrom={}, validTo={})",
+					documentEntity.getRegistrationNumber(), documentEntity.getRevision(),
+					oldStatus, newStatus, documentEntity.getValidFrom(), documentEntity.getValidTo());
 			});
 	}
 

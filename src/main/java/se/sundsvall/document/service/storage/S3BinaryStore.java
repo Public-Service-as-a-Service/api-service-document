@@ -12,6 +12,8 @@ import java.util.HexFormat;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.UUID;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StreamUtils;
 import se.sundsvall.dept44.problem.Problem;
@@ -36,6 +38,8 @@ import static org.springframework.http.HttpStatus.NOT_FOUND;
  */
 @Component
 public class S3BinaryStore implements BinaryStore {
+
+	private static final Logger LOGGER = LoggerFactory.getLogger(S3BinaryStore.class);
 
 	private final S3Client s3Client;
 	private final S3StorageProperties properties;
@@ -67,8 +71,12 @@ public class S3BinaryStore implements BinaryStore {
 				builder.metadata(encodeMetadataValues(userMetadata));
 			}
 			s3Client.putObject(builder.build(), RequestBody.fromInputStream(hashingStream, sizeInBytes));
+			LOGGER.debug("Stored binary in S3 (bucket='{}', key='{}', contentType='{}', size={}B)",
+				properties.bucket(), key, contentType, sizeInBytes);
 			return new PutResult(StorageRef.s3(key), HexFormat.of().formatHex(digest.digest()));
 		} catch (final Exception e) {
+			LOGGER.error("S3 put failed (bucket='{}', key='{}', contentType='{}', size={}B, errorType={})",
+				properties.bucket(), key, contentType, sizeInBytes, e.getClass().getSimpleName(), e);
 			throw Problem.valueOf(INTERNAL_SERVER_ERROR, "Failed to store binary in S3: " + e.getMessage());
 		}
 	}
@@ -91,6 +99,7 @@ public class S3BinaryStore implements BinaryStore {
 		try (var response = s3Client.getObject(request)) {
 			StreamUtils.copy(response, out);
 		} catch (final NoSuchKeyException e) {
+			LOGGER.warn("S3 get missed — no object at bucket='{}', key='{}'", properties.bucket(), ref.locator());
 			throw Problem.valueOf(NOT_FOUND, "No binary content found for locator: " + ref.locator());
 		}
 	}
@@ -102,6 +111,7 @@ public class S3BinaryStore implements BinaryStore {
 			.key(ref.locator())
 			.build();
 		s3Client.deleteObject(request);
+		LOGGER.debug("Deleted S3 object (bucket='{}', key='{}')", properties.bucket(), ref.locator());
 	}
 
 	@Override
@@ -114,6 +124,8 @@ public class S3BinaryStore implements BinaryStore {
 			.destinationKey(newKey)
 			.build();
 		s3Client.copyObject(request);
+		LOGGER.debug("Copied S3 object (bucket='{}', fromKey='{}', toKey='{}')",
+			properties.bucket(), ref.locator(), newKey);
 		return StorageRef.s3(newKey);
 	}
 }

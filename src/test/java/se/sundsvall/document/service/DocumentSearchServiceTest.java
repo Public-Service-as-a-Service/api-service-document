@@ -98,7 +98,7 @@ class DocumentSearchServiceTest {
 		when(searchHitsMock.getTotalHits()).thenReturn(0L);
 
 		// Act
-		final var result = documentSearchService.searchFileMatches(List.of("no-hits"), false, false, pageRequest, MUNICIPALITY_ID);
+		final var result = documentSearchService.searchFileMatches(List.of("no-hits"), false, false, null, null, pageRequest, MUNICIPALITY_ID);
 
 		// Assert
 		assertThat(result).isNotNull();
@@ -123,7 +123,7 @@ class DocumentSearchServiceTest {
 		when(searchHitsMock.getTotalHits()).thenReturn(3L);
 
 		// Act
-		final var result = documentSearchService.searchFileMatches(List.of("any"), false, false, pageRequest, MUNICIPALITY_ID);
+		final var result = documentSearchService.searchFileMatches(List.of("any"), false, false, null, null, pageRequest, MUNICIPALITY_ID);
 
 		// Assert
 		assertThat(result.getDocuments()).hasSize(2);
@@ -156,7 +156,7 @@ class DocumentSearchServiceTest {
 		when(searchHitsMock.getTotalHits()).thenReturn(3L);
 
 		// Act
-		final var result = documentSearchService.searchFileMatches(List.of("any"), false, true, pageRequest, MUNICIPALITY_ID);
+		final var result = documentSearchService.searchFileMatches(List.of("any"), false, true, null, null, pageRequest, MUNICIPALITY_ID);
 
 		// Assert — doc-rev1 (revision 1 of reg-shared) should be dropped because reg-shared has a revision 2 on the page.
 		assertThat(result.getDocuments()).extracting("id").containsExactly("doc-rev2", "doc-other");
@@ -180,7 +180,7 @@ class DocumentSearchServiceTest {
 		when(searchHitsMock.getTotalHits()).thenReturn(2L);
 
 		// Act
-		final var result = documentSearchService.searchFileMatches(List.of("bandwidth"), false, false, pageRequest, MUNICIPALITY_ID);
+		final var result = documentSearchService.searchFileMatches(List.of("bandwidth"), false, false, null, null, pageRequest, MUNICIPALITY_ID);
 
 		// Assert
 		assertThat(result.getDocuments()).hasSize(2);
@@ -199,7 +199,7 @@ class DocumentSearchServiceTest {
 		when(searchHitsMock.getTotalHits()).thenReturn(1L);
 
 		// Act
-		final var result = documentSearchService.searchFileMatches(List.of("any"), false, false, pageRequest, MUNICIPALITY_ID);
+		final var result = documentSearchService.searchFileMatches(List.of("any"), false, false, null, null, pageRequest, MUNICIPALITY_ID);
 
 		// Assert
 		assertThat(result.getDocuments().get(0).getFiles().get(0).getHighlights()).isNull();
@@ -216,7 +216,7 @@ class DocumentSearchServiceTest {
 		when(searchHitsMock.getTotalHits()).thenReturn(0L);
 
 		// Act
-		documentSearchService.searchFileMatches(List.of("alpha", "beta", "gamma"), false, false, pageRequest, MUNICIPALITY_ID);
+		documentSearchService.searchFileMatches(List.of("alpha", "beta", "gamma"), false, false, null, null, pageRequest, MUNICIPALITY_ID);
 
 		// Assert — walk the captured NativeQuery tree: outer bool must → inner bool (the OR) with
 		// three should(multiMatch(phrase)) clauses and minimum_should_match=1.
@@ -232,6 +232,87 @@ class DocumentSearchServiceTest {
 	}
 
 	@Test
+	void searchFileMatches_statusesParamNarrowsSearch() {
+		// Arrange — caller explicitly asks for DRAFT + REVOKED. /file-matches passes the list
+		// through verbatim (no default-publishing policy), so the ES bool filters exactly those.
+		final var pageRequest = PageRequest.of(0, 10);
+		final var requested = List.of(DocumentStatus.DRAFT, DocumentStatus.REVOKED);
+		final var queryCaptor = ArgumentCaptor.forClass(Query.class);
+		when(elasticsearchOperationsMock.search(queryCaptor.capture(), eq(DocumentIndexEntity.class))).thenReturn(searchHitsMock);
+		when(searchHitsMock.getSearchHits()).thenReturn(List.of());
+		when(searchHitsMock.getTotalHits()).thenReturn(0L);
+
+		// Act
+		documentSearchService.searchFileMatches(List.of("any"), false, false, requested, null, pageRequest, MUNICIPALITY_ID);
+
+		// Assert — the caller's statuses make it into the status terms filter on the outer bool.
+		verifyNoInteractions(statusPolicyMock);
+		final var captured = (NativeQuery) queryCaptor.getValue();
+		final var outerBool = captured.getQuery().bool();
+		final var statusFilterValues = outerBool.filter().stream()
+			.filter(co.elastic.clients.elasticsearch._types.query_dsl.Query::isTerms)
+			.filter(q -> "status".equals(q.terms().field()))
+			.flatMap(q -> q.terms().terms().value().stream())
+			.map(co.elastic.clients.elasticsearch._types.FieldValue::stringValue)
+			.toList();
+		assertThat(statusFilterValues).containsExactlyInAnyOrder("DRAFT", "REVOKED");
+	}
+
+	@Test
+	void searchFileMatches_documentTypesParamAddsTermsFilter() {
+		// Arrange — caller supplies two documentTypes; expect a terms filter on the documentType field.
+		final var pageRequest = PageRequest.of(0, 10);
+		final var queryCaptor = ArgumentCaptor.forClass(Query.class);
+		lenient().when(statusPolicyMock.effectivePublishedStatuses(any())).thenReturn(PUBLISHED_STATUSES);
+		when(elasticsearchOperationsMock.search(queryCaptor.capture(), eq(DocumentIndexEntity.class))).thenReturn(searchHitsMock);
+		when(searchHitsMock.getSearchHits()).thenReturn(List.of());
+		when(searchHitsMock.getTotalHits()).thenReturn(0L);
+
+		// Act
+		documentSearchService.searchFileMatches(List.of("any"), false, false, null, List.of("EMPLOYEE_CERTIFICATE", "HOLIDAY_EXCHANGE"), pageRequest, MUNICIPALITY_ID);
+
+		// Assert
+		final var captured = (NativeQuery) queryCaptor.getValue();
+		final var outerBool = captured.getQuery().bool();
+		final var docTypeFilterValues = outerBool.filter().stream()
+			.filter(co.elastic.clients.elasticsearch._types.query_dsl.Query::isTerms)
+			.filter(q -> "documentType".equals(q.terms().field()))
+			.flatMap(q -> q.terms().terms().value().stream())
+			.map(co.elastic.clients.elasticsearch._types.FieldValue::stringValue)
+			.toList();
+		assertThat(docTypeFilterValues).containsExactlyInAnyOrder("EMPLOYEE_CERTIFICATE", "HOLIDAY_EXCHANGE");
+	}
+
+	@Test
+	void searchFileMatches_nullStatusesAndDocumentTypesMeansNoFiltersAtAll() {
+		// Arrange — neither param supplied. /file-matches default is "search every status and
+		// every document type", so the ES bool should carry NO status- or documentType-terms
+		// filter. Confirms the policy flip from "published-only default" to "search all".
+		final var pageRequest = PageRequest.of(0, 10);
+		final var queryCaptor = ArgumentCaptor.forClass(Query.class);
+		when(elasticsearchOperationsMock.search(queryCaptor.capture(), eq(DocumentIndexEntity.class))).thenReturn(searchHitsMock);
+		when(searchHitsMock.getSearchHits()).thenReturn(List.of());
+		when(searchHitsMock.getTotalHits()).thenReturn(0L);
+
+		// Act
+		documentSearchService.searchFileMatches(List.of("any"), false, false, null, null, pageRequest, MUNICIPALITY_ID);
+
+		// Assert — no terms filter on either field
+		final var captured = (NativeQuery) queryCaptor.getValue();
+		final var outerBool = captured.getQuery().bool();
+		final var hasStatusFilter = outerBool.filter().stream()
+			.filter(co.elastic.clients.elasticsearch._types.query_dsl.Query::isTerms)
+			.anyMatch(q -> "status".equals(q.terms().field()));
+		final var hasDocumentTypeFilter = outerBool.filter().stream()
+			.filter(co.elastic.clients.elasticsearch._types.query_dsl.Query::isTerms)
+			.anyMatch(q -> "documentType".equals(q.terms().field()));
+		assertThat(hasStatusFilter).as("no status terms filter when param absent").isFalse();
+		assertThat(hasDocumentTypeFilter).as("no documentType terms filter when param absent").isFalse();
+		// effectivePublishedStatuses must not be consulted for /file-matches default.
+		verifyNoInteractions(statusPolicyMock);
+	}
+
+	@Test
 	void searchFileMatches_propagatesHitTotalAsMetaTotalRecords() {
 		// Arrange
 		final var pageRequest = PageRequest.of(2, 5);
@@ -244,7 +325,7 @@ class DocumentSearchServiceTest {
 		when(searchHitsMock.getTotalHits()).thenReturn(42L);
 
 		// Act
-		final var result = documentSearchService.searchFileMatches(List.of("any"), false, false, pageRequest, MUNICIPALITY_ID);
+		final var result = documentSearchService.searchFileMatches(List.of("any"), false, false, null, null, pageRequest, MUNICIPALITY_ID);
 
 		// Assert — file-level total (same as existing search endpoint), page + size reflect pageable.
 		assertThat(result.getMetadata().getTotalRecords()).isEqualTo(42L);

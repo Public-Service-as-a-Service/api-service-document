@@ -32,7 +32,10 @@ import se.sundsvall.document.api.model.PagedDocumentMatchResponse;
 import se.sundsvall.document.api.model.PagedDocumentResponse;
 import se.sundsvall.document.api.validation.DocumentTypeValidator;
 import se.sundsvall.document.service.DocumentFileService;
+import se.sundsvall.document.service.DocumentResponsibilityService;
+import se.sundsvall.document.service.DocumentSearchService;
 import se.sundsvall.document.service.DocumentService;
+import se.sundsvall.document.service.DocumentStatusService;
 
 import static java.util.Collections.emptyList;
 import static java.util.UUID.randomUUID;
@@ -61,6 +64,15 @@ class DocumentResourceTest {
 
 	@MockitoBean
 	private DocumentFileService documentFileServiceMock;
+
+	@MockitoBean
+	private DocumentSearchService documentSearchServiceMock;
+
+	@MockitoBean
+	private DocumentStatusService documentStatusServiceMock;
+
+	@MockitoBean
+	private DocumentResponsibilityService documentResponsibilityServiceMock;
 
 	@MockitoBean
 	private DocumentTypeValidator validationUtilityMock;
@@ -228,7 +240,7 @@ class DocumentResourceTest {
 			.isEmpty();
 
 		// Assert
-		verify(documentServiceMock).updateConfidentiality(registrationNumber, confidentialityUpdateRequest, "2281");
+		verify(documentStatusServiceMock).updateConfidentiality(registrationNumber, confidentialityUpdateRequest, "2281");
 	}
 
 	@Test
@@ -252,7 +264,7 @@ class DocumentResourceTest {
 			.isEmpty();
 
 		// Assert
-		verify(documentServiceMock).updateResponsibilities(registrationNumber, responsibilitiesUpdateRequest, "2281");
+		verify(documentResponsibilityServiceMock).updateResponsibilities(registrationNumber, responsibilitiesUpdateRequest, "2281");
 	}
 
 	@Test
@@ -260,7 +272,7 @@ class DocumentResourceTest {
 
 		// Arrange
 		final var registrationNumber = "2023-1337";
-		when(documentServiceMock.publish(any(), any(), any(), any())).thenReturn(Document.create());
+		when(documentStatusServiceMock.publish(any(), any(), any(), any())).thenReturn(Document.create());
 
 		// Act
 		webTestClient.post()
@@ -270,7 +282,7 @@ class DocumentResourceTest {
 			.expectHeader().contentType(APPLICATION_JSON);
 
 		// Assert
-		verify(documentServiceMock).publish(registrationNumber, "b0000000-0000-0000-0000-000000000099", "2281", null);
+		verify(documentStatusServiceMock).publish(registrationNumber, "b0000000-0000-0000-0000-000000000099", "2281", null);
 	}
 
 	@Test
@@ -278,7 +290,7 @@ class DocumentResourceTest {
 
 		// Arrange
 		final var registrationNumber = "2023-1337";
-		when(documentServiceMock.publish(any(), any(), any(), any())).thenReturn(Document.create());
+		when(documentStatusServiceMock.publish(any(), any(), any(), any())).thenReturn(Document.create());
 
 		// Act
 		webTestClient.post()
@@ -288,7 +300,7 @@ class DocumentResourceTest {
 			.expectHeader().contentType(APPLICATION_JSON);
 
 		// Assert
-		verify(documentServiceMock).publish(registrationNumber, "b0000000-0000-0000-0000-000000000099", "2281", 5);
+		verify(documentStatusServiceMock).publish(registrationNumber, "b0000000-0000-0000-0000-000000000099", "2281", 5);
 	}
 
 	@Test
@@ -296,7 +308,7 @@ class DocumentResourceTest {
 
 		// Arrange
 		final var registrationNumber = "2023-1337";
-		when(documentServiceMock.revoke(any(), any(), any(), any())).thenReturn(Document.create());
+		when(documentStatusServiceMock.revoke(any(), any(), any(), any())).thenReturn(Document.create());
 
 		// Act
 		webTestClient.post()
@@ -306,7 +318,7 @@ class DocumentResourceTest {
 			.expectHeader().contentType(APPLICATION_JSON);
 
 		// Assert
-		verify(documentServiceMock).revoke(registrationNumber, "b0000000-0000-0000-0000-000000000099", "2281", null);
+		verify(documentStatusServiceMock).revoke(registrationNumber, "b0000000-0000-0000-0000-000000000099", "2281", null);
 	}
 
 	@Test
@@ -314,7 +326,7 @@ class DocumentResourceTest {
 
 		// Arrange
 		final var registrationNumber = "2023-1337";
-		when(documentServiceMock.revoke(any(), any(), any(), any())).thenReturn(Document.create());
+		when(documentStatusServiceMock.revoke(any(), any(), any(), any())).thenReturn(Document.create());
 
 		// Act
 		webTestClient.post()
@@ -324,7 +336,7 @@ class DocumentResourceTest {
 			.expectHeader().contentType(APPLICATION_JSON);
 
 		// Assert
-		verify(documentServiceMock).revoke(registrationNumber, "b0000000-0000-0000-0000-000000000099", "2281", 5);
+		verify(documentStatusServiceMock).revoke(registrationNumber, "b0000000-0000-0000-0000-000000000099", "2281", 5);
 	}
 
 	@Test
@@ -332,7 +344,7 @@ class DocumentResourceTest {
 
 		// Arrange
 		final var registrationNumber = "2023-1337";
-		when(documentServiceMock.unrevoke(any(), any(), any(), any())).thenReturn(Document.create());
+		when(documentStatusServiceMock.unrevoke(any(), any(), any(), any())).thenReturn(Document.create());
 
 		// Act
 		webTestClient.post()
@@ -342,7 +354,7 @@ class DocumentResourceTest {
 			.expectHeader().contentType(APPLICATION_JSON);
 
 		// Assert
-		verify(documentServiceMock).unrevoke(registrationNumber, "b0000000-0000-0000-0000-000000000099", "2281", null);
+		verify(documentStatusServiceMock).unrevoke(registrationNumber, "b0000000-0000-0000-0000-000000000099", "2281", null);
 	}
 
 	@Test
@@ -350,7 +362,7 @@ class DocumentResourceTest {
 
 		// Arrange
 		final var registrationNumber = "2023-1337";
-		when(documentServiceMock.unrevoke(any(), any(), any(), any())).thenReturn(Document.create());
+		when(documentStatusServiceMock.unrevoke(any(), any(), any(), any())).thenReturn(Document.create());
 
 		// Act
 		webTestClient.post()
@@ -360,7 +372,7 @@ class DocumentResourceTest {
 			.expectHeader().contentType(APPLICATION_JSON);
 
 		// Assert
-		verify(documentServiceMock).unrevoke(registrationNumber, "b0000000-0000-0000-0000-000000000099", "2281", 5);
+		verify(documentStatusServiceMock).unrevoke(registrationNumber, "b0000000-0000-0000-0000-000000000099", "2281", 5);
 	}
 
 	@Test
@@ -405,7 +417,7 @@ class DocumentResourceTest {
 		final var size = 10;
 		final var sort = "created,asc";
 
-		when(documentServiceMock.search(any(), anyBoolean(), anyBoolean(), any(), any())).thenReturn(PagedDocumentResponse.create().withDocuments(List.of(Document.create())));
+		when(documentSearchServiceMock.search(any(), anyBoolean(), anyBoolean(), any(), any())).thenReturn(PagedDocumentResponse.create().withDocuments(List.of(Document.create())));
 
 		// Act
 		final var response = webTestClient.get()
@@ -424,7 +436,7 @@ class DocumentResourceTest {
 
 		// Assert
 		assertThat(response).isNotNull();
-		verify(documentServiceMock).search(query, false, false, PageRequest.of(page, size, Sort.by(asc("created"))), "2281");
+		verify(documentSearchServiceMock).search(query, false, false, PageRequest.of(page, size, Sort.by(asc("created"))), "2281");
 	}
 
 	@ParameterizedTest
@@ -439,7 +451,7 @@ class DocumentResourceTest {
 		final var size = 10;
 		final var sort = "created,asc";
 
-		when(documentServiceMock.search(any(), anyBoolean(), anyBoolean(), any(), any())).thenReturn(PagedDocumentResponse.create().withDocuments(List.of(Document.create())));
+		when(documentSearchServiceMock.search(any(), anyBoolean(), anyBoolean(), any(), any())).thenReturn(PagedDocumentResponse.create().withDocuments(List.of(Document.create())));
 
 		// Act
 		final var response = webTestClient.get()
@@ -459,7 +471,7 @@ class DocumentResourceTest {
 
 		// Assert
 		assertThat(response).isNotNull();
-		verify(documentServiceMock).search(query, includeConfidential, false, PageRequest.of(page, size, Sort.by(asc("created"))), "2281");
+		verify(documentSearchServiceMock).search(query, includeConfidential, false, PageRequest.of(page, size, Sort.by(asc("created"))), "2281");
 	}
 
 	@ParameterizedTest
@@ -474,7 +486,7 @@ class DocumentResourceTest {
 		final var size = 10;
 		final var sort = "created,asc";
 
-		when(documentServiceMock.search(any(), anyBoolean(), anyBoolean(), any(), any())).thenReturn(PagedDocumentResponse.create().withDocuments(List.of(Document.create())));
+		when(documentSearchServiceMock.search(any(), anyBoolean(), anyBoolean(), any(), any())).thenReturn(PagedDocumentResponse.create().withDocuments(List.of(Document.create())));
 
 		// Act
 		final var response = webTestClient.get()
@@ -494,7 +506,7 @@ class DocumentResourceTest {
 
 		// Assert
 		assertThat(response).isNotNull();
-		verify(documentServiceMock).search(query, false, onlyLatestRevision, PageRequest.of(page, size, Sort.by(asc("created"))), "2281");
+		verify(documentSearchServiceMock).search(query, false, onlyLatestRevision, PageRequest.of(page, size, Sort.by(asc("created"))), "2281");
 	}
 
 	@Test
@@ -506,7 +518,7 @@ class DocumentResourceTest {
 		final var size = 10;
 		final var sort = "created,asc";
 
-		when(documentServiceMock.searchFileMatches(any(), anyBoolean(), anyBoolean(), any(), any())).thenReturn(PagedDocumentMatchResponse.create().withDocuments(List.of(DocumentMatch.create())));
+		when(documentSearchServiceMock.searchFileMatches(any(), anyBoolean(), anyBoolean(), any(), any())).thenReturn(PagedDocumentMatchResponse.create().withDocuments(List.of(DocumentMatch.create())));
 
 		// Act
 		final var response = webTestClient.get()
@@ -525,7 +537,37 @@ class DocumentResourceTest {
 
 		// Assert
 		assertThat(response).isNotNull();
-		verify(documentServiceMock).searchFileMatches(query, false, false, PageRequest.of(page, size, Sort.by(asc("created"))), "2281");
+		verify(documentSearchServiceMock).searchFileMatches(List.of(query), false, false, PageRequest.of(page, size, Sort.by(asc("created"))), "2281");
+	}
+
+	@Test
+	void searchFileMatchesWithMultipleQueries() {
+
+		// Arrange
+		final var q1 = "alpha";
+		final var q2 = "beta";
+		final var q3 = "gamma";
+		final var page = 1;
+		final var size = 10;
+		final var sort = "created,asc";
+
+		when(documentSearchServiceMock.searchFileMatches(any(), anyBoolean(), anyBoolean(), any(), any())).thenReturn(PagedDocumentMatchResponse.create().withDocuments(List.of(DocumentMatch.create())));
+
+		// Act
+		webTestClient.get()
+			.uri(uriBuilder -> uriBuilder.path("/2281/documents/file-matches")
+				.queryParam("query", q1)
+				.queryParam("query", q2)
+				.queryParam("query", q3)
+				.queryParam("page", page)
+				.queryParam("size", size)
+				.queryParam("sort", sort)
+				.build())
+			.exchange()
+			.expectStatus().isOk();
+
+		// Assert — preserves order from the request.
+		verify(documentSearchServiceMock).searchFileMatches(List.of(q1, q2, q3), false, false, PageRequest.of(page, size, Sort.by(asc("created"))), "2281");
 	}
 
 	@ParameterizedTest
@@ -540,7 +582,7 @@ class DocumentResourceTest {
 		final var size = 10;
 		final var sort = "created,asc";
 
-		when(documentServiceMock.searchFileMatches(any(), anyBoolean(), anyBoolean(), any(), any())).thenReturn(PagedDocumentMatchResponse.create().withDocuments(List.of(DocumentMatch.create())));
+		when(documentSearchServiceMock.searchFileMatches(any(), anyBoolean(), anyBoolean(), any(), any())).thenReturn(PagedDocumentMatchResponse.create().withDocuments(List.of(DocumentMatch.create())));
 
 		// Act
 		webTestClient.get()
@@ -555,7 +597,7 @@ class DocumentResourceTest {
 			.expectStatus().isOk();
 
 		// Assert
-		verify(documentServiceMock).searchFileMatches(query, includeConfidential, false, PageRequest.of(page, size, Sort.by(asc("created"))), "2281");
+		verify(documentSearchServiceMock).searchFileMatches(List.of(query), includeConfidential, false, PageRequest.of(page, size, Sort.by(asc("created"))), "2281");
 	}
 
 	@ParameterizedTest
@@ -570,7 +612,7 @@ class DocumentResourceTest {
 		final var size = 10;
 		final var sort = "created,asc";
 
-		when(documentServiceMock.searchFileMatches(any(), anyBoolean(), anyBoolean(), any(), any())).thenReturn(PagedDocumentMatchResponse.create().withDocuments(List.of(DocumentMatch.create())));
+		when(documentSearchServiceMock.searchFileMatches(any(), anyBoolean(), anyBoolean(), any(), any())).thenReturn(PagedDocumentMatchResponse.create().withDocuments(List.of(DocumentMatch.create())));
 
 		// Act
 		webTestClient.get()
@@ -585,7 +627,7 @@ class DocumentResourceTest {
 			.expectStatus().isOk();
 
 		// Assert
-		verify(documentServiceMock).searchFileMatches(query, false, onlyLatestRevision, PageRequest.of(page, size, Sort.by(asc("created"))), "2281");
+		verify(documentSearchServiceMock).searchFileMatches(List.of(query), false, onlyLatestRevision, PageRequest.of(page, size, Sort.by(asc("created"))), "2281");
 	}
 
 	@Test

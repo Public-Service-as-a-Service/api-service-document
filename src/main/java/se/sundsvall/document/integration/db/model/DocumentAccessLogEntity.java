@@ -31,13 +31,13 @@ public class DocumentAccessLogEntity implements Serializable {
 
 	@Id
 	@UuidGenerator
-	@Column(name = "id")
+	@Column(name = "id", length = 36)
 	private String id;
 
-	@Column(name = "municipality_id", nullable = false, updatable = false)
+	@Column(name = "municipality_id", nullable = false, updatable = false, length = 4)
 	private String municipalityId;
 
-	@Column(name = "document_id", nullable = false, updatable = false)
+	@Column(name = "document_id", nullable = false, updatable = false, length = 36)
 	private String documentId;
 
 	@Column(name = "registration_number", nullable = false, updatable = false)
@@ -46,7 +46,7 @@ public class DocumentAccessLogEntity implements Serializable {
 	@Column(name = "revision", nullable = false, updatable = false)
 	private int revision;
 
-	@Column(name = "document_data_id", nullable = false, updatable = false)
+	@Column(name = "document_data_id", nullable = false, updatable = false, length = 36)
 	private String documentDataId;
 
 	@Enumerated(EnumType.STRING)

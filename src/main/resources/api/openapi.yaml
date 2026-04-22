@@ -467,10 +467,10 @@ paths:
           required: true
           schema:
             type: array
-            maxItems: 10
-            minItems: 1
             items:
               type: string
+            maxItems: 10
+            minItems: 1
           example: hello
         - name: includeConfidential
           in: query
@@ -488,6 +488,32 @@ paths:
             type: boolean
             default: false
           example: true
+        - name: statuses
+          in: query
+          description: "Lifecycle statuses to include. If omitted, every status is\
+            \ searched (including DRAFT and REVOKED). Supplying a list narrows the\
+            \ search to exactly those statuses. Repeat the parameter for multiple\
+            \ values."
+          required: false
+          schema:
+            type: array
+            items:
+              type: string
+              enum:
+                - DRAFT
+                - SCHEDULED
+                - ACTIVE
+                - EXPIRED
+                - REVOKED
+        - name: documentTypes
+          in: query
+          description: "Document types to include. If omitted, no document-type filter\
+            \ is applied. Repeat the parameter for multiple values."
+          required: false
+          schema:
+            type: array
+            items:
+              type: string
         - name: page
           in: query
           description: Zero-based page index (0..N)

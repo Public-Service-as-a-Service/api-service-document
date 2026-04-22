@@ -47,6 +47,7 @@ import se.sundsvall.document.api.model.DocumentDataCreateRequest;
 import se.sundsvall.document.api.model.DocumentFiles;
 import se.sundsvall.document.api.model.DocumentParameters;
 import se.sundsvall.document.api.model.DocumentResponsibilitiesUpdateRequest;
+import se.sundsvall.document.api.model.DocumentStatus;
 import se.sundsvall.document.api.model.DocumentUpdateRequest;
 import se.sundsvall.document.api.model.PagedDocumentMatchResponse;
 import se.sundsvall.document.api.model.PagedDocumentResponse;
@@ -365,9 +366,15 @@ class DocumentResource {
 			max = 10) final List<@NotBlank String> query,
 		@Parameter(name = "includeConfidential", description = "Include confidential records", example = "true") @RequestParam(name = "includeConfidential", defaultValue = "false") final boolean includeConfidential,
 		@Parameter(name = "onlyLatestRevision", description = "Only perform search against the latest document revision", example = "true") @RequestParam(name = "onlyLatestRevision", defaultValue = "false") final boolean onlyLatestRevision,
+		@Parameter(name = "statuses",
+			description = "Lifecycle statuses to include. If omitted, every status is searched (including DRAFT and REVOKED). Supplying a list narrows the search to exactly those statuses. Repeat the parameter for multiple values.") @RequestParam(
+				name = "statuses",
+				required = false) final List<DocumentStatus> statuses,
+		@Parameter(name = "documentTypes", description = "Document types to include. If omitted, no document-type filter is applied. Repeat the parameter for multiple values.") @RequestParam(name = "documentTypes",
+			required = false) final List<@NotBlank String> documentTypes,
 		@ParameterObject final Pageable pageable) {
 
-		return ok(documentSearchService.searchFileMatches(query, includeConfidential, onlyLatestRevision, pageable, municipalityId));
+		return ok(documentSearchService.searchFileMatches(query, includeConfidential, onlyLatestRevision, statuses, documentTypes, pageable, municipalityId));
 	}
 
 	@PostMapping(path = "/filter", produces = {

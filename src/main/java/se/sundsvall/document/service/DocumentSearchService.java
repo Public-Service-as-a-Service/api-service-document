@@ -24,6 +24,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import se.sundsvall.dept44.problem.Problem;
 import se.sundsvall.document.api.model.DocumentParameters;
+import se.sundsvall.document.api.model.DocumentStatus;
 import se.sundsvall.document.api.model.PagedDocumentMatchResponse;
 import se.sundsvall.document.api.model.PagedDocumentResponse;
 import se.sundsvall.document.integration.db.DocumentRepository;
@@ -70,12 +71,18 @@ public class DocumentSearchService {
 	public PagedDocumentResponse search(String query, boolean includeConfidential, boolean onlyLatestRevision, Pageable pageable, String municipalityId) {
 		// `List.of` rejects null; route through a null-safe single-element list so callers that pass
 		// a null/blank query still hit the empty-query path in the helper (instead of NPE here).
-		final var hits = runFulltextSearch(query == null ? List.of() : List.of(query), includeConfidential, municipalityId, pageable);
+		// This endpoint defaults to published statuses only — resolved here so runFulltextSearch
+		// can stay status-defaulting-free (see searchFileMatches for the contrasting policy).
+		final var hits = runFulltextSearch(query == null ? List.of() : List.of(query), includeConfidential,
+			statusPolicy.effectivePublishedStatuses(null), null, municipalityId, pageable);
 		return hydrateHitsToPagedDocumentResponse(hits, pageable, onlyLatestRevision);
 	}
 
-	public PagedDocumentMatchResponse searchFileMatches(List<String> queries, boolean includeConfidential, boolean onlyLatestRevision, Pageable pageable, String municipalityId) {
-		final var hits = runFulltextSearch(queries, includeConfidential, municipalityId, pageable);
+	public PagedDocumentMatchResponse searchFileMatches(List<String> queries, boolean includeConfidential, boolean onlyLatestRevision, List<DocumentStatus> statuses, List<String> documentTypes, Pageable pageable, String municipalityId) {
+		// Pass the caller's statuses through verbatim. This endpoint's default (no list supplied)
+		// is "no status filter at all" — i.e. search every status including DRAFT and REVOKED.
+		// Supplying a list narrows the search to exactly those statuses.
+		final var hits = runFulltextSearch(queries, includeConfidential, statuses, documentTypes, municipalityId, pageable);
 		return toPagedDocumentMatchResponse(hits, pageable, onlyLatestRevision);
 	}
 
@@ -118,16 +125,20 @@ public class DocumentSearchService {
 		return responseHydrator.hydrate(new PageImpl<>(hydrated, pageable, hits.getTotalHits()));
 	}
 
-	private SearchHits<DocumentIndexEntity> runFulltextSearch(List<String> queries, boolean includeConfidential, String municipalityId, Pageable pageable) {
-		final var effectiveStatuses = statusPolicy.effectivePublishedStatuses(null);
+	private SearchHits<DocumentIndexEntity> runFulltextSearch(List<String> queries, boolean includeConfidential, List<DocumentStatus> statuses, List<String> documentTypes, String municipalityId, Pageable pageable) {
+		// Status filter is now pass-through: callers who want a default must resolve it upfront.
+		// Null/empty → no status filter (every status searched). Non-empty → narrow to that list.
+		final var effectiveStatuses = statuses == null ? List.<DocumentStatus>of() : statuses;
+		final var effectiveDocumentTypes = documentTypes == null ? List.<String>of()
+			: documentTypes.stream().filter(Objects::nonNull).filter(s -> !s.isBlank()).toList();
 		// Drop nulls/blanks defensively — the Resource already enforces @NotBlank, but service
 		// callers other than HTTP (e.g. future batch jobs, tests) deserve the same safety.
 		final var effectiveQueries = queries == null ? List.<String>of()
 			: queries.stream().filter(Objects::nonNull).filter(s -> !s.isBlank()).toList();
 		final var phraseMatching = !effectiveQueries.isEmpty();
 
-		LOGGER.debug("ES search (municipalityId='{}', queries={}, phraseMatching={}, includeConfidential={}, statuses={}, page={}, size={})",
-			municipalityId, effectiveQueries, phraseMatching, includeConfidential, effectiveStatuses,
+		LOGGER.debug("ES search (municipalityId='{}', queries={}, phraseMatching={}, includeConfidential={}, statuses={}, documentTypes={}, page={}, size={})",
+			municipalityId, effectiveQueries, phraseMatching, includeConfidential, effectiveStatuses, effectiveDocumentTypes,
 			pageable.getPageNumber(), pageable.getPageSize());
 
 		final var esQuery = NativeQuery.builder()
@@ -156,6 +167,10 @@ public class DocumentSearchService {
 				if (effectiveStatuses != null && !effectiveStatuses.isEmpty()) {
 					b.filter(f -> f.terms(t -> t.field("status").terms(tt -> tt.value(
 						effectiveStatuses.stream().map(s -> FieldValue.of(s.name())).toList()))));
+				}
+				if (!effectiveDocumentTypes.isEmpty()) {
+					b.filter(f -> f.terms(t -> t.field("documentType").terms(tt -> tt.value(
+						effectiveDocumentTypes.stream().map(FieldValue::of).toList()))));
 				}
 				return b;
 			}))

@@ -483,6 +483,97 @@ class DocumentFileServiceTest {
 	}
 
 	@Test
+	void addAndDeleteInSameRequestBumpsRevisionOnce() throws IOException {
+
+		// Arrange — current revision has one file (DOCUMENT_DATA_ID). Request adds a new file
+		// and deletes the existing one in a single PUT.
+		final var existingEntity = createDocumentEntity();
+		final var newFile = new File("src/test/resources/files/image2.png");
+		final var multipart = (MultipartFile) new MockMultipartFile("file", newFile.getName(), "image/png", toByteArray(new FileInputStream(newFile)));
+		final var request = DocumentDataCreateRequest.create()
+			.withCreatedBy("changedUser")
+			.withFilesToDelete(List.of(DOCUMENT_DATA_ID));
+
+		when(documentRepositoryMock.findTopByMunicipalityIdAndRegistrationNumberAndConfidentialityConfidentialInOrderByRevisionDesc(MUNICIPALITY_ID, REGISTRATION_NUMBER, CONFIDENTIAL_AND_PUBLIC.getValue())).thenReturn(Optional.of(existingEntity));
+		when(binaryStoreMock.put(any(InputStream.class), anyLong(), anyString(), anyMap())).thenReturn(new PutResult(StorageRef.s3(randomUUID().toString()), "hash"));
+		when(textExtractorMock.extract(any(InputStream.class), anyString(), anyLong())).thenReturn(TextExtractor.ExtractedText.unsupported("image/png"));
+		when(binaryStoreMock.copy(any(StorageRef.class))).thenAnswer(invocation -> StorageRef.s3(randomUUID().toString()));
+		when(documentRepositoryMock.save(any(DocumentEntity.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+		// Act
+		final var result = documentFileService.addOrReplaceFiles(REGISTRATION_NUMBER, request, DocumentFiles.create().withFiles(List.of(multipart)), MUNICIPALITY_ID);
+
+		// Assert — exactly one revision bump, resulting file list = just the added file (old one deleted).
+		assertThat(result).isNotNull();
+		verify(documentRepositoryMock, org.mockito.Mockito.times(1)).save(documentEntityCaptor.capture());
+
+		final var captured = documentEntityCaptor.getValue();
+		assertThat(captured.getRevision()).isEqualTo(existingEntity.getRevision() + 1);
+		assertThat(captured.getDocumentData())
+			.hasSize(1)
+			.extracting(DocumentDataEntity::getFileName)
+			.containsExactly("image2.png");
+	}
+
+	@Test
+	void pureDeleteViaPutBumpsRevisionOnce() {
+
+		// Arrange — no new files, just filesToDelete.
+		final var existingEntity = createDocumentEntity();
+		final var request = DocumentDataCreateRequest.create()
+			.withCreatedBy("changedUser")
+			.withFilesToDelete(List.of(DOCUMENT_DATA_ID));
+
+		when(documentRepositoryMock.findTopByMunicipalityIdAndRegistrationNumberAndConfidentialityConfidentialInOrderByRevisionDesc(MUNICIPALITY_ID, REGISTRATION_NUMBER, CONFIDENTIAL_AND_PUBLIC.getValue())).thenReturn(Optional.of(existingEntity));
+		// copyDocumentEntity copies ALL files via S3 even though we override withDocumentData to the
+		// filtered set — pre-existing behaviour the delete path also hits. Mock accordingly.
+		when(binaryStoreMock.copy(any(StorageRef.class))).thenAnswer(invocation -> StorageRef.s3(randomUUID().toString()));
+		when(documentRepositoryMock.save(any(DocumentEntity.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+		// Act
+		documentFileService.addOrReplaceFiles(REGISTRATION_NUMBER, request, DocumentFiles.create().withFiles(List.of()), MUNICIPALITY_ID);
+
+		// Assert
+		verify(documentRepositoryMock).save(documentEntityCaptor.capture());
+		final var captured = documentEntityCaptor.getValue();
+		assertThat(captured.getRevision()).isEqualTo(existingEntity.getRevision() + 1);
+		assertThat(captured.getDocumentData()).isEmpty();
+		// No new files were uploaded → no S3 put.
+		org.mockito.Mockito.verify(binaryStoreMock, org.mockito.Mockito.never()).put(any(InputStream.class), anyLong(), anyString(), anyMap());
+	}
+
+	@Test
+	void addOrReplaceFilesWithUnknownFilesToDelete_throwsNotFound() {
+		final var existingEntity = createDocumentEntity();
+		final var unknownId = "00000000-0000-0000-0000-000000000001";
+		final var request = DocumentDataCreateRequest.create()
+			.withCreatedBy("changedUser")
+			.withFilesToDelete(List.of(unknownId));
+
+		when(documentRepositoryMock.findTopByMunicipalityIdAndRegistrationNumberAndConfidentialityConfidentialInOrderByRevisionDesc(MUNICIPALITY_ID, REGISTRATION_NUMBER, CONFIDENTIAL_AND_PUBLIC.getValue())).thenReturn(Optional.of(existingEntity));
+
+		final var ex = assertThrows(ThrowableProblem.class, () -> documentFileService.addOrReplaceFiles(REGISTRATION_NUMBER, request, DocumentFiles.create().withFiles(List.of()), MUNICIPALITY_ID));
+
+		assertThat(ex.getMessage()).isEqualTo("Not Found: No document file content with ID: '" + unknownId + "' could be found!");
+		// Must bail before saving.
+		verify(documentRepositoryMock, org.mockito.Mockito.never()).save(any(DocumentEntity.class));
+	}
+
+	@Test
+	void addOrReplaceFilesWithNothingToDo_throwsBadRequest() {
+		// Neither new files nor filesToDelete → request is a no-op and should be rejected.
+		final var existingEntity = createDocumentEntity();
+		final var request = DocumentDataCreateRequest.create().withCreatedBy("changedUser");
+
+		when(documentRepositoryMock.findTopByMunicipalityIdAndRegistrationNumberAndConfidentialityConfidentialInOrderByRevisionDesc(MUNICIPALITY_ID, REGISTRATION_NUMBER, CONFIDENTIAL_AND_PUBLIC.getValue())).thenReturn(Optional.of(existingEntity));
+
+		final var ex = assertThrows(ThrowableProblem.class, () -> documentFileService.addOrReplaceFiles(REGISTRATION_NUMBER, request, DocumentFiles.create().withFiles(List.of()), MUNICIPALITY_ID));
+
+		assertThat(ex.getMessage()).contains("At least one file add/replace or delete is required");
+		verify(documentRepositoryMock, org.mockito.Mockito.never()).save(any(DocumentEntity.class));
+	}
+
+	@Test
 	void deleteFileByRegistrationNumberAndDocumentDataId() {
 
 		final var documentEntity = createDocumentEntity();

@@ -128,10 +128,14 @@ class DocumentSearchServiceTest {
 		// Assert
 		assertThat(result.getDocuments()).hasSize(2);
 		assertThat(result.getDocuments().get(0).getId()).isEqualTo(docA);
+		assertThat(result.getDocuments().get(0).getRegistrationNumber()).isEqualTo("reg-a");
+		assertThat(result.getDocuments().get(0).getRevision()).isEqualTo(1);
 		assertThat(result.getDocuments().get(0).getFiles())
 			.extracting("id", "fileName")
 			.containsExactly(tuple("file-a1", "alpha.pdf"), tuple("file-a2", "alpha-2.pdf"));
 		assertThat(result.getDocuments().get(1).getId()).isEqualTo(docB);
+		assertThat(result.getDocuments().get(1).getRegistrationNumber()).isEqualTo("reg-b");
+		assertThat(result.getDocuments().get(1).getRevision()).isEqualTo(1);
 		assertThat(result.getDocuments().get(1).getFiles())
 			.extracting("id", "fileName")
 			.containsExactly(tuple("file-b1", "beta.pdf"));

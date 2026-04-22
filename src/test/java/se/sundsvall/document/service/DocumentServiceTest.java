@@ -460,7 +460,7 @@ class DocumentServiceTest {
 		when(searchHitsMock.getTotalHits()).thenReturn(0L);
 
 		// Act
-		final var result = documentService.searchFileMatches("no-hits", false, false, pageRequest, MUNICIPALITY_ID);
+		final var result = documentService.searchFileMatches(java.util.List.of("no-hits"), false, false, pageRequest, MUNICIPALITY_ID);
 
 		// Assert
 		assertThat(result).isNotNull();
@@ -486,7 +486,7 @@ class DocumentServiceTest {
 		when(searchHitsMock.getTotalHits()).thenReturn(3L);
 
 		// Act
-		final var result = documentService.searchFileMatches("any", false, false, pageRequest, MUNICIPALITY_ID);
+		final var result = documentService.searchFileMatches(java.util.List.of("any"), false, false, pageRequest, MUNICIPALITY_ID);
 
 		// Assert
 		assertThat(result.getDocuments()).hasSize(2);
@@ -516,7 +516,7 @@ class DocumentServiceTest {
 		when(searchHitsMock.getTotalHits()).thenReturn(3L);
 
 		// Act
-		final var result = documentService.searchFileMatches("any", false, true, pageRequest, MUNICIPALITY_ID);
+		final var result = documentService.searchFileMatches(java.util.List.of("any"), false, true, pageRequest, MUNICIPALITY_ID);
 
 		// Assert — doc-rev1 (revision 1 of reg-shared) should be dropped because reg-shared has a revision 2 on the page.
 		assertThat(result.getDocuments()).extracting("id").containsExactly("doc-rev2", "doc-other");
@@ -541,7 +541,7 @@ class DocumentServiceTest {
 		when(searchHitsMock.getTotalHits()).thenReturn(2L);
 
 		// Act
-		final var result = documentService.searchFileMatches("bandwidth", false, false, pageRequest, MUNICIPALITY_ID);
+		final var result = documentService.searchFileMatches(java.util.List.of("bandwidth"), false, false, pageRequest, MUNICIPALITY_ID);
 
 		// Assert
 		assertThat(result.getDocuments()).hasSize(2);
@@ -561,10 +561,38 @@ class DocumentServiceTest {
 		when(searchHitsMock.getTotalHits()).thenReturn(1L);
 
 		// Act
-		final var result = documentService.searchFileMatches("any", false, false, pageRequest, MUNICIPALITY_ID);
+		final var result = documentService.searchFileMatches(java.util.List.of("any"), false, false, pageRequest, MUNICIPALITY_ID);
 
 		// Assert
 		assertThat(result.getDocuments().get(0).getFiles().get(0).getHighlights()).isNull();
+	}
+
+	@Test
+	void searchFileMatches_multipleQueriesProduceOrOfPhraseClausesInEsQuery() {
+
+		// Arrange
+		final var pageRequest = PageRequest.of(0, 10);
+		final var queryCaptor = ArgumentCaptor.forClass(org.springframework.data.elasticsearch.core.query.Query.class);
+		org.mockito.Mockito.lenient().when(statusPolicyMock.effectivePublishedStatuses(any())).thenReturn(java.util.List.of(DocumentStatus.ACTIVE));
+		when(elasticsearchOperationsMock.search(queryCaptor.capture(), eq(DocumentIndexEntity.class))).thenReturn(searchHitsMock);
+		when(searchHitsMock.getSearchHits()).thenReturn(java.util.List.of());
+		when(searchHitsMock.getTotalHits()).thenReturn(0L);
+
+		// Act
+		documentService.searchFileMatches(java.util.List.of("alpha", "beta", "gamma"), false, false, pageRequest, MUNICIPALITY_ID);
+
+		// Assert — walk the captured NativeQuery tree: outer bool must → inner bool (the OR) with
+		// three should(multiMatch(phrase)) clauses and minimum_should_match=1.
+		final var captured = (org.springframework.data.elasticsearch.client.elc.NativeQuery) queryCaptor.getValue();
+		final var outerBool = captured.getQuery().bool();
+		assertThat(outerBool.must()).hasSize(1);
+		final var innerBool = outerBool.must().get(0).bool();
+		assertThat(innerBool.minimumShouldMatch()).isEqualTo("1");
+		assertThat(innerBool.should()).hasSize(3)
+			.extracting(c -> c.multiMatch().query())
+			.containsExactly("alpha", "beta", "gamma");
+		assertThat(innerBool.should().get(0).multiMatch().type())
+			.isEqualTo(co.elastic.clients.elasticsearch._types.query_dsl.TextQueryType.Phrase);
 	}
 
 	@Test
@@ -581,7 +609,7 @@ class DocumentServiceTest {
 		when(searchHitsMock.getTotalHits()).thenReturn(42L);
 
 		// Act
-		final var result = documentService.searchFileMatches("any", false, false, pageRequest, MUNICIPALITY_ID);
+		final var result = documentService.searchFileMatches(java.util.List.of("any"), false, false, pageRequest, MUNICIPALITY_ID);
 
 		// Assert — file-level total (same as existing search endpoint), page + size reflect pageable.
 		assertThat(result.getMetadata().getTotalRecords()).isEqualTo(42L);

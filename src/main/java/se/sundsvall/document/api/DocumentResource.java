@@ -15,6 +15,7 @@ import jakarta.validation.ValidatorFactory;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
 import java.util.List;
 import java.util.Set;
 import org.springdoc.core.annotations.ParameterObject;
@@ -334,7 +335,8 @@ class DocumentResource {
 	})
 	ResponseEntity<PagedDocumentMatchResponse> searchFileMatches(
 		@PathVariable @Parameter(name = "municipalityId", description = "Municipality ID", example = "2281") @ValidMunicipalityId final String municipalityId,
-		@Parameter(name = "query", description = "Search query.", example = "hello") @RequestParam(value = "query") @NotBlank final String query,
+		@Parameter(name = "query", description = "One or more search queries. Repeat the parameter (?query=a&query=b) to OR them together.", example = "hello") @RequestParam(value = "query") @NotNull @Size(min = 1,
+			max = 10) final List<@NotBlank String> query,
 		@Parameter(name = "includeConfidential", description = "Include confidential records", example = "true") @RequestParam(name = "includeConfidential", defaultValue = "false") final boolean includeConfidential,
 		@Parameter(name = "onlyLatestRevision", description = "Only perform search against the latest document revision", example = "true") @RequestParam(name = "onlyLatestRevision", defaultValue = "false") final boolean onlyLatestRevision,
 		@ParameterObject final Pageable pageable) {

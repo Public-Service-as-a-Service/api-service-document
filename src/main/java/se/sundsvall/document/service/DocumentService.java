@@ -164,12 +164,14 @@ public class DocumentService {
 	}
 
 	public PagedDocumentResponse search(String query, boolean includeConfidential, boolean onlyLatestRevision, Pageable pageable, String municipalityId) {
-		final var hits = runFulltextSearch(query, includeConfidential, municipalityId, pageable);
+		// `List.of` rejects null; route through a null-safe single-element list so callers that pass
+		// a null/blank query still hit the empty-query path in the helper (instead of NPE here).
+		final var hits = runFulltextSearch(query == null ? List.of() : List.of(query), includeConfidential, municipalityId, pageable);
 		return hydrateHitsToPagedDocumentResponse(hits, pageable, onlyLatestRevision);
 	}
 
-	public PagedDocumentMatchResponse searchFileMatches(String query, boolean includeConfidential, boolean onlyLatestRevision, Pageable pageable, String municipalityId) {
-		final var hits = runFulltextSearch(query, includeConfidential, municipalityId, pageable);
+	public PagedDocumentMatchResponse searchFileMatches(List<String> queries, boolean includeConfidential, boolean onlyLatestRevision, Pageable pageable, String municipalityId) {
+		final var hits = runFulltextSearch(queries, includeConfidential, municipalityId, pageable);
 		return toPagedDocumentMatchResponse(hits, pageable, onlyLatestRevision);
 	}
 
@@ -206,27 +208,36 @@ public class DocumentService {
 		return toPagedDocumentResponseWithResponsibilities(new PageImpl<>(hydrated, pageable, hits.getTotalHits()));
 	}
 
-	private org.springframework.data.elasticsearch.core.SearchHits<DocumentIndexEntity> runFulltextSearch(String query, boolean includeConfidential, String municipalityId, Pageable pageable) {
+	private org.springframework.data.elasticsearch.core.SearchHits<DocumentIndexEntity> runFulltextSearch(List<String> queries, boolean includeConfidential, String municipalityId, Pageable pageable) {
 		final var effectiveStatuses = statusPolicy.effectivePublishedStatuses(null);
-		final var phraseMatching = query != null && !query.isBlank();
+		// Drop nulls/blanks defensively — the Resource already enforces @NotBlank, but service
+		// callers other than HTTP (e.g. future batch jobs, tests) deserve the same safety.
+		final var effectiveQueries = queries == null ? List.<String>of()
+			: queries.stream().filter(Objects::nonNull).filter(s -> !s.isBlank()).toList();
+		final var phraseMatching = !effectiveQueries.isEmpty();
 
-		LOGGER.debug("ES search (municipalityId='{}', query='{}', phraseMatching={}, includeConfidential={}, statuses={}, page={}, size={})",
-			municipalityId, query, phraseMatching, includeConfidential, effectiveStatuses,
+		LOGGER.debug("ES search (municipalityId='{}', queries={}, phraseMatching={}, includeConfidential={}, statuses={}, page={}, size={})",
+			municipalityId, effectiveQueries, phraseMatching, includeConfidential, effectiveStatuses,
 			pageable.getPageNumber(), pageable.getPageSize());
 
 		final var esQuery = NativeQuery.builder()
 			.withQuery(q -> q.bool(b -> {
 				if (phraseMatching) {
-					// Phrase match: the user's query must appear as adjacent tokens in at least one
-					// of the listed fields. No wildcard support — callers type the phrase they want
-					// and it's matched literally (modulo the standard analyzer). This is narrower
-					// than the retired SQL LIKE path on purpose; wildcard / partial-token matching
-					// can be reintroduced later if there's demand.
-					b.must(m -> m.multiMatch(mm -> mm
-						.query(query)
-						.type(co.elastic.clients.elasticsearch._types.query_dsl.TextQueryType.Phrase)
-						.fields("title", "extractedText", "description", "fileName", "mimeType",
-							"registrationNumber", "createdBy", "metadataKeys", "metadataValues")));
+					// Phrase match: each query must appear as adjacent tokens in at least one of the
+					// listed fields. No wildcard support — callers type the phrase they want and it's
+					// matched literally (modulo the standard analyzer). With multiple queries, the
+					// results are OR'd together (nested bool with minimum_should_match=1): a hit only
+					// needs to match any one supplied query. A single-query list collapses to the same
+					// single-phrase behaviour the endpoint had before.
+					b.must(m -> m.bool(bb -> {
+						effectiveQueries.forEach(single -> bb.should(s -> s.multiMatch(mm -> mm
+							.query(single)
+							.type(co.elastic.clients.elasticsearch._types.query_dsl.TextQueryType.Phrase)
+							.fields("title", "extractedText", "description", "fileName", "mimeType",
+								"registrationNumber", "createdBy", "metadataKeys", "metadataValues"))));
+						bb.minimumShouldMatch("1");
+						return bb;
+					}));
 				}
 				b.filter(f -> f.term(t -> t.field("municipalityId").value(municipalityId)));
 				if (!includeConfidential) {

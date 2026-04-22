@@ -6,6 +6,8 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.web.multipart.MultipartFile;
 import se.sundsvall.dept44.problem.Problem;
 import se.sundsvall.document.api.model.DocumentData;
@@ -28,6 +30,8 @@ import static org.springframework.http.HttpStatus.INTERNAL_SERVER_ERROR;
  * document mapping does not.
  */
 public final class DocumentDataMapper {
+
+	private static final Logger LOGGER = LoggerFactory.getLogger(DocumentDataMapper.class);
 
 	private DocumentDataMapper() {}
 
@@ -56,7 +60,11 @@ public final class DocumentDataMapper {
 		if (dedup.isPresent()) {
 			extractedText = dedup.get().getExtractedText();
 			extractionStatus = dedup.get().getExtractionStatus();
+			LOGGER.debug("Text-extraction dedup hit (fileName='{}', contentHash='{}', size={}B) — reused from existing record",
+				multipartFile.getOriginalFilename(), putResult.sha256(), multipartFile.getSize());
 		} else {
+			LOGGER.debug("Text-extraction dedup miss (fileName='{}', contentHash='{}', size={}B) — running Tika",
+				multipartFile.getOriginalFilename(), putResult.sha256(), multipartFile.getSize());
 			final var extraction = runExtraction(multipartFile, textExtractor);
 			extractedText = extraction.text();
 			extractionStatus = extraction.status();

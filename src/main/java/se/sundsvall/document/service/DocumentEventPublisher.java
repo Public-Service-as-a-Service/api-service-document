@@ -3,6 +3,8 @@ package se.sundsvall.document.service;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 import se.sundsvall.document.api.model.ConfidentialityUpdateRequest;
 import se.sundsvall.document.api.model.DocumentStatus;
@@ -19,6 +21,8 @@ import static se.sundsvall.document.service.mapper.EventlogMapper.toEvent;
 
 @Component
 public class DocumentEventPublisher {
+
+	private static final Logger LOGGER = LoggerFactory.getLogger(DocumentEventPublisher.class);
 
 	private final Optional<EventLogClient> eventLogClient;
 	private final Optional<EventlogProperties> eventLogProperties;
@@ -57,7 +61,19 @@ public class DocumentEventPublisher {
 	}
 
 	private void publish(final String municipalityId, final String registrationNumber, final String updatedBy, final String message) {
-		eventLogProperties.ifPresent(props -> eventLogClient.ifPresent(client -> client.createEvent(
-			municipalityId, props.logKeyUuid(), toEvent(UPDATE, registrationNumber, message, updatedBy))));
+		if (eventLogProperties.isEmpty() || eventLogClient.isEmpty()) {
+			LOGGER.debug("EventLog integration not configured — skipping audit event for registrationNumber='{}'", registrationNumber);
+			return;
+		}
+		final var props = eventLogProperties.get();
+		final var client = eventLogClient.get();
+		try {
+			client.createEvent(municipalityId, props.logKeyUuid(), toEvent(UPDATE, registrationNumber, message, updatedBy));
+			LOGGER.debug("Published audit event to EventLog for registrationNumber='{}'", registrationNumber);
+		} catch (final RuntimeException e) {
+			LOGGER.warn("Failed to publish audit event to EventLog (registrationNumber='{}', municipalityId='{}')",
+				registrationNumber, municipalityId, e);
+			throw e;
+		}
 	}
 }

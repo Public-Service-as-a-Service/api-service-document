@@ -137,6 +137,11 @@ public class DocumentFileService {
 		newDocumentDataEntities.forEach(entity -> addOrReplaceDocumentDataEntity(newDocumentEntity, entity));
 
 		final var saved = documentRepository.save(newDocumentEntity);
+		LOGGER.info("Revision bumped by file add/replace (registrationNumber='{}', {}→{}, addedOrReplaced={}, totalFiles={}, createdBy='{}')",
+			registrationNumber, documentEntity.getRevision(), saved.getRevision(),
+			newDocumentDataEntities != null ? newDocumentDataEntities.size() : 0,
+			saved.getDocumentData() != null ? saved.getDocumentData().size() : 0,
+			documentDataCreateRequest.getCreatedBy());
 		applicationEventPublisher.publishEvent(DocumentIndexingEvent.reindex(saved.getId()));
 		return toDocumentWithResponsibilities(saved);
 	}
@@ -162,6 +167,10 @@ public class DocumentFileService {
 		}
 
 		final var saved = documentRepository.save(newDocumentEntity);
+		LOGGER.info("Revision bumped by file delete (registrationNumber='{}', {}→{}, removedFileId='{}', remainingFiles={})",
+			registrationNumber, documentEntity.getRevision(), saved.getRevision(),
+			documentDataId,
+			saved.getDocumentData() != null ? saved.getDocumentData().size() : 0);
 		// The removed file's ES doc keeps referencing the old revision; drop it so search doesn't
 		// return the deleted file. The new revision's remaining files are indexed by the reindex.
 		applicationEventPublisher.publishEvent(
@@ -237,8 +246,12 @@ public class DocumentFileService {
 	private void reconcileStatusIfStale(DocumentEntity documentEntity) {
 		statusPolicy.reconcile(documentEntity.getStatus(), documentEntity.getValidFrom(), documentEntity.getValidTo())
 			.ifPresent(newStatus -> {
+				final var oldStatus = documentEntity.getStatus();
 				documentEntity.setStatus(newStatus);
 				documentRepository.save(documentEntity);
+				LOGGER.info("Status auto-reconciled on file read (registrationNumber='{}', revision={}, {}→{}, validFrom={}, validTo={})",
+					documentEntity.getRegistrationNumber(), documentEntity.getRevision(),
+					oldStatus, newStatus, documentEntity.getValidFrom(), documentEntity.getValidTo());
 			});
 	}
 

@@ -54,20 +54,31 @@ public class DocumentIndexingService {
 	@TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
 	@Transactional(propagation = Propagation.REQUIRES_NEW, readOnly = true)
 	public void onIndexing(final DocumentIndexingEvent event) {
+		DocumentEntity revision = null;
 		try {
-			final var revision = documentRepository.findById(event.documentId()).orElse(null);
+			revision = documentRepository.findById(event.documentId()).orElse(null);
 			if (revision != null) {
 				final var docs = toIndexEntities(revision);
 				if (!docs.isEmpty()) {
 					indexRepository.saveAll(docs);
+					LOGGER.info("Indexed {} file(s) for registrationNumber='{}' revision={}",
+						docs.size(), revision.getRegistrationNumber(), revision.getRevision());
 				}
+			} else {
+				LOGGER.debug("No document found for id='{}' — skipping indexing (likely deleted between commit and event)", event.documentId());
 			}
 			if (!event.dataIdsToRemove().isEmpty()) {
 				indexRepository.deleteAllById(event.dataIdsToRemove());
+				LOGGER.info("Removed {} stale file index entr(y/ies) ids={}",
+					event.dataIdsToRemove().size(), event.dataIdsToRemove());
 			}
 		} catch (final Exception e) {
 			indexFailures.increment();
-			LOGGER.warn("Failed to index document id '{}' in Elasticsearch: {}", event.documentId(), e.getMessage());
+			LOGGER.warn("Failed to index document in Elasticsearch (documentId='{}', registrationNumber='{}', revision={})",
+				event.documentId(),
+				revision != null ? revision.getRegistrationNumber() : "<unknown>",
+				revision != null ? revision.getRevision() : -1,
+				e);
 		}
 	}
 

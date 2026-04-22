@@ -48,15 +48,21 @@ public class TikaTextExtractor implements TextExtractor {
 		} catch (final EncryptedDocumentException e) {
 			return ExtractedText.failed(detectedMime(metadata), "Encrypted document");
 		} catch (final Exception e) {
-			LOGGER.warn("Tika failed to extract text (detected={}): {}", detectedMime(metadata), e.getMessage());
+			LOGGER.warn("Tika extraction FAILED (declaredContentType='{}', detected='{}', size={}B, errorType={}): {}",
+				contentType, detectedMime(metadata), sizeInBytes, e.getClass().getSimpleName(), e.getMessage());
 			return ExtractedText.failed(detectedMime(metadata), e.getMessage());
 		}
 
 		final var detected = detectedMime(metadata);
 		if (isUnsupported(detected)) {
+			LOGGER.debug("Tika extraction skipped — unsupported mime (declaredContentType='{}', detected='{}', size={}B)",
+				contentType, detected, sizeInBytes);
 			return ExtractedText.unsupported(detected);
 		}
-		return ExtractedText.success(handler.toString(), detected);
+		final var text = handler.toString();
+		LOGGER.debug("Tika extracted {} chars (declaredContentType='{}', detected='{}', size={}B)",
+			text.length(), contentType, detected, sizeInBytes);
+		return ExtractedText.success(text, detected);
 	}
 
 	private static String detectedMime(final Metadata metadata) {

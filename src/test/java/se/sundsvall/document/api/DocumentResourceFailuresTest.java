@@ -664,11 +664,64 @@ class DocumentResourceFailuresTest {
 			.returnResult()
 			.getResponseBody();
 
+		// Assert — container element validation reports against the element, hence the list-index suffix.
+		assertThat(response).isNotNull();
+		assertThat(response.getViolations())
+			.extracting(Violation::message)
+			.containsExactly("must not be blank");
+
+		verifyNoInteractions(documentServiceMock);
+	}
+
+	@Test
+	void searchFileMatchesWithTooManyQueries() {
+
+		// Act — 11 queries, cap is 10.
+		final var response = webTestClient.get()
+			.uri(uriBuilder -> {
+				uriBuilder.path("/2281/documents/file-matches");
+				for (int i = 0; i < 11; i++) {
+					uriBuilder.queryParam("query", "q" + i);
+				}
+				return uriBuilder.build();
+			})
+			.exchange()
+			.expectStatus().isBadRequest()
+			.expectHeader().contentType(APPLICATION_PROBLEM_JSON)
+			.expectBody(ConstraintViolationProblem.class)
+			.returnResult()
+			.getResponseBody();
+
 		// Assert
 		assertThat(response).isNotNull();
 		assertThat(response.getViolations())
-			.extracting(Violation::field, Violation::message)
-			.containsExactlyInAnyOrder(tuple("searchFileMatches.query", "must not be blank"));
+			.extracting(Violation::message)
+			.containsExactly("size must be between 1 and 10");
+
+		verifyNoInteractions(documentServiceMock);
+	}
+
+	@Test
+	void searchFileMatchesWithOneBlankAmongMultipleQueries() {
+
+		// Act
+		final var response = webTestClient.get()
+			.uri(uriBuilder -> uriBuilder.path("/2281/documents/file-matches")
+				.queryParam("query", "alpha")
+				.queryParam("query", " ")
+				.build())
+			.exchange()
+			.expectStatus().isBadRequest()
+			.expectHeader().contentType(APPLICATION_PROBLEM_JSON)
+			.expectBody(ConstraintViolationProblem.class)
+			.returnResult()
+			.getResponseBody();
+
+		// Assert — only the blank element violates @NotBlank.
+		assertThat(response).isNotNull();
+		assertThat(response.getViolations())
+			.extracting(Violation::message)
+			.containsExactly("must not be blank");
 
 		verifyNoInteractions(documentServiceMock);
 	}

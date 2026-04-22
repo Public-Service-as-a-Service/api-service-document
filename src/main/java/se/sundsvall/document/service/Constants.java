@@ -42,15 +42,19 @@ public final class Constants {
 		""";
 
 	public static final String SEARCH_FILE_MATCHES_DOCUMENTATION = """
-		Same input signature as the standard search, but returns a stripped response: for each
-		matching document, only the document ID plus the IDs and filenames of the files that
-		actually matched the query. No document metadata, responsibilities, or other fields are
-		included. Backed entirely by Elasticsearch — no database hydration.
+		Returns a stripped response: for each matching document, only the document ID plus the IDs
+		and filenames of the files that actually matched the query. No document metadata,
+		responsibilities, or other fields are included. Backed entirely by Elasticsearch — no
+		database hydration.
+
+		The query parameter is repeatable (1–10 entries). Each entry is phrase-matched independently
+		and the results are combined with logical OR — a document matches if any of its files matches
+		any of the supplied queries.
 
 		Parameters:
 		- includeConfidential: Should the search include confidential documents? Datatype - boolean (default: false)
 		- onlyLatestRevision: Should the search include only the latest revision of the documents? Datatype - boolean (default: false)
-		- query: Search query. Datatype - String
+		- query: One or more search queries (repeat the parameter to OR them). Datatype - List of String, min 1, max 10.
 
 		""";
 

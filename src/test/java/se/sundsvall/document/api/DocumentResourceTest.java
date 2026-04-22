@@ -525,7 +525,37 @@ class DocumentResourceTest {
 
 		// Assert
 		assertThat(response).isNotNull();
-		verify(documentServiceMock).searchFileMatches(query, false, false, PageRequest.of(page, size, Sort.by(asc("created"))), "2281");
+		verify(documentServiceMock).searchFileMatches(List.of(query), false, false, PageRequest.of(page, size, Sort.by(asc("created"))), "2281");
+	}
+
+	@Test
+	void searchFileMatchesWithMultipleQueries() {
+
+		// Arrange
+		final var q1 = "alpha";
+		final var q2 = "beta";
+		final var q3 = "gamma";
+		final var page = 1;
+		final var size = 10;
+		final var sort = "created,asc";
+
+		when(documentServiceMock.searchFileMatches(any(), anyBoolean(), anyBoolean(), any(), any())).thenReturn(PagedDocumentMatchResponse.create().withDocuments(List.of(DocumentMatch.create())));
+
+		// Act
+		webTestClient.get()
+			.uri(uriBuilder -> uriBuilder.path("/2281/documents/file-matches")
+				.queryParam("query", q1)
+				.queryParam("query", q2)
+				.queryParam("query", q3)
+				.queryParam("page", page)
+				.queryParam("size", size)
+				.queryParam("sort", sort)
+				.build())
+			.exchange()
+			.expectStatus().isOk();
+
+		// Assert — preserves order from the request.
+		verify(documentServiceMock).searchFileMatches(List.of(q1, q2, q3), false, false, PageRequest.of(page, size, Sort.by(asc("created"))), "2281");
 	}
 
 	@ParameterizedTest
@@ -555,7 +585,7 @@ class DocumentResourceTest {
 			.expectStatus().isOk();
 
 		// Assert
-		verify(documentServiceMock).searchFileMatches(query, includeConfidential, false, PageRequest.of(page, size, Sort.by(asc("created"))), "2281");
+		verify(documentServiceMock).searchFileMatches(List.of(query), includeConfidential, false, PageRequest.of(page, size, Sort.by(asc("created"))), "2281");
 	}
 
 	@ParameterizedTest
@@ -585,7 +615,7 @@ class DocumentResourceTest {
 			.expectStatus().isOk();
 
 		// Assert
-		verify(documentServiceMock).searchFileMatches(query, false, onlyLatestRevision, PageRequest.of(page, size, Sort.by(asc("created"))), "2281");
+		verify(documentServiceMock).searchFileMatches(List.of(query), false, onlyLatestRevision, PageRequest.of(page, size, Sort.by(asc("created"))), "2281");
 	}
 
 	@Test

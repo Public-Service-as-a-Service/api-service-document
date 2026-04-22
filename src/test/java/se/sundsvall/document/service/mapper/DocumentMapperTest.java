@@ -1,14 +1,9 @@
 package se.sundsvall.document.service.mapper;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.io.InputStream;
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -19,40 +14,33 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
-import org.springframework.mock.web.MockMultipartFile;
-import org.springframework.web.multipart.MultipartFile;
 import se.sundsvall.dept44.models.api.paging.PagingMetaData;
 import se.sundsvall.document.api.model.Confidentiality;
 import se.sundsvall.document.api.model.ConfidentialityUpdateRequest;
 import se.sundsvall.document.api.model.Document;
 import se.sundsvall.document.api.model.DocumentCreateRequest;
 import se.sundsvall.document.api.model.DocumentData;
-import se.sundsvall.document.api.model.DocumentFiles;
 import se.sundsvall.document.api.model.DocumentMetadata;
 import se.sundsvall.document.api.model.DocumentResponsibility;
 import se.sundsvall.document.api.model.DocumentStatus;
 import se.sundsvall.document.api.model.DocumentUpdateRequest;
+import se.sundsvall.document.integration.db.DocumentDataRepository;
 import se.sundsvall.document.integration.db.model.ConfidentialityEmbeddable;
 import se.sundsvall.document.integration.db.model.DocumentDataEntity;
 import se.sundsvall.document.integration.db.model.DocumentEntity;
 import se.sundsvall.document.integration.db.model.DocumentMetadataEmbeddable;
 import se.sundsvall.document.integration.db.model.DocumentResponsibilityEntity;
 import se.sundsvall.document.integration.db.model.DocumentTypeEntity;
+import se.sundsvall.document.service.extraction.TextExtractor;
 import se.sundsvall.document.service.storage.BinaryStore;
 import se.sundsvall.document.service.storage.StorageRef;
 
 import static java.time.OffsetDateTime.now;
 import static java.time.ZoneId.systemDefault;
 import static java.util.Collections.emptyList;
-import static java.util.UUID.randomUUID;
-import static org.apache.commons.io.IOUtils.toByteArray;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.tuple;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyLong;
-import static org.mockito.ArgumentMatchers.anyMap;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.data.domain.Sort.Direction.ASC;
@@ -62,9 +50,10 @@ class DocumentMapperTest {
 
 	private static final boolean ARCHIVE = true;
 	private static final boolean CONFIDENTIAL = true;
+	private static final String TITLE = "Title";
 	private static final String DESCRIPTION = "Description";
 	private static final OffsetDateTime CREATED = now(systemDefault());
-	private static final String CREATED_BY = "createdBy";
+	private static final String CREATED_BY = "b0000000-0000-0000-0000-0000000000c1";
 	private static final String FILE_1_NAME = "filename1.png";
 	private static final String FILE_2_NAME = "filename2.txt";
 	private static final long FILE_1_SIZE_IN_BYTES = 1000;
@@ -73,7 +62,6 @@ class DocumentMapperTest {
 	private static final String MIME_TYPE_1 = "image/png";
 	private static final String MIME_TYPE_2 = "text/plain";
 	private static final String ID = "id";
-	private static final String STORAGE_BACKEND = "jdbc";
 	private static final String STORAGE_LOCATOR_1 = "locator-1";
 	private static final String STORAGE_LOCATOR_2 = "locator-2";
 	private static final String METADATA_KEY = "key";
@@ -83,16 +71,22 @@ class DocumentMapperTest {
 	private static final int REVISION = 666;
 	private static final String DOCUMENT_TYPE = "documentType";
 	private static final OffsetDateTime DOCUMENT_TYPE_CREATED = now(systemDefault()).minusDays(7);
-	private static final String DOCUMENT_TYPE_CREATED_BY = "documentTypeCreatedBy";
+	private static final String DOCUMENT_TYPE_CREATED_BY = "b0000000-0000-0000-0000-0000000000c2";
 	private static final String DOCUMENT_TYPE_DISPLAY_NAME = "documentTypeDisplayName";
 	private static final String DOCUMENT_TYPE_ID = "documentTypeId";
 	private static final OffsetDateTime DOCUMENT_TYPE_UPDATED = now(systemDefault()).minusDays(6);
-	private static final String DOCUMENT_TYPE_UPDATED_BY = "documentTypeUpdatedBy";
+	private static final String DOCUMENT_TYPE_UPDATED_BY = "b0000000-0000-0000-0000-0000000000c3";
 	private static final LocalDate VALID_FROM = LocalDate.of(2026, 4, 15);
 	private static final LocalDate VALID_TO = LocalDate.of(2027, 4, 15);
 
 	@Mock
 	private BinaryStore binaryStoreMock;
+
+	@Mock
+	private TextExtractor textExtractorMock;
+
+	@Mock
+	private DocumentDataRepository documentDataRepositoryMock;
 
 	@Test
 	void toDocumentEntityFromDocumentCreateRequest() {
@@ -103,6 +97,7 @@ class DocumentMapperTest {
 				.withConfidential(CONFIDENTIAL)
 				.withLegalCitation(LEGAL_CITATION))
 			.withCreatedBy(CREATED_BY)
+			.withTitle(TITLE)
 			.withDescription(DESCRIPTION)
 			.withMetadataList(List.of(DocumentMetadata.create()
 				.withKey(METADATA_KEY)
@@ -121,6 +116,7 @@ class DocumentMapperTest {
 					.withConfidential(CONFIDENTIAL)
 					.withLegalCitation(LEGAL_CITATION))
 				.withCreatedBy(CREATED_BY)
+				.withTitle(TITLE)
 				.withDescription(DESCRIPTION)
 				.withMetadata(List.of(DocumentMetadataEmbeddable.create()
 					.withKey(METADATA_KEY)
@@ -147,17 +143,16 @@ class DocumentMapperTest {
 				.withFileName(fileName1)
 				.withFileSizeInBytes(1000)
 				.withMimeType(mimeType)
-				.withStorageBackend(STORAGE_BACKEND)
 				.withStorageLocator(STORAGE_LOCATOR_1),
 			DocumentDataEntity.create()
 				.withFileName(fileName2)
 				.withFileSizeInBytes(2000)
 				.withMimeType(mimeType)
-				.withStorageBackend(STORAGE_BACKEND)
 				.withStorageLocator(STORAGE_LOCATOR_2));
 
 		final var documentUpdateRequest = DocumentUpdateRequest.create()
 			.withArchive(archive)
+			.withTitle("Updated title")
 			.withDescription("Updated text")
 			.withMetadataList(List.of(DocumentMetadata.create()
 				.withKey("Updated-key")
@@ -169,6 +164,7 @@ class DocumentMapperTest {
 				.withConfidential(CONFIDENTIAL)
 				.withLegalCitation(LEGAL_CITATION))
 			.withCreatedBy(CREATED_BY)
+			.withTitle(TITLE)
 			.withDescription(DESCRIPTION)
 			.withDocumentData(originalDocumentData)
 			.withMetadata(new ArrayList<>(List.of(DocumentMetadataEmbeddable.create()
@@ -194,6 +190,7 @@ class DocumentMapperTest {
 
 		// Assert — fields from request are applied
 		assertThat(existingDocumentEntity.isArchive()).isEqualTo(archive == null ? ARCHIVE : archive);
+		assertThat(existingDocumentEntity.getTitle()).isEqualTo("Updated title");
 		assertThat(existingDocumentEntity.getDescription()).isEqualTo("Updated text");
 		assertThat(existingDocumentEntity.getMetadata()).isEqualTo(List.of(DocumentMetadataEmbeddable.create()
 			.withKey("Updated-key")
@@ -281,7 +278,7 @@ class DocumentMapperTest {
 		final var confidentiality = ConfidentialityUpdateRequest.create()
 			.withConfidential(CONFIDENTIAL)
 			.withLegalCitation(LEGAL_CITATION)
-			.withChangedBy(CREATED_BY);
+			.withUpdatedBy(CREATED_BY);
 
 		// Act
 		final var result = DocumentMapper.toConfidentialityEmbeddable(confidentiality);
@@ -348,6 +345,7 @@ class DocumentMapperTest {
 				.withLegalCitation(LEGAL_CITATION))
 			.withCreated(CREATED)
 			.withCreatedBy(CREATED_BY)
+			.withTitle(TITLE)
 			.withDescription(DESCRIPTION)
 			.withDocumentData(List.of(
 				DocumentDataEntity.create()
@@ -383,6 +381,7 @@ class DocumentMapperTest {
 					.withLegalCitation(LEGAL_CITATION))
 				.withCreated(CREATED)
 				.withCreatedBy(CREATED_BY)
+				.withTitle(TITLE)
 				.withDescription(DESCRIPTION)
 				.withDocumentData(List.of(
 					DocumentData.create()
@@ -422,6 +421,7 @@ class DocumentMapperTest {
 				.withLegalCitation(LEGAL_CITATION))
 			.withCreated(CREATED)
 			.withCreatedBy(CREATED_BY)
+			.withTitle(TITLE)
 			.withDescription(DESCRIPTION)
 			.withDocumentData(List.of(
 				DocumentDataEntity.create()
@@ -459,6 +459,7 @@ class DocumentMapperTest {
 					.withLegalCitation(LEGAL_CITATION))
 				.withCreated(CREATED)
 				.withCreatedBy(CREATED_BY)
+				.withTitle(TITLE)
 				.withDescription(DESCRIPTION)
 				.withDocumentData(List.of(
 					DocumentData.create()
@@ -488,10 +489,11 @@ class DocumentMapperTest {
 	void toDocumentWithResponsibilities() {
 
 		// Arrange
+		final var personId = "6b8d4a1c-34e2-4f73-a5f1-b7c2e9a0d8c4";
 		final var documentEntity = DocumentEntity.create()
 			.withType(DocumentTypeEntity.create().withType(DOCUMENT_TYPE));
 		final var responsibilityEntity = DocumentResponsibilityEntity.create()
-			.withUsername(CREATED_BY);
+			.withPersonId(personId);
 
 		// Act
 		final var result = DocumentMapper.toDocument(documentEntity, List.of(responsibilityEntity));
@@ -500,7 +502,7 @@ class DocumentMapperTest {
 		assertThat(result).isNotNull();
 		assertThat(result.getResponsibilities())
 			.containsExactly(DocumentResponsibility.create()
-				.withUsername(CREATED_BY));
+				.withPersonId(personId));
 	}
 
 	@Test
@@ -512,8 +514,9 @@ class DocumentMapperTest {
 	void toDocumentResponsibilityEntities() {
 
 		// Arrange
+		final var personId = "6b8d4a1c-34e2-4f73-a5f1-b7c2e9a0d8c4";
 		final var responsibilities = List.of(DocumentResponsibility.create()
-			.withUsername(" Username123 "));
+			.withPersonId(personId));
 
 		// Act
 		final var result = DocumentMapper.toDocumentResponsibilityEntities(responsibilities, MUNICIPALITY_ID, REGISTRATION_NUMBER, CREATED_BY);
@@ -521,59 +524,9 @@ class DocumentMapperTest {
 		// Assert
 		assertThat(result)
 			.hasSize(1)
-			.extracting(DocumentResponsibilityEntity::getMunicipalityId, DocumentResponsibilityEntity::getRegistrationNumber, DocumentResponsibilityEntity::getUsername,
+			.extracting(DocumentResponsibilityEntity::getMunicipalityId, DocumentResponsibilityEntity::getRegistrationNumber, DocumentResponsibilityEntity::getPersonId,
 				DocumentResponsibilityEntity::getCreatedBy)
-			.containsExactly(tuple(MUNICIPALITY_ID, REGISTRATION_NUMBER, "username123", CREATED_BY));
-	}
-
-	@Test
-	void toDocumentDataEntitiesFromMultipart() throws IOException {
-
-		// Arrange
-		final var newLocator = randomUUID().toString();
-		final var mimeType = "image/png";
-		final var file = new File("src/test/resources/files/image.png");
-		final var fileName = file.getName();
-		final var multipartFile = (MultipartFile) new MockMultipartFile("file", fileName, mimeType, toByteArray(new FileInputStream(file)));
-		final var documents = DocumentFiles.create().withFiles(List.of(multipartFile));
-
-		when(binaryStoreMock.put(any(InputStream.class), anyLong(), anyString(), anyMap())).thenReturn(StorageRef.jdbc(newLocator));
-
-		// Act
-		final var result = DocumentMapper.toDocumentDataEntities(documents, binaryStoreMock, MUNICIPALITY_ID);
-
-		// Assert
-		assertThat(result)
-			.isNotNull()
-			.isNotEmpty()
-			.extracting(
-				DocumentDataEntity::getFileName,
-				DocumentDataEntity::getMimeType,
-				DocumentDataEntity::getFileSizeInBytes,
-				DocumentDataEntity::getStorageBackend,
-				DocumentDataEntity::getStorageLocator)
-			.containsExactly(tuple(
-				fileName,
-				mimeType,
-				file.length(),
-				"jdbc",
-				newLocator));
-
-		verify(binaryStoreMock).put(
-			any(InputStream.class),
-			eq(file.length()),
-			eq(mimeType),
-			eq(Map.of("original-filename", fileName, "municipality-id", MUNICIPALITY_ID)));
-	}
-
-	@Test
-	void toDocumentDataEntitiesFromMultipartWhenInputIsNull() {
-
-		// Act
-		final var result = DocumentMapper.toDocumentDataEntities(null, binaryStoreMock, MUNICIPALITY_ID);
-
-		// Assert
-		assertThat(result).isNull();
+			.containsExactly(tuple(MUNICIPALITY_ID, REGISTRATION_NUMBER, personId, CREATED_BY));
 	}
 
 	@Test
@@ -587,6 +540,7 @@ class DocumentMapperTest {
 				.withLegalCitation(LEGAL_CITATION))
 			.withCreated(CREATED)
 			.withCreatedBy(CREATED_BY)
+			.withTitle(TITLE)
 			.withDescription(DESCRIPTION)
 			.withDocumentData(List.of(
 				DocumentDataEntity.create()
@@ -594,14 +548,12 @@ class DocumentMapperTest {
 					.withFileSizeInBytes(FILE_1_SIZE_IN_BYTES)
 					.withId(ID)
 					.withMimeType(MIME_TYPE_1)
-					.withStorageBackend(STORAGE_BACKEND)
 					.withStorageLocator(STORAGE_LOCATOR_1),
 				DocumentDataEntity.create()
 					.withFileName(FILE_2_NAME)
 					.withFileSizeInBytes(FILE_2_SIZE_IN_BYTES)
 					.withId(ID)
 					.withMimeType(MIME_TYPE_2)
-					.withStorageBackend(STORAGE_BACKEND)
 					.withStorageLocator(STORAGE_LOCATOR_2)))
 			.withId(ID)
 			.withMetadata(List.of(DocumentMetadataEmbeddable.create()
@@ -637,19 +589,18 @@ class DocumentMapperTest {
 					.withConfidential(CONFIDENTIAL)
 					.withLegalCitation(LEGAL_CITATION))
 				.withCreatedBy(CREATED_BY)
+				.withTitle(TITLE)
 				.withDescription(DESCRIPTION)
 				.withDocumentData(List.of(
 					DocumentDataEntity.create()
 						.withFileName(FILE_1_NAME)
 						.withFileSizeInBytes(FILE_1_SIZE_IN_BYTES)
 						.withMimeType(MIME_TYPE_1)
-						.withStorageBackend(STORAGE_BACKEND)
 						.withStorageLocator(STORAGE_LOCATOR_1),
 					DocumentDataEntity.create()
 						.withFileName(FILE_2_NAME)
 						.withFileSizeInBytes(FILE_2_SIZE_IN_BYTES)
 						.withMimeType(MIME_TYPE_2)
-						.withStorageBackend(STORAGE_BACKEND)
 						.withStorageLocator(STORAGE_LOCATOR_2)))
 				.withMetadata(List.of(DocumentMetadataEmbeddable.create()
 					.withKey(METADATA_KEY)
@@ -670,8 +621,8 @@ class DocumentMapperTest {
 				.withValidFrom(VALID_FROM)
 				.withValidTo(VALID_TO));
 
-		verify(binaryStoreMock).copy(new StorageRef(STORAGE_BACKEND, STORAGE_LOCATOR_1));
-		verify(binaryStoreMock).copy(new StorageRef(STORAGE_BACKEND, STORAGE_LOCATOR_2));
+		verify(binaryStoreMock).copy(StorageRef.s3(STORAGE_LOCATOR_1));
+		verify(binaryStoreMock).copy(StorageRef.s3(STORAGE_LOCATOR_2));
 	}
 
 	@Test
@@ -699,6 +650,7 @@ class DocumentMapperTest {
 				.withLegalCitation(LEGAL_CITATION))
 			.withCreated(CREATED)
 			.withCreatedBy(CREATED_BY)
+			.withTitle(TITLE)
 			.withDescription(DESCRIPTION)
 			.withId(ID)
 			.withMetadata(List.of(DocumentMetadataEmbeddable.create()
@@ -739,6 +691,7 @@ class DocumentMapperTest {
 					.withLegalCitation(LEGAL_CITATION))
 				.withCreated(CREATED)
 				.withCreatedBy(CREATED_BY)
+				.withTitle(TITLE)
 				.withDescription(DESCRIPTION)
 				.withId(ID)
 				.withMetadataList(List.of(DocumentMetadata.create()

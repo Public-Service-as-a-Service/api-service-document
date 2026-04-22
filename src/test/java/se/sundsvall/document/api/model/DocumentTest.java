@@ -44,15 +44,16 @@ class DocumentTest {
 		final var archive = true;
 		final var confidentiality = Confidentiality.create().withConfidential(true).withLegalCitation("legalCitation");
 		final var created = now(systemDefault());
-		final var createdBy = "user";
-		final var updatedBy = "updater";
+		final var createdBy = "b0000000-0000-0000-0000-000000000099";
+		final var updatedBy = "b4444444-4444-4444-4444-444444444444";
+		final var title = "title";
 		final var description = "description";
 		final var documentData = List.of(DocumentData.create());
 		final var id = randomUUID().toString();
 		final var metadataList = List.of(DocumentMetadata.create());
 		final var municipalityId = "municipalityId";
 		final var registrationNumber = "12345";
-		final var responsibilities = List.of(DocumentResponsibility.create().withUsername(createdBy));
+		final var responsibilities = List.of(DocumentResponsibility.create().withPersonId("6b8d4a1c-34e2-4f73-a5f1-b7c2e9a0d8c4"));
 		final var revision = 5;
 		final var type = "type";
 		final var validFrom = LocalDate.of(2026, 4, 15);
@@ -65,6 +66,7 @@ class DocumentTest {
 			.withCreated(created)
 			.withCreatedBy(createdBy)
 			.withUpdatedBy(updatedBy)
+			.withTitle(title)
 			.withDescription(description)
 			.withDocumentData(documentData)
 			.withId(id)
@@ -84,6 +86,7 @@ class DocumentTest {
 		assertThat(bean.getCreated()).isEqualTo(created);
 		assertThat(bean.getCreatedBy()).isEqualTo(createdBy);
 		assertThat(bean.getUpdatedBy()).isEqualTo(updatedBy);
+		assertThat(bean.getTitle()).isEqualTo(title);
 		assertThat(bean.getDescription()).isEqualTo(description);
 		assertThat(bean.getDocumentData()).isEqualTo(documentData);
 		assertThat(bean.getId()).isEqualTo(id);

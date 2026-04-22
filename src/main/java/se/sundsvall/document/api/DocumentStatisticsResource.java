@@ -25,7 +25,7 @@ import se.sundsvall.document.service.statistics.DocumentStatisticsService;
 import static org.springframework.http.MediaType.APPLICATION_JSON_VALUE;
 import static org.springframework.http.MediaType.APPLICATION_PROBLEM_JSON_VALUE;
 import static org.springframework.http.ResponseEntity.ok;
-import static se.sundsvall.document.Constants.DOCUMENT_STATISTICS_BASE_PATH;
+import static se.sundsvall.document.api.Constants.DOCUMENT_STATISTICS_BASE_PATH;
 
 @RestController
 @Validated

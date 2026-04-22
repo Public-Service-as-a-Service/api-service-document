@@ -5,10 +5,13 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
+import java.security.DigestInputStream;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.util.HexFormat;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.UUID;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StreamUtils;
 import se.sundsvall.dept44.problem.Problem;
@@ -32,7 +35,6 @@ import static org.springframework.http.HttpStatus.NOT_FOUND;
  * per revision) and preserves the "delete old revision doesn't affect current" guarantee.
  */
 @Component
-@ConditionalOnProperty(name = "document.storage.backend", havingValue = "s3")
 public class S3BinaryStore implements BinaryStore {
 
 	private final S3Client s3Client;
@@ -44,8 +46,17 @@ public class S3BinaryStore implements BinaryStore {
 	}
 
 	@Override
-	public StorageRef put(InputStream in, long sizeInBytes, String contentType, Map<String, String> userMetadata) {
+	public PutResult put(InputStream in, long sizeInBytes, String contentType, Map<String, String> userMetadata) {
 		final var key = UUID.randomUUID().toString();
+		final MessageDigest digest;
+		try {
+			digest = MessageDigest.getInstance("SHA-256");
+		} catch (final NoSuchAlgorithmException e) {
+			// SHA-256 is in the JDK; unreachable in practice.
+			throw Problem.valueOf(INTERNAL_SERVER_ERROR, "SHA-256 unavailable: " + e.getMessage());
+		}
+		// Tee the stream through the digest while the AWS SDK is reading it — one pass, two sinks.
+		final var hashingStream = new DigestInputStream(in, digest);
 		try {
 			final var builder = PutObjectRequest.builder()
 				.bucket(properties.bucket())
@@ -55,8 +66,8 @@ public class S3BinaryStore implements BinaryStore {
 			if (userMetadata != null && !userMetadata.isEmpty()) {
 				builder.metadata(encodeMetadataValues(userMetadata));
 			}
-			s3Client.putObject(builder.build(), RequestBody.fromInputStream(in, sizeInBytes));
-			return StorageRef.s3(key);
+			s3Client.putObject(builder.build(), RequestBody.fromInputStream(hashingStream, sizeInBytes));
+			return new PutResult(StorageRef.s3(key), HexFormat.of().formatHex(digest.digest()));
 		} catch (final Exception e) {
 			throw Problem.valueOf(INTERNAL_SERVER_ERROR, "Failed to store binary in S3: " + e.getMessage());
 		}

@@ -27,15 +27,15 @@ class DocumentResponsibilitiesUpdateRequestTest {
 	@Test
 	void testBuilderMethods() {
 
-		final var changedBy = "username123";
-		final var responsibilities = List.of(DocumentResponsibility.create().withUsername(changedBy));
+		final var updatedBy = "b1111111-1111-1111-1111-111111111111";
+		final var responsibilities = List.of(DocumentResponsibility.create().withPersonId("6b8d4a1c-34e2-4f73-a5f1-b7c2e9a0d8c4"));
 
 		final var bean = DocumentResponsibilitiesUpdateRequest.create()
-			.withChangedBy(changedBy)
+			.withUpdatedBy(updatedBy)
 			.withResponsibilities(responsibilities);
 
 		assertThat(bean).isNotNull().hasNoNullFieldsOrProperties();
-		assertThat(bean.getChangedBy()).isEqualTo(changedBy);
+		assertThat(bean.getUpdatedBy()).isEqualTo(updatedBy);
 		assertThat(bean.getResponsibilities()).isEqualTo(responsibilities);
 	}
 

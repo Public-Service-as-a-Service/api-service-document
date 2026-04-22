@@ -13,6 +13,7 @@ import org.springframework.test.web.reactive.server.WebTestClient;
 import se.sundsvall.document.Application;
 import se.sundsvall.document.api.model.Document;
 import se.sundsvall.document.api.model.PagedDocumentResponse;
+import se.sundsvall.document.service.DocumentFileService;
 import se.sundsvall.document.service.DocumentService;
 
 import static java.util.UUID.randomUUID;
@@ -33,6 +34,9 @@ class DocumentRevisionResourceTest {
 
 	@MockitoBean
 	private DocumentService documentServiceMock;
+
+	@MockitoBean
+	private DocumentFileService documentFileServiceMock;
 
 	@Autowired
 	private WebTestClient webTestClient;
@@ -165,7 +169,7 @@ class DocumentRevisionResourceTest {
 			.isEmpty();
 
 		// Assert
-		verify(documentServiceMock).readFile(eq(registrationNumber), eq(revision), eq(documentDataId), eq(false), any(se.sundsvall.document.service.statistics.AccessContext.class), any(HttpServletResponse.class), eq("2281"));
+		verify(documentFileServiceMock).readFile(eq(registrationNumber), eq(revision), eq(documentDataId), eq(false), any(se.sundsvall.document.service.statistics.AccessContext.class), any(HttpServletResponse.class), eq("2281"));
 	}
 
 	@Test
@@ -188,6 +192,6 @@ class DocumentRevisionResourceTest {
 			.isEmpty();
 
 		// Assert
-		verify(documentServiceMock).readFile(eq(registrationNumber), eq(revision), eq(documentDataId), eq(includeConfidential), any(se.sundsvall.document.service.statistics.AccessContext.class), any(HttpServletResponse.class), eq("2281"));
+		verify(documentFileServiceMock).readFile(eq(registrationNumber), eq(revision), eq(documentDataId), eq(includeConfidential), any(se.sundsvall.document.service.statistics.AccessContext.class), any(HttpServletResponse.class), eq("2281"));
 	}
 }

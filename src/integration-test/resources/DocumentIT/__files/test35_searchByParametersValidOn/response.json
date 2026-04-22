@@ -2,12 +2,13 @@
 	"documents": [
 		{
 			"municipalityId": "2999",
-			"createdBy": "validity-tester",
+			"createdBy": "a000000a-0000-0000-0000-0000000000aa",
 			"registrationNumber": "2025-2999-0002",
 			"created": "${json-unit.any-string}",
 			"confidentiality": {
 				"confidential": false
 			},
+			"title": "Valid from 2026 onwards",
 			"description": "Valid from 2026 onwards",
 			"archive": false,
 			"id": "b0000001-0000-0000-0000-000000000002",
@@ -21,12 +22,13 @@
 		},
 		{
 			"municipalityId": "2999",
-			"createdBy": "validity-tester",
+			"createdBy": "a000000a-0000-0000-0000-0000000000aa",
 			"registrationNumber": "2025-2999-0004",
 			"created": "${json-unit.any-string}",
 			"confidentiality": {
 				"confidential": false
 			},
+			"title": "Always valid",
 			"description": "Always valid",
 			"archive": false,
 			"id": "b0000001-0000-0000-0000-000000000004",

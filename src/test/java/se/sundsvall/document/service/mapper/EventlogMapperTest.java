@@ -19,7 +19,7 @@ class EventlogMapperTest {
 		// Arrange
 		final var eventType = UPDATE;
 		final var message = "This is a message";
-		final var executedBy = "UserXXX";
+		final var executedBy = "b0000000-0000-0000-0000-0000000000ac";
 		final var registrationNumber = "2023-2281-1";
 
 		// Act

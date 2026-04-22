@@ -16,7 +16,6 @@ import se.sundsvall.document.api.model.DocumentStatus;
 import se.sundsvall.document.integration.db.model.DocumentEntity;
 
 import static se.sundsvall.document.integration.db.specification.SearchSpecification.withSearchParameters;
-import static se.sundsvall.document.integration.db.specification.SearchSpecification.withSearchQuery;
 
 @CircuitBreaker(name = "documentRepository")
 public interface DocumentRepository extends JpaRepository<DocumentEntity, String>, JpaSpecificationExecutor<DocumentEntity> {
@@ -78,20 +77,6 @@ public interface DocumentRepository extends JpaRepository<DocumentEntity, String
 	Optional<DocumentEntity> findByMunicipalityIdAndRegistrationNumberAndRevisionAndConfidentialityConfidentialIn(String municipalityId, String registrationNumber, int revision, List<Boolean> confidentialValues);
 
 	boolean existsByMunicipalityIdAndRegistrationNumber(String municipalityId, String registrationNumber);
-
-	/**
-	 * Performs a search in DocumentEntities.
-	 *
-	 * @param  municipalityId      of the DocumentEntity.
-	 * @param  query               the string to search for.
-	 * @param  includeConfidential option if confidential documents should be included or not.
-	 * @param  onlyLatestRevision  option if only latest revision should be included or not.
-	 * @param  pageable            the pageable object.
-	 * @return                     a Page of DocumentEntity objects that matches the search string.
-	 */
-	default Page<DocumentEntity> search(String query, boolean includeConfidential, boolean onlyLatestRevision, Pageable pageable, String municipalityId, List<DocumentStatus> effectiveStatuses) {
-		return this.findAll(withSearchQuery(query, includeConfidential, onlyLatestRevision, municipalityId, effectiveStatuses), pageable);
-	}
 
 	default Page<DocumentEntity> searchByParameters(final DocumentParameters documentParameters, final Pageable pageable, final List<DocumentStatus> effectiveStatuses) {
 		return this.findAll(withSearchParameters(documentParameters, effectiveStatuses), pageable);

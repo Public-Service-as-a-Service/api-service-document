@@ -2,13 +2,14 @@
 	"documents": [
 		{
 			"municipalityId": "2281",
-			"createdBy": "User1",
+			"createdBy": "a0000001-0000-0000-0000-000000000001",
 			"registrationNumber": "2024-2281-200",
 			"created": "2024-08-23T08:31:00+02:00",
 			"confidentiality": {
 				"legalCitation": "Law §7.2",
 				"confidential": false
 			},
+			"title": "Generated Document 5",
 			"description": "Generated Document 5",
 			"archive": true,
 			"id": "e4c860ad-fce3-431e-965f-0229e5610fb7",
@@ -32,12 +33,13 @@
 		},
 		{
 			"municipalityId": "2281",
-			"createdBy": "User4",
+			"createdBy": "a0000004-0000-0000-0000-000000000004",
 			"registrationNumber": "2024-2281-639",
 			"created": "2024-08-29T08:31:00+02:00",
 			"confidentiality": {
 				"confidential": false
 			},
+			"title": "Generated Document 6",
 			"description": "Generated Document 6",
 			"archive": false,
 			"id": "84ae9dbe-159a-472f-9dc7-8ecb03c2c3c1",

@@ -7,9 +7,8 @@ import jakarta.persistence.criteria.Root;
 import jakarta.persistence.criteria.Subquery;
 import java.time.LocalDate;
 import java.util.List;
-import java.util.Locale;
 import java.util.Objects;
-import java.util.Optional;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.data.jpa.domain.Specification;
 import se.sundsvall.document.api.model.DocumentParameters;
 import se.sundsvall.document.api.model.DocumentResponsibility;
@@ -17,9 +16,6 @@ import se.sundsvall.document.api.model.DocumentStatus;
 import se.sundsvall.document.integration.db.model.DocumentEntity;
 import se.sundsvall.document.integration.db.model.DocumentMetadataEmbeddable;
 import se.sundsvall.document.integration.db.model.DocumentResponsibilityEntity;
-
-import static jakarta.persistence.criteria.JoinType.LEFT;
-import static org.apache.commons.lang3.StringUtils.EMPTY;
 
 public interface SearchSpecification {
 
@@ -43,7 +39,7 @@ public interface SearchSpecification {
 
 	static Specification<DocumentEntity> withSearchParameters(final DocumentParameters parameters, final List<DocumentStatus> effectiveStatuses) {
 		return onlyLatestRevisionOfDocuments(parameters.isOnlyLatestRevision(), effectiveStatuses, effectiveConfidentialValues(parameters.isIncludeConfidential()))
-			.and(matchesMunicipalityId(parameters.getMunicipalityId(), false))
+			.and(matchesMunicipalityId(parameters.getMunicipalityId()))
 			.and(includeConfidentialDocuments(parameters.isIncludeConfidential()))
 			.and(matchesStatus(effectiveStatuses))
 			.and(matchesType(parameters.getDocumentTypes()))
@@ -62,13 +58,13 @@ public interface SearchSpecification {
 			final var subQuery = query.subquery(Long.class);
 			final var responsibilityRoot = subQuery.from(DocumentResponsibilityEntity.class);
 
-			final var usernamePredicates = responsibilities.stream()
+			final var personIdPredicates = responsibilities.stream()
 				.filter(Objects::nonNull)
-				.filter(responsibility -> responsibility.getUsername() != null && !responsibility.getUsername().isBlank())
-				.map(responsibility -> cb.equal(responsibilityRoot.get("username"), normalizeUsername(responsibility.getUsername())))
+				.filter(responsibility -> StringUtils.isNotBlank(responsibility.getPersonId()))
+				.map(responsibility -> cb.equal(responsibilityRoot.get("personId"), responsibility.getPersonId()))
 				.toList();
 
-			if (usernamePredicates.isEmpty()) {
+			if (personIdPredicates.isEmpty()) {
 				return cb.disjunction();
 			}
 
@@ -76,14 +72,10 @@ public interface SearchSpecification {
 				.where(
 					cb.equal(responsibilityRoot.get("municipalityId"), root.get(MUNICIPALITY_ID)),
 					cb.equal(responsibilityRoot.get("registrationNumber"), root.get(REGISTRATION_NUMBER)),
-					cb.or(usernamePredicates.toArray(new Predicate[0])));
+					cb.or(personIdPredicates.toArray(new Predicate[0])));
 
 			return cb.exists(subQuery);
 		};
-	}
-
-	private static String normalizeUsername(final String username) {
-		return username.trim().toLowerCase(Locale.ROOT);
 	}
 
 	private static Specification<DocumentEntity> matchesStatus(final List<DocumentStatus> statuses) {
@@ -222,24 +214,6 @@ public interface SearchSpecification {
 		};
 	}
 
-	static Specification<DocumentEntity> withSearchQuery(String query, boolean includeConfidential, boolean onlyLatestRevision, String municipalityId, List<DocumentStatus> effectiveStatuses) {
-		final var queryString = toQueryString(query);
-
-		return onlyLatestRevisionOfDocuments(onlyLatestRevision, effectiveStatuses, effectiveConfidentialValues(includeConfidential))
-			.and(matchesMunicipalityId(municipalityId, false))
-			.and(matchesStatus(effectiveStatuses))
-			.and(matchesCreatedBy(queryString)
-				.or(matchesDescription(queryString))
-				.or(matchesMunicipalityId(queryString, true))
-				.or(matchesRegistrationNumber(queryString))
-				.or(matchesFileName(queryString))
-				.or(matchesMimeType(queryString))
-				.or(matchesMetadataKey(queryString))
-				.or(matchesMetadataValue(queryString)))
-			.and(includeConfidentialDocuments(includeConfidential))
-			.and(distinct());
-	}
-
 	private static Specification<DocumentEntity> onlyLatestRevisionOfDocuments(boolean onlyLatestRevision, List<DocumentStatus> effectiveStatuses, List<Boolean> effectiveConfidentialValues) {
 		if (!onlyLatestRevision) {
 			return (root, query, cb) -> cb.and(); // Do not add any filter to return all documents regardless of revision
@@ -281,54 +255,7 @@ public interface SearchSpecification {
 		};
 	}
 
-	private static Specification<DocumentEntity> matchesCreatedBy(String query) {
-		return (entity, cq, cb) -> cb.like(cb.lower(entity.get(CREATED_BY)), query);
-	}
-
-	private static Specification<DocumentEntity> matchesDescription(String query) {
-		return (entity, cq, cb) -> cb.like(cb.lower(entity.get(DESCRIPTION)), query);
-	}
-
-	private static Specification<DocumentEntity> matchesMunicipalityId(String query, boolean like) {
-		if (like) {
-			return (entity, cq, cb) -> cb.like(cb.lower(entity.get(MUNICIPALITY_ID)), query);
-		} else {
-			return (entity, cq, cb) -> cb.equal(cb.lower(entity.get(MUNICIPALITY_ID)), query);
-		}
-	}
-
-	private static Specification<DocumentEntity> matchesRegistrationNumber(String query) {
-		return (entity, cq, cb) -> cb.like(cb.lower(entity.get(REGISTRATION_NUMBER)), query);
-	}
-
-	private static Specification<DocumentEntity> matchesFileName(String query) {
-		return (entity, cq, cb) -> cb.like(cb.lower(entity.join(DOCUMENT_DATA, LEFT).get(FILE_NAME)), query);
-	}
-
-	private static Specification<DocumentEntity> matchesMimeType(String query) {
-		return (entity, cq, cb) -> cb.like(cb.lower(entity.join(DOCUMENT_DATA, LEFT).get(MIME_TYPE)), query);
-	}
-
-	private static Specification<DocumentEntity> matchesMetadataKey(String query) {
-		return (entity, cq, cb) -> cb.like(cb.lower(entity.join(METADATA, LEFT).get(KEY)), query);
-	}
-
-	private static Specification<DocumentEntity> matchesMetadataValue(String query) {
-		return (entity, cq, cb) -> cb.like(cb.lower(entity.join(METADATA, LEFT).get(VALUE)), query);
-	}
-
-	private static Specification<DocumentEntity> distinct() {
-		return (entity, cq, cb) -> {
-			cq.distinct(true);
-			return cb.and();
-		};
-	}
-
-	private static String toQueryString(String query) {
-		return Optional.ofNullable(query)
-			.map(String::trim)
-			.map(String::toLowerCase)
-			.map(str -> str.replace('*', '%'))
-			.orElse(EMPTY);
+	private static Specification<DocumentEntity> matchesMunicipalityId(String query) {
+		return (entity, cq, cb) -> cb.equal(cb.lower(entity.get(MUNICIPALITY_ID)), query);
 	}
 }

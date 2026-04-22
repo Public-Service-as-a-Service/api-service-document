@@ -8,28 +8,28 @@ import java.util.Map;
 /**
  * Service-layer abstraction over the location of a document's file content.
  * <p>
- * Implementations:
- * - `JdbcBinaryStore` stores the bytes in the MariaDB `document_data_binary.binary_file` LONGBLOB column.
- * - `S3BinaryStore` stores the bytes in an S3-compatible object store (AWS S3, MinIO, Garage).
- * <p>
- * Picked at runtime via the `document.storage.backend` property (`jdbc` or `s3`). See Stage 1 of the
- * storage-migration plan for context.
+ * Current implementation: {@link S3BinaryStore} backed by an S3-compatible object store
+ * (AWS S3, MinIO, Garage). The interface is kept to leave room for alternate backends later
+ * (e.g. encrypted-S3, WOPI, archival) without churning {@code DocumentService}/{@code DocumentMapper}.
  */
 public interface BinaryStore {
 
 	/**
-	 * Store the bytes from `in` and return a {@link StorageRef} that can later read them back.
+	 * Store the bytes from `in` and return a {@link PutResult} containing a {@link StorageRef}
+	 * plus the SHA-256 digest of the written bytes. The digest is used by the mapper to dedupe
+	 * text-extraction work across revisions that happen to carry the same file.
 	 * <p>
-	 * Implementations MUST stream — no full-file buffering in the heap.
+	 * Implementations MUST stream — no full-file buffering in the heap — and MUST compute the
+	 * digest while the bytes are being read, not by re-reading from the backend.
 	 *
 	 * @param in           the byte stream; will be read to completion
 	 * @param sizeInBytes  total length (must match `in`); required by S3 `PutObject`
 	 * @param contentType  MIME type; may be persisted as object metadata
-	 * @param userMetadata optional key/value pairs attached as object user-metadata (S3 only; the
-	 *                     JDBC backend ignores them). Intended for minimal context when inspecting
-	 *                     the bucket manually — keep the values small and immutable. May be empty.
+	 * @param userMetadata optional key/value pairs attached as object user-metadata. Intended for
+	 *                     minimal context when inspecting the bucket manually — keep the values
+	 *                     small and immutable. May be empty.
 	 */
-	StorageRef put(InputStream in, long sizeInBytes, String contentType, Map<String, String> userMetadata);
+	PutResult put(InputStream in, long sizeInBytes, String contentType, Map<String, String> userMetadata);
 
 	/**
 	 * Stream the bytes identified by `ref` into `out`. Used for the file-download endpoint.
@@ -48,8 +48,7 @@ public interface BinaryStore {
 	 * Return a new {@link StorageRef} referring to the same bytes. Used when a document is updated
 	 * without replacing its files — the new revision's `document_data` rows get copied refs.
 	 * <p>
-	 * - `JdbcBinaryStore` creates a new `document_data_binary` row that shares the underlying Blob.
-	 * - `S3BinaryStore` issues a server-side `CopyObject` to a new key.
+	 * {@link S3BinaryStore} issues a server-side {@code CopyObject} to a new key.
 	 */
 	StorageRef copy(StorageRef ref);
 }

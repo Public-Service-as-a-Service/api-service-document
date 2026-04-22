@@ -28,7 +28,15 @@ import static net.javacrumbs.jsonunit.assertj.JsonAssertions.assertThatJson;
 @SpringBootTest(webEnvironment = WebEnvironment.RANDOM_PORT, classes = Application.class, properties = {
 	"spring.main.banner-mode=off",
 	"logging.level.se.sundsvall.dept44.payload=OFF",
-	"wiremock.server.port=10101"
+	"wiremock.server.port=10101",
+	// This test only generates the OpenAPI spec — it doesn't exercise search, and booting the
+	// full app without an ES container would try to connect to the default localhost:9200.
+	"document.search.enabled=false",
+	"spring.autoconfigure.exclude="
+		+ "org.springframework.boot.elasticsearch.autoconfigure.ElasticsearchClientAutoConfiguration,"
+		+ "org.springframework.boot.elasticsearch.autoconfigure.ElasticsearchRestClientAutoConfiguration,"
+		+ "org.springframework.boot.data.elasticsearch.autoconfigure.DataElasticsearchAutoConfiguration,"
+		+ "org.springframework.boot.data.elasticsearch.autoconfigure.DataElasticsearchRepositoriesAutoConfiguration"
 })
 class OpenApiSpecificationIT {
 

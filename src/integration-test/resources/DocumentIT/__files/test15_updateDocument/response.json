@@ -1,12 +1,13 @@
 {
 	"municipalityId": "2281",
-	"createdBy": "User3",
-	"updatedBy": "user-x",
+	"createdBy": "a0000003-0000-0000-0000-000000000003",
+	"updatedBy": "b0000000-0000-0000-0000-0000000000ff",
 	"registrationNumber": "2023-2281-123",
 	"created": "${json-unit.any-string}",
 	"confidentiality": {
 		"confidential": false
 	},
+	"title": "Document 1",
 	"description": "Document 1",
 	"archive": false,
 	"id": "${json-unit.any-string}",

@@ -1,11 +1,12 @@
 {
 	"municipalityId": "2281",
-	"createdBy": "User2",
+	"createdBy": "a0000002-0000-0000-0000-000000000002",
 	"registrationNumber": "2023-2281-123",
 	"created": "2023-06-28T12:02:00+02:00",
 	"confidentiality": {
 		"confidential": false
 	},
+	"title": "Document 1",
 	"description": "Document 1",
 	"archive": false,
 	"id": "8efd63a3-b525-4581-8b0b-9759f381a5a5",

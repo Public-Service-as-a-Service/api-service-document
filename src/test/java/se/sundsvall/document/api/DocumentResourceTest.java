@@ -23,14 +23,18 @@ import se.sundsvall.document.api.model.Document;
 import se.sundsvall.document.api.model.DocumentCreateRequest;
 import se.sundsvall.document.api.model.DocumentDataCreateRequest;
 import se.sundsvall.document.api.model.DocumentFiles;
+import se.sundsvall.document.api.model.DocumentMatch;
 import se.sundsvall.document.api.model.DocumentMetadata;
 import se.sundsvall.document.api.model.DocumentResponsibilitiesUpdateRequest;
 import se.sundsvall.document.api.model.DocumentResponsibility;
 import se.sundsvall.document.api.model.DocumentUpdateRequest;
+import se.sundsvall.document.api.model.PagedDocumentMatchResponse;
 import se.sundsvall.document.api.model.PagedDocumentResponse;
 import se.sundsvall.document.api.validation.DocumentTypeValidator;
+import se.sundsvall.document.service.DocumentFileService;
 import se.sundsvall.document.service.DocumentService;
 
+import static java.util.Collections.emptyList;
 import static java.util.UUID.randomUUID;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
@@ -56,6 +60,9 @@ class DocumentResourceTest {
 	private DocumentService documentServiceMock;
 
 	@MockitoBean
+	private DocumentFileService documentFileServiceMock;
+
+	@MockitoBean
 	private DocumentTypeValidator validationUtilityMock;
 
 	@Autowired
@@ -67,13 +74,14 @@ class DocumentResourceTest {
 		// Arrange
 		final var documentCreateRequest = DocumentCreateRequest.create()
 			.withConfidentiality(Confidentiality.create().withConfidential(true).withLegalCitation("legalCitation"))
-			.withCreatedBy("user")
+			.withCreatedBy("b0000000-0000-0000-0000-000000000099")
+			.withTitle("title")
 			.withDescription("description")
 			.withMetadataList(List.of(DocumentMetadata.create()
 				.withKey("key")
 				.withValue("value")))
 			.withResponsibilities(List.of(DocumentResponsibility.create()
-				.withUsername("username123")))
+				.withPersonId("6b8d4a1c-34e2-4f73-a5f1-b7c2e9a0d8c4")))
 			.withType("type")
 			.withValidFrom(LocalDate.of(2026, 4, 15))
 			.withValidTo(LocalDate.of(2027, 4, 15));
@@ -103,12 +111,79 @@ class DocumentResourceTest {
 	}
 
 	@Test
+	void createWithoutMetadata() {
+
+		// Arrange
+		final var documentCreateRequest = DocumentCreateRequest.create()
+			.withCreatedBy("b0000000-0000-0000-0000-000000000099")
+			.withTitle("title")
+			.withDescription("description")
+			.withType("type");
+
+		final var multipartBodyBuilder = new MultipartBodyBuilder();
+		multipartBodyBuilder.part("documentFiles", "file-content").filename("test.txt").contentType(TEXT_PLAIN);
+		multipartBodyBuilder.part("document", documentCreateRequest);
+
+		when(documentServiceMock.create(any(), any(), any())).thenReturn(Document.create());
+
+		// Act
+		final var response = webTestClient.post()
+			.uri("/2281/documents")
+			.contentType(MULTIPART_FORM_DATA)
+			.body(fromMultipartData(multipartBodyBuilder.build()))
+			.exchange()
+			.expectStatus().isCreated()
+			.expectHeader().contentType(ALL_VALUE)
+			.expectHeader().exists(LOCATION)
+			.expectHeader().valuesMatch(LOCATION, "^/2281/documents/(.*)$")
+			.expectBody().isEmpty();
+
+		// Assert
+		assertThat(response).isNotNull();
+		verify(documentServiceMock).create(eq(documentCreateRequest), ArgumentMatchers.<DocumentFiles>any(), eq("2281"));
+	}
+
+	@Test
+	void createWithEmptyMetadata() {
+
+		// Arrange
+		final var documentCreateRequest = DocumentCreateRequest.create()
+			.withCreatedBy("b0000000-0000-0000-0000-000000000099")
+			.withTitle("title")
+			.withDescription("description")
+			.withType("type")
+			.withMetadataList(emptyList());
+
+		final var multipartBodyBuilder = new MultipartBodyBuilder();
+		multipartBodyBuilder.part("documentFiles", "file-content").filename("test.txt").contentType(TEXT_PLAIN);
+		multipartBodyBuilder.part("document", documentCreateRequest);
+
+		when(documentServiceMock.create(any(), any(), any())).thenReturn(Document.create());
+
+		// Act
+		final var response = webTestClient.post()
+			.uri("/2281/documents")
+			.contentType(MULTIPART_FORM_DATA)
+			.body(fromMultipartData(multipartBodyBuilder.build()))
+			.exchange()
+			.expectStatus().isCreated()
+			.expectHeader().contentType(ALL_VALUE)
+			.expectHeader().exists(LOCATION)
+			.expectHeader().valuesMatch(LOCATION, "^/2281/documents/(.*)$")
+			.expectBody().isEmpty();
+
+		// Assert
+		assertThat(response).isNotNull();
+		verify(documentServiceMock).create(eq(documentCreateRequest), ArgumentMatchers.<DocumentFiles>any(), eq("2281"));
+	}
+
+	@Test
 	void update() {
 
 		// Arrange
 		final var registrationNumber = "2023-1337";
 		final var documentUpdateRequest = DocumentUpdateRequest.create()
-			.withUpdatedBy("user")
+			.withUpdatedBy("b0000000-0000-0000-0000-000000000099")
 			.withMetadataList(List.of(DocumentMetadata.create()
 				.withKey("key")
 				.withValue("value")));
@@ -138,7 +213,7 @@ class DocumentResourceTest {
 		// Arrange
 		final var registrationNumber = "2023-1337";
 		final var confidentialityUpdateRequest = ConfidentialityUpdateRequest.create()
-			.withChangedBy("user")
+			.withUpdatedBy("b0000000-0000-0000-0000-000000000099")
 			.withConfidential(true)
 			.withLegalCitation("Lorum ipsum");
 
@@ -162,9 +237,9 @@ class DocumentResourceTest {
 		// Arrange
 		final var registrationNumber = "2023-1337";
 		final var responsibilitiesUpdateRequest = DocumentResponsibilitiesUpdateRequest.create()
-			.withChangedBy("user")
+			.withUpdatedBy("b0000000-0000-0000-0000-000000000099")
 			.withResponsibilities(List.of(DocumentResponsibility.create()
-				.withUsername("username123")));
+				.withPersonId("6b8d4a1c-34e2-4f73-a5f1-b7c2e9a0d8c4")));
 
 		// Act
 		webTestClient.put()
@@ -181,13 +256,121 @@ class DocumentResourceTest {
 	}
 
 	@Test
+	void publishLatestRevision() {
+
+		// Arrange
+		final var registrationNumber = "2023-1337";
+		when(documentServiceMock.publish(any(), any(), any(), any())).thenReturn(Document.create());
+
+		// Act
+		webTestClient.post()
+			.uri("/2281/documents/" + registrationNumber + "/publish?updatedBy=b0000000-0000-0000-0000-000000000099")
+			.exchange()
+			.expectStatus().isOk()
+			.expectHeader().contentType(APPLICATION_JSON);
+
+		// Assert
+		verify(documentServiceMock).publish(registrationNumber, "b0000000-0000-0000-0000-000000000099", "2281", null);
+	}
+
+	@Test
+	void publishSpecificRevision() {
+
+		// Arrange
+		final var registrationNumber = "2023-1337";
+		when(documentServiceMock.publish(any(), any(), any(), any())).thenReturn(Document.create());
+
+		// Act
+		webTestClient.post()
+			.uri("/2281/documents/" + registrationNumber + "/publish?updatedBy=b0000000-0000-0000-0000-000000000099&revision=5")
+			.exchange()
+			.expectStatus().isOk()
+			.expectHeader().contentType(APPLICATION_JSON);
+
+		// Assert
+		verify(documentServiceMock).publish(registrationNumber, "b0000000-0000-0000-0000-000000000099", "2281", 5);
+	}
+
+	@Test
+	void revokeLatestRevision() {
+
+		// Arrange
+		final var registrationNumber = "2023-1337";
+		when(documentServiceMock.revoke(any(), any(), any(), any())).thenReturn(Document.create());
+
+		// Act
+		webTestClient.post()
+			.uri("/2281/documents/" + registrationNumber + "/revoke?updatedBy=b0000000-0000-0000-0000-000000000099")
+			.exchange()
+			.expectStatus().isOk()
+			.expectHeader().contentType(APPLICATION_JSON);
+
+		// Assert
+		verify(documentServiceMock).revoke(registrationNumber, "b0000000-0000-0000-0000-000000000099", "2281", null);
+	}
+
+	@Test
+	void revokeSpecificRevision() {
+
+		// Arrange
+		final var registrationNumber = "2023-1337";
+		when(documentServiceMock.revoke(any(), any(), any(), any())).thenReturn(Document.create());
+
+		// Act
+		webTestClient.post()
+			.uri("/2281/documents/" + registrationNumber + "/revoke?updatedBy=b0000000-0000-0000-0000-000000000099&revision=5")
+			.exchange()
+			.expectStatus().isOk()
+			.expectHeader().contentType(APPLICATION_JSON);
+
+		// Assert
+		verify(documentServiceMock).revoke(registrationNumber, "b0000000-0000-0000-0000-000000000099", "2281", 5);
+	}
+
+	@Test
+	void unrevokeLatestRevision() {
+
+		// Arrange
+		final var registrationNumber = "2023-1337";
+		when(documentServiceMock.unrevoke(any(), any(), any(), any())).thenReturn(Document.create());
+
+		// Act
+		webTestClient.post()
+			.uri("/2281/documents/" + registrationNumber + "/unrevoke?updatedBy=b0000000-0000-0000-0000-000000000099")
+			.exchange()
+			.expectStatus().isOk()
+			.expectHeader().contentType(APPLICATION_JSON);
+
+		// Assert
+		verify(documentServiceMock).unrevoke(registrationNumber, "b0000000-0000-0000-0000-000000000099", "2281", null);
+	}
+
+	@Test
+	void unrevokeSpecificRevision() {
+
+		// Arrange
+		final var registrationNumber = "2023-1337";
+		when(documentServiceMock.unrevoke(any(), any(), any(), any())).thenReturn(Document.create());
+
+		// Act
+		webTestClient.post()
+			.uri("/2281/documents/" + registrationNumber + "/unrevoke?updatedBy=b0000000-0000-0000-0000-000000000099&revision=5")
+			.exchange()
+			.expectStatus().isOk()
+			.expectHeader().contentType(APPLICATION_JSON);
+
+		// Assert
+		verify(documentServiceMock).unrevoke(registrationNumber, "b0000000-0000-0000-0000-000000000099", "2281", 5);
+	}
+
+	@Test
 	void updateWithIncludeConfidential() {
 
 		// Arrange
 		final var includeConfidential = true;
 		final var registrationNumber = "2023-1337";
 		final var documentUpdateRequest = DocumentUpdateRequest.create()
-			.withUpdatedBy("user")
+			.withUpdatedBy("b0000000-0000-0000-0000-000000000099")
 			.withMetadataList(List.of(DocumentMetadata.create()
 				.withKey("key")
 				.withValue("value")));
@@ -315,6 +498,97 @@ class DocumentResourceTest {
 	}
 
 	@Test
+	void searchFileMatches() {
+
+		// Arrange
+		final var query = "string";
+		final var page = 1;
+		final var size = 10;
+		final var sort = "created,asc";
+
+		when(documentServiceMock.searchFileMatches(any(), anyBoolean(), anyBoolean(), any(), any())).thenReturn(PagedDocumentMatchResponse.create().withDocuments(List.of(DocumentMatch.create())));
+
+		// Act
+		final var response = webTestClient.get()
+			.uri(uriBuilder -> uriBuilder.path("/2281/documents/file-matches")
+				.queryParam("query", query)
+				.queryParam("page", page)
+				.queryParam("size", size)
+				.queryParam("sort", sort)
+				.build())
+			.exchange()
+			.expectStatus().isOk()
+			.expectHeader().contentType(APPLICATION_JSON)
+			.expectBody()
+			.returnResult()
+			.getResponseBody();
+
+		// Assert
+		assertThat(response).isNotNull();
+		verify(documentServiceMock).searchFileMatches(query, false, false, PageRequest.of(page, size, Sort.by(asc("created"))), "2281");
+	}
+
+	@ParameterizedTest
+	@ValueSource(booleans = {
+		true, false
+	})
+	void searchFileMatchesWithIncludeConfidential(boolean includeConfidential) {
+
+		// Arrange
+		final var query = "string";
+		final var page = 1;
+		final var size = 10;
+		final var sort = "created,asc";
+
+		when(documentServiceMock.searchFileMatches(any(), anyBoolean(), anyBoolean(), any(), any())).thenReturn(PagedDocumentMatchResponse.create().withDocuments(List.of(DocumentMatch.create())));
+
+		// Act
+		webTestClient.get()
+			.uri(uriBuilder -> uriBuilder.path("/2281/documents/file-matches")
+				.queryParam("query", query)
+				.queryParam("page", page)
+				.queryParam("size", size)
+				.queryParam("sort", sort)
+				.queryParam("includeConfidential", includeConfidential)
+				.build())
+			.exchange()
+			.expectStatus().isOk();
+
+		// Assert
+		verify(documentServiceMock).searchFileMatches(query, includeConfidential, false, PageRequest.of(page, size, Sort.by(asc("created"))), "2281");
+	}
+
+	@ParameterizedTest
+	@ValueSource(booleans = {
+		true, false
+	})
+	void searchFileMatchesWithOnlyLatestRevision(boolean onlyLatestRevision) {
+
+		// Arrange
+		final var query = "string";
+		final var page = 1;
+		final var size = 10;
+		final var sort = "created,asc";
+
+		when(documentServiceMock.searchFileMatches(any(), anyBoolean(), anyBoolean(), any(), any())).thenReturn(PagedDocumentMatchResponse.create().withDocuments(List.of(DocumentMatch.create())));
+
+		// Act
+		webTestClient.get()
+			.uri(uriBuilder -> uriBuilder.path("/2281/documents/file-matches")
+				.queryParam("query", query)
+				.queryParam("page", page)
+				.queryParam("size", size)
+				.queryParam("sort", sort)
+				.queryParam("onlyLatestRevision", onlyLatestRevision)
+				.build())
+			.exchange()
+			.expectStatus().isOk();
+
+		// Assert
+		verify(documentServiceMock).searchFileMatches(query, false, onlyLatestRevision, PageRequest.of(page, size, Sort.by(asc("created"))), "2281");
+	}
+
+	@Test
 	void read() {
 
 		// Arrange
@@ -379,7 +653,7 @@ class DocumentResourceTest {
 			.isEmpty();
 
 		// Assert
-		verify(documentServiceMock).readFile(eq(registrationNumber), eq(documentDataId), eq(false), eq(false), any(se.sundsvall.document.service.statistics.AccessContext.class), any(HttpServletResponse.class), eq("2281"));
+		verify(documentFileServiceMock).readFile(eq(registrationNumber), eq(documentDataId), eq(false), eq(false), any(se.sundsvall.document.service.statistics.AccessContext.class), any(HttpServletResponse.class), eq("2281"));
 	}
 
 	@Test
@@ -401,7 +675,7 @@ class DocumentResourceTest {
 			.isEmpty();
 
 		// Assert
-		verify(documentServiceMock).readFile(eq(registrationNumber), eq(documentDataId), eq(includeConfidential), eq(false), any(se.sundsvall.document.service.statistics.AccessContext.class), any(HttpServletResponse.class), eq("2281"));
+		verify(documentFileServiceMock).readFile(eq(registrationNumber), eq(documentDataId), eq(includeConfidential), eq(false), any(se.sundsvall.document.service.statistics.AccessContext.class), any(HttpServletResponse.class), eq("2281"));
 	}
 
 	@Test
@@ -412,12 +686,12 @@ class DocumentResourceTest {
 
 		// Arrange
 		final var documentDataCreateRequest = DocumentDataCreateRequest.create()
-			.withCreatedBy("user");
+			.withCreatedBy("b0000000-0000-0000-0000-000000000099");
 		final var multipartBodyBuilder = new MultipartBodyBuilder();
 		multipartBodyBuilder.part("documentFile", "file-content").filename("test1.txt").contentType(TEXT_PLAIN);
 		multipartBodyBuilder.part("document", documentDataCreateRequest);
 
-		when(documentServiceMock.addOrReplaceFiles(any(), any(), any(), any())).thenReturn(Document.create());
+		when(documentFileServiceMock.addOrReplaceFiles(any(), any(), any(), any())).thenReturn(Document.create());
 
 		// Act
 		webTestClient.put()
@@ -430,7 +704,7 @@ class DocumentResourceTest {
 			.isEmpty();
 
 		// Assert — backwards-compatible singular upload is wrapped into a one-element DocumentFiles.
-		verify(documentServiceMock).addOrReplaceFiles(eq(registrationNumber), eq(documentDataCreateRequest), ArgumentMatchers.<DocumentFiles>any(), eq("2281"));
+		verify(documentFileServiceMock).addOrReplaceFiles(eq(registrationNumber), eq(documentDataCreateRequest), ArgumentMatchers.<DocumentFiles>any(), eq("2281"));
 	}
 
 	@Test
@@ -440,14 +714,14 @@ class DocumentResourceTest {
 		final var registrationNumber = "2023-1337";
 
 		final var documentDataCreateRequest = DocumentDataCreateRequest.create()
-			.withCreatedBy("user");
+			.withCreatedBy("b0000000-0000-0000-0000-000000000099");
 		final var multipartBodyBuilder = new MultipartBodyBuilder();
 		multipartBodyBuilder.part("documentFiles", "file-content-1").filename("test1.txt").contentType(TEXT_PLAIN);
 		multipartBodyBuilder.part("documentFiles", "file-content-2").filename("test2.txt").contentType(TEXT_PLAIN);
 		multipartBodyBuilder.part("documentFiles", "file-content-3").filename("test3.txt").contentType(TEXT_PLAIN);
 		multipartBodyBuilder.part("document", documentDataCreateRequest);
 
-		when(documentServiceMock.addOrReplaceFiles(any(), any(), any(), any())).thenReturn(Document.create());
+		when(documentFileServiceMock.addOrReplaceFiles(any(), any(), any(), any())).thenReturn(Document.create());
 
 		// Act
 		webTestClient.put()
@@ -460,7 +734,7 @@ class DocumentResourceTest {
 			.isEmpty();
 
 		// Assert — resource delegates to the batch service method; the service is responsible for single-revision semantics.
-		verify(documentServiceMock).addOrReplaceFiles(eq(registrationNumber), eq(documentDataCreateRequest), ArgumentMatchers.<DocumentFiles>any(), eq("2281"));
+		verify(documentFileServiceMock).addOrReplaceFiles(eq(registrationNumber), eq(documentDataCreateRequest), ArgumentMatchers.<DocumentFiles>any(), eq("2281"));
 	}
 
 	@Test
@@ -479,6 +753,6 @@ class DocumentResourceTest {
 			.isEmpty();
 
 		// Assert
-		verify(documentServiceMock).deleteFile(registrationNumber, documentDataId, "2281");
+		verify(documentFileServiceMock).deleteFile(registrationNumber, documentDataId, "2281");
 	}
 }

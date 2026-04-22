@@ -41,17 +41,17 @@ class DocumentResponsibilityEntityTest {
 		final var id = randomUUID().toString();
 		final var municipalityId = "2281";
 		final var registrationNumber = "2026-2281-1";
-		final var username = "username123";
-		final var createdBy = "createdBy";
+		final var personId = "6b8d4a1c-34e2-4f73-a5f1-b7c2e9a0d8c4";
+		final var createdBy = "b0000000-0000-0000-0000-0000000000c1";
 		final var created = now(systemDefault());
-		final var updatedBy = "updatedBy";
+		final var updatedBy = "b0000000-0000-0000-0000-0000000000d1";
 		final var updated = now(systemDefault()).plusDays(1);
 
 		final var bean = DocumentResponsibilityEntity.create()
 			.withId(id)
 			.withMunicipalityId(municipalityId)
 			.withRegistrationNumber(registrationNumber)
-			.withUsername(username)
+			.withPersonId(personId)
 			.withCreatedBy(createdBy)
 			.withCreated(created)
 			.withUpdatedBy(updatedBy)
@@ -61,7 +61,7 @@ class DocumentResponsibilityEntityTest {
 		assertThat(bean.getId()).isEqualTo(id);
 		assertThat(bean.getMunicipalityId()).isEqualTo(municipalityId);
 		assertThat(bean.getRegistrationNumber()).isEqualTo(registrationNumber);
-		assertThat(bean.getUsername()).isEqualTo(username);
+		assertThat(bean.getPersonId()).isEqualTo(personId);
 		assertThat(bean.getCreatedBy()).isEqualTo(createdBy);
 		assertThat(bean.getCreated()).isEqualTo(created);
 		assertThat(bean.getUpdatedBy()).isEqualTo(updatedBy);

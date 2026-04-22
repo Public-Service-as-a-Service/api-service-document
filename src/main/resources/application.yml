@@ -4,9 +4,8 @@ document:
     # ACTIVE/SCHEDULED → EXPIRED when validTo has passed. Distributed lock via ShedLock.
     cron: "0 5 0 * * *"
   storage:
-    # Backends: jdbc (bytes in MariaDB LONGBLOB, legacy) or s3 (AWS S3 / MinIO / Garage).
-    # See Stage 1 of the storage-migration plan.
-    backend: jdbc
+    # File content is stored in an S3-compatible object store (Garage in production,
+    # MinIO in the IT suite). Endpoint/bucket/credentials must be provided via env.
     s3:
       endpoint:
       region: us-east-1
@@ -58,6 +57,12 @@ spring:
     multipart:
       max-file-size: 60MB
       max-request-size: 60MB
+  elasticsearch:
+    # Mandatory — free-text ?query= is served from ES. Provide via env in every environment
+    # (including local dev; no embedded fallback). Password may be omitted for an anonymous cluster.
+    uris: ${ELASTICSEARCH_URIS:}
+    username: ${ELASTICSEARCH_USERNAME:}
+    password: ${ELASTICSEARCH_PASSWORD:}
 springdoc:
   swagger-ui:
     operationsSorter: alpha

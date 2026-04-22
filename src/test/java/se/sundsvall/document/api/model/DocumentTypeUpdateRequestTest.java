@@ -27,7 +27,7 @@ class DocumentTypeUpdateRequestTest {
 	void testBuilderMethods() {
 		final var displayName = "displayName";
 		final var type = "type";
-		final var updatedBy = "updatedBy";
+		final var updatedBy = "b0000000-0000-0000-0000-0000000000d1";
 
 		final var bean = DocumentTypeUpdateRequest.create()
 			.withDisplayName(displayName)

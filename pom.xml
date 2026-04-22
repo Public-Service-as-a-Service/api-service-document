@@ -22,6 +22,7 @@
 		<aws-sdk.version>2.29.52</aws-sdk.version>
 		<testcontainers.version>1.20.4</testcontainers.version>
 		<shedlock.version>5.16.0</shedlock.version>
+		<tika.version>2.9.2</tika.version>
 	</properties>
 	<dependencyManagement>
 		<dependencies>
@@ -70,6 +71,26 @@
 			<artifactId>s3</artifactId>
 		</dependency>
 
+		<!-- Elasticsearch: index of searchable document + file-content fields. Free-text ?query=
+				goes through ES (not the DB) so file contents can be matched alongside metadata. -->
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-data-elasticsearch</artifactId>
+		</dependency>
+
+		<!-- Apache Tika: in-process extraction of text from PDF/DOCX/XLSX/PPTX/ODT/RTF/HTML/EPUB/…
+				during upload. OCR disabled explicitly in TikaTextExtractor. -->
+		<dependency>
+			<groupId>org.apache.tika</groupId>
+			<artifactId>tika-core</artifactId>
+			<version>${tika.version}</version>
+		</dependency>
+		<dependency>
+			<groupId>org.apache.tika</groupId>
+			<artifactId>tika-parsers-standard-package</artifactId>
+			<version>${tika.version}</version>
+		</dependency>
+
 		<!-- ShedLock — distributed lock for the daily status scheduler so the job runs at most once
 				across all pods. JDBC provider piggy-backs on the existing datasource (no extra infra). -->
 		<dependency>
@@ -87,6 +108,12 @@
 		<dependency>
 			<groupId>org.testcontainers</groupId>
 			<artifactId>minio</artifactId>
+			<version>${testcontainers.version}</version>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.testcontainers</groupId>
+			<artifactId>elasticsearch</artifactId>
 			<version>${testcontainers.version}</version>
 			<scope>test</scope>
 		</dependency>
@@ -113,8 +140,6 @@
 						<!-- API model classes -->
 						<exclude>**/db/model/*_*</exclude>
 						<!-- JPAModelGen classes -->
-						<!-- Spring config wired only when document.storage.backend=s3; no IT runs in that mode. -->
-						<exclude>**/service/storage/S3StorageConfiguration*</exclude>
 					</excludes>
 				</configuration>
 			</plugin>

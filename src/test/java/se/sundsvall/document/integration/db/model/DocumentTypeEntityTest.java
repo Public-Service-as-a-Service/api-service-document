@@ -37,11 +37,11 @@ class DocumentTypeEntityTest {
 	@Test
 	void testBuilderMethods() {
 		final var created = now(systemDefault()).minusWeeks(1);
-		final var createdBy = "createdBy";
+		final var createdBy = "b0000000-0000-0000-0000-0000000000c1";
 		final var displayName = "displayName";
 		final var id = "id";
 		final var lastUpdated = now(systemDefault());
-		final var lastUpdatedBy = "lastUpdatedBy";
+		final var lastUpdatedBy = "b0000000-0000-0000-0000-0000000000d1";
 		final var municipalityId = "municipalityId";
 		final var type = "type";
 

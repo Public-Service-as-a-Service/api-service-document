@@ -25,13 +25,14 @@ import se.sundsvall.dept44.problem.violations.ConstraintViolationProblem;
 import se.sundsvall.document.api.model.Document;
 import se.sundsvall.document.api.model.DocumentAccessType;
 import se.sundsvall.document.api.model.PagedDocumentResponse;
+import se.sundsvall.document.service.DocumentFileService;
 import se.sundsvall.document.service.DocumentService;
 import se.sundsvall.document.service.statistics.AccessContext;
 
 import static org.springframework.http.MediaType.APPLICATION_JSON_VALUE;
 import static org.springframework.http.MediaType.APPLICATION_PROBLEM_JSON_VALUE;
 import static org.springframework.http.ResponseEntity.ok;
-import static se.sundsvall.document.Constants.DOCUMENT_REVISIONS_BASE_PATH;
+import static se.sundsvall.document.api.Constants.DOCUMENT_REVISIONS_BASE_PATH;
 
 @RestController
 @Validated
@@ -44,9 +45,11 @@ import static se.sundsvall.document.Constants.DOCUMENT_REVISIONS_BASE_PATH;
 public class DocumentRevisionResource {
 
 	private final DocumentService documentService;
+	private final DocumentFileService documentFileService;
 
-	public DocumentRevisionResource(final DocumentService documentService) {
+	public DocumentRevisionResource(final DocumentService documentService, final DocumentFileService documentFileService) {
 		this.documentService = documentService;
+		this.documentFileService = documentFileService;
 	}
 
 	@GetMapping(produces = {
@@ -102,7 +105,7 @@ public class DocumentRevisionResource {
 			defaultValue = "true") final boolean countStats,
 		@Parameter(name = "X-Sent-By", description = "Identifier of the caller, recorded in usage statistics.", in = io.swagger.v3.oas.annotations.enums.ParameterIn.HEADER) @RequestHeader(value = "X-Sent-By", required = false) final String sentBy) {
 
-		documentService.readFile(registrationNumber, revision, documentDataId, includeConfidential,
+		documentFileService.readFile(registrationNumber, revision, documentDataId, includeConfidential,
 			new AccessContext(countStats, accessType, sentBy), response, municipalityId);
 		return ok().build();
 	}

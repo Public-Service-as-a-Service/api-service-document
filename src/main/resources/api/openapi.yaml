@@ -7,39 +7,39 @@ info:
     url: https://opensource.org/licenses/MIT
   version: "3.1"
 servers:
-- url: http://localhost:55186
-  description: Generated server url
+  - url: http://localhost:64339
+    description: Generated server url
 tags:
-- name: Document revisions
-  description: Document revision operations
-- name: Document statistics
-  description: Document usage statistics
-- name: Administration
-  description: Administration of document types
-- name: Documents
-  description: Document operations
+  - name: Document revisions
+    description: Document revision operations
+  - name: Document statistics
+    description: Document usage statistics
+  - name: Administration
+    description: Administration of document types
+  - name: Documents
+    description: Document operations
 paths:
   /{municipalityId}/documents/{registrationNumber}/responsibilities:
     put:
       tags:
-      - Documents
+        - Documents
       summary: Replace document responsibilities.
       operationId: updateResponsibilities
       parameters:
-      - name: municipalityId
-        in: path
-        description: Municipality ID
-        required: true
-        schema:
-          type: string
-        example: 2281
-      - name: registrationNumber
-        in: path
-        description: Document registration number
-        required: true
-        schema:
-          type: string
-        example: 2023-2281-1337
+        - name: municipalityId
+          in: path
+          description: Municipality ID
+          required: true
+          schema:
+            type: string
+          example: 2281
+        - name: registrationNumber
+          in: path
+          description: Document registration number
+          required: true
+          schema:
+            type: string
+          example: 2023-2281-1337
       requestBody:
         content:
           application/json:
@@ -61,8 +61,8 @@ paths:
             application/problem+json:
               schema:
                 oneOf:
-                - $ref: "#/components/schemas/Problem"
-                - $ref: "#/components/schemas/ConstraintViolationProblem"
+                  - $ref: "#/components/schemas/Problem"
+                  - $ref: "#/components/schemas/ConstraintViolationProblem"
         "500":
           description: Internal Server error
           content:
@@ -72,27 +72,27 @@ paths:
   /{municipalityId}/documents/{registrationNumber}/files:
     put:
       tags:
-      - Documents
+        - Documents
       summary: Add document file data (or replace existing if filename already exists
         on the document object). Accepts either a single file via 'documentFile' (deprecated)
         or multiple files via 'documentFiles' — in both cases the operation produces
         exactly one new revision.
       operationId: addOrReplaceFile
       parameters:
-      - name: municipalityId
-        in: path
-        description: Municipality ID
-        required: true
-        schema:
-          type: string
-        example: 2281
-      - name: registrationNumber
-        in: path
-        description: Document registration number
-        required: true
-        schema:
-          type: string
-        example: 2023-2281-1337
+        - name: municipalityId
+          in: path
+          description: Municipality ID
+          required: true
+          schema:
+            type: string
+          example: 2281
+        - name: registrationNumber
+          in: path
+          description: Document registration number
+          required: true
+          schema:
+            type: string
+          example: 2023-2281-1337
       requestBody:
         content:
           multipart/form-data:
@@ -113,7 +113,7 @@ paths:
                     type: string
                     format: binary
               required:
-              - document
+                - document
       responses:
         "204":
           description: Successful operation
@@ -129,8 +129,8 @@ paths:
             application/problem+json:
               schema:
                 oneOf:
-                - $ref: "#/components/schemas/Problem"
-                - $ref: "#/components/schemas/ConstraintViolationProblem"
+                  - $ref: "#/components/schemas/Problem"
+                  - $ref: "#/components/schemas/ConstraintViolationProblem"
         "500":
           description: Internal Server error
           content:
@@ -140,7 +140,7 @@ paths:
   /{municipalityId}/documents:
     get:
       tags:
-      - Documents
+        - Documents
       summary: Search documents.
       description: |+
         Parameters:
@@ -160,62 +160,62 @@ paths:
 
       operationId: search
       parameters:
-      - name: municipalityId
-        in: path
-        description: Municipality ID
-        required: true
-        schema:
-          type: string
-        example: 2281
-      - name: query
-        in: query
-        description: "Search query. Use asterisk-character [*] as wildcard."
-        required: true
-        schema:
-          type: string
-          minLength: 1
-        example: hello*
-      - name: includeConfidential
-        in: query
-        description: Include confidential records
-        required: false
-        schema:
-          type: boolean
-          default: false
-        example: true
-      - name: onlyLatestRevision
-        in: query
-        description: Only perform search against the latest document revision
-        required: false
-        schema:
-          type: boolean
-          default: false
-        example: true
-      - name: page
-        in: query
-        description: Zero-based page index (0..N)
-        required: false
-        schema:
-          type: integer
-          default: 0
-          minimum: 0
-      - name: size
-        in: query
-        description: The size of the page to be returned
-        required: false
-        schema:
-          type: integer
-          default: 20
-          minimum: 1
-      - name: sort
-        in: query
-        description: "Sorting criteria in the format: property,(asc|desc). Default\
-          \ sort order is ascending. Multiple sort criteria are supported."
-        required: false
-        schema:
-          type: array
-          items:
+        - name: municipalityId
+          in: path
+          description: Municipality ID
+          required: true
+          schema:
             type: string
+          example: 2281
+        - name: query
+          in: query
+          description: "Search query. Use asterisk-character [*] as wildcard."
+          required: true
+          schema:
+            type: string
+            minLength: 1
+          example: hello*
+        - name: includeConfidential
+          in: query
+          description: Include confidential records
+          required: false
+          schema:
+            type: boolean
+            default: false
+          example: true
+        - name: onlyLatestRevision
+          in: query
+          description: Only perform search against the latest document revision
+          required: false
+          schema:
+            type: boolean
+            default: false
+          example: true
+        - name: page
+          in: query
+          description: Zero-based page index (0..N)
+          required: false
+          schema:
+            type: integer
+            default: 0
+            minimum: 0
+        - name: size
+          in: query
+          description: The size of the page to be returned
+          required: false
+          schema:
+            type: integer
+            default: 20
+            minimum: 1
+        - name: sort
+          in: query
+          description: "Sorting criteria in the format: property,(asc|desc). Default\
+          \ sort order is ascending. Multiple sort criteria are supported."
+          required: false
+          schema:
+            type: array
+            items:
+              type: string
       responses:
         "200":
           description: Successful operation
@@ -229,8 +229,8 @@ paths:
             application/problem+json:
               schema:
                 oneOf:
-                - $ref: "#/components/schemas/Problem"
-                - $ref: "#/components/schemas/ConstraintViolationProblem"
+                  - $ref: "#/components/schemas/Problem"
+                  - $ref: "#/components/schemas/ConstraintViolationProblem"
         "500":
           description: Internal Server error
           content:
@@ -239,17 +239,17 @@ paths:
                 $ref: "#/components/schemas/Problem"
     post:
       tags:
-      - Documents
+        - Documents
       summary: Create document.
       operationId: create
       parameters:
-      - name: municipalityId
-        in: path
-        description: Municipality ID
-        required: true
-        schema:
-          type: string
-        example: 2281
+        - name: municipalityId
+          in: path
+          description: Municipality ID
+          required: true
+          schema:
+            type: string
+          example: 2281
       requestBody:
         content:
           multipart/form-data:
@@ -265,8 +265,8 @@ paths:
                     type: string
                     format: binary
               required:
-              - document
-              - documentFiles
+                - document
+                - documentFiles
       responses:
         "201":
           description: Successful operation
@@ -281,8 +281,8 @@ paths:
             application/problem+json:
               schema:
                 oneOf:
-                - $ref: "#/components/schemas/Problem"
-                - $ref: "#/components/schemas/ConstraintViolationProblem"
+                  - $ref: "#/components/schemas/Problem"
+                  - $ref: "#/components/schemas/ConstraintViolationProblem"
         "500":
           description: Internal Server error
           content:
@@ -292,26 +292,35 @@ paths:
   /{municipalityId}/documents/{registrationNumber}/unrevoke:
     post:
       tags:
-      - Documents
-      summary: Unrevoke document.
+        - Documents
+      summary: Unrevoke document. Targets latest revision by default; pass 'revision' to target a specific revision.
       operationId: unrevoke
       parameters:
-      - name: municipalityId
-        in: path
-        required: true
-        schema:
-          type: string
-      - name: registrationNumber
-        in: path
-        required: true
-        schema:
-          type: string
-      - name: changedBy
-        in: query
-        required: true
-        schema:
-          type: string
-          minLength: 1
+        - name: municipalityId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: registrationNumber
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: updatedBy
+          in: query
+          required: true
+          schema:
+            type: string
+            minLength: 1
+        - name: revision
+          in: query
+          description: Revision to transition. Defaults to the latest revision.
+          required: false
+          schema:
+            type: integer
+            format: int32
+            minimum: 1
+          example: 5
       responses:
         "400":
           description: Bad request
@@ -319,8 +328,8 @@ paths:
             application/problem+json:
               schema:
                 oneOf:
-                - $ref: "#/components/schemas/Problem"
-                - $ref: "#/components/schemas/ConstraintViolationProblem"
+                  - $ref: "#/components/schemas/Problem"
+                  - $ref: "#/components/schemas/ConstraintViolationProblem"
         "500":
           description: Internal Server error
           content:
@@ -330,26 +339,35 @@ paths:
   /{municipalityId}/documents/{registrationNumber}/revoke:
     post:
       tags:
-      - Documents
-      summary: Revoke document.
+        - Documents
+      summary: Revoke document. Targets latest revision by default; pass 'revision' to target a specific revision.
       operationId: revoke
       parameters:
-      - name: municipalityId
-        in: path
-        required: true
-        schema:
-          type: string
-      - name: registrationNumber
-        in: path
-        required: true
-        schema:
-          type: string
-      - name: changedBy
-        in: query
-        required: true
-        schema:
-          type: string
-          minLength: 1
+        - name: municipalityId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: registrationNumber
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: updatedBy
+          in: query
+          required: true
+          schema:
+            type: string
+            minLength: 1
+        - name: revision
+          in: query
+          description: Revision to transition. Defaults to the latest revision.
+          required: false
+          schema:
+            type: integer
+            format: int32
+            minimum: 1
+          example: 5
       responses:
         "400":
           description: Bad request
@@ -357,8 +375,8 @@ paths:
             application/problem+json:
               schema:
                 oneOf:
-                - $ref: "#/components/schemas/Problem"
-                - $ref: "#/components/schemas/ConstraintViolationProblem"
+                  - $ref: "#/components/schemas/Problem"
+                  - $ref: "#/components/schemas/ConstraintViolationProblem"
         "500":
           description: Internal Server error
           content:
@@ -368,26 +386,35 @@ paths:
   /{municipalityId}/documents/{registrationNumber}/publish:
     post:
       tags:
-      - Documents
-      summary: Publish document.
+        - Documents
+      summary: Publish document. Targets latest revision by default; pass 'revision' to target a specific revision.
       operationId: publish
       parameters:
-      - name: municipalityId
-        in: path
-        required: true
-        schema:
-          type: string
-      - name: registrationNumber
-        in: path
-        required: true
-        schema:
-          type: string
-      - name: changedBy
-        in: query
-        required: true
-        schema:
-          type: string
-          minLength: 1
+        - name: municipalityId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: registrationNumber
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: updatedBy
+          in: query
+          required: true
+          schema:
+            type: string
+            minLength: 1
+        - name: revision
+          in: query
+          description: Revision to transition. Defaults to the latest revision.
+          required: false
+          schema:
+            type: integer
+            format: int32
+            minimum: 1
+          example: 5
       responses:
         "400":
           description: Bad request
@@ -395,8 +422,103 @@ paths:
             application/problem+json:
               schema:
                 oneOf:
-                - $ref: "#/components/schemas/Problem"
-                - $ref: "#/components/schemas/ConstraintViolationProblem"
+                  - $ref: "#/components/schemas/Problem"
+                  - $ref: "#/components/schemas/ConstraintViolationProblem"
+        "500":
+          description: Internal Server error
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+  /{municipalityId}/documents/file-matches:
+    get:
+      tags:
+        - Documents
+      summary: Search documents — stripped response with only matching files.
+      description: |+
+        Same input signature as the standard search, but returns a stripped response: for each
+        matching document, only the document ID plus the IDs and filenames of the files that
+        actually matched the query. No document metadata, responsibilities, or other fields are
+        included. Backed entirely by Elasticsearch — no database hydration.
+
+        Parameters:
+        - includeConfidential: Should the search include confidential documents? Datatype - boolean (default: false)
+        - onlyLatestRevision: Should the search include only the latest revision of the documents? Datatype - boolean (default: false)
+        - query: Search query. Datatype - String
+
+      operationId: searchFileMatches
+      parameters:
+        - name: municipalityId
+          in: path
+          description: Municipality ID
+          required: true
+          schema:
+            type: string
+          example: 2281
+        - name: query
+          in: query
+          description: Search query.
+          required: true
+          schema:
+            type: string
+            minLength: 1
+          example: hello
+        - name: includeConfidential
+          in: query
+          description: Include confidential records
+          required: false
+          schema:
+            type: boolean
+            default: false
+          example: true
+        - name: onlyLatestRevision
+          in: query
+          description: Only perform search against the latest document revision
+          required: false
+          schema:
+            type: boolean
+            default: false
+          example: true
+        - name: page
+          in: query
+          description: Zero-based page index (0..N)
+          required: false
+          schema:
+            type: integer
+            default: 0
+            minimum: 0
+        - name: size
+          in: query
+          description: The size of the page to be returned
+          required: false
+          schema:
+            type: integer
+            default: 20
+            minimum: 1
+        - name: sort
+          in: query
+          description: "Sorting criteria in the format: property,(asc|desc). Default\
+          \ sort order is ascending. Multiple sort criteria are supported."
+          required: false
+          schema:
+            type: array
+            items:
+              type: string
+      responses:
+        "200":
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PagedDocumentMatchResponse"
+        "400":
+          description: Bad request
+          content:
+            application/problem+json:
+              schema:
+                oneOf:
+                  - $ref: "#/components/schemas/Problem"
+                  - $ref: "#/components/schemas/ConstraintViolationProblem"
         "500":
           description: Internal Server error
           content:
@@ -406,7 +528,7 @@ paths:
   /{municipalityId}/documents/filter:
     post:
       tags:
-      - Documents
+        - Documents
       summary: Search documents by parameters
       description: "Parameters:\n- createdBy: Filter by the user that created the\
         \ document. Datatype - String\n- includeConfidential: Should the search include\
@@ -420,8 +542,8 @@ paths:
         \ only drafts).\n- metaData: Uses the metadata object to search for documents\
         \ with specific metadata. Datatype - List of metadata objects.\n- responsibilities:\
         \ Uses document responsibilities to search for documents where at least one\
-        \ username matches. Usernames are case-insensitive and stored lowercased.\
-        \ Datatype - List of DocumentResponsibility objects.\n- page: The page number\
+        \ personId matches. Datatype - List of DocumentResponsibility objects.\n- page:\
+        \ The page number\
         \ to retrieve. Datatype - integer (default: 1)\n- limit: The number of documents\
         \ to retrieve per page. Datatype - integer (default: 100)\n\nObjects:\n- MetaData:\
         \ {\n\t- key: A given metadata key, this is optional. All metadata will be\
@@ -433,15 +555,14 @@ paths:
         \ with the given key have at least one of the matchesAny values (if key is\
         \ present), or if the complete set of metadata have at least one of the matchesAny\
         \ (when no key is present). Datatype - List of Strings\n}\n- DocumentResponsibility:\
-        \ {\n\t- username: Username. Case-insensitive; stored lowercased. Datatype\
-        \ - String\n}\n"
+        \ {\n\t- personId: Person ID of the responsible party. Datatype - String (UUID)\n}\n"
       operationId: searchByParameters
       parameters:
-      - name: municipalityId
-        in: path
-        required: true
-        schema:
-          type: string
+        - name: municipalityId
+          in: path
+          required: true
+          schema:
+            type: string
       requestBody:
         content:
           application/json:
@@ -461,8 +582,8 @@ paths:
             application/problem+json:
               schema:
                 oneOf:
-                - $ref: "#/components/schemas/Problem"
-                - $ref: "#/components/schemas/ConstraintViolationProblem"
+                  - $ref: "#/components/schemas/Problem"
+                  - $ref: "#/components/schemas/ConstraintViolationProblem"
         "500":
           description: Internal Server error
           content:
@@ -472,18 +593,18 @@ paths:
   /{municipalityId}/admin/documenttypes:
     get:
       tags:
-      - Administration
+        - Administration
       summary: Get document types
       description: Get all existing document types defined in provided municipality.
       operationId: readDocumentTypes
       parameters:
-      - name: municipalityId
-        in: path
-        description: Municipality id
-        required: true
-        schema:
-          type: string
-        example: 2281
+        - name: municipalityId
+          in: path
+          description: Municipality id
+          required: true
+          schema:
+            type: string
+          example: 2281
       responses:
         "200":
           description: Successful operation
@@ -499,8 +620,8 @@ paths:
             application/problem+json:
               schema:
                 oneOf:
-                - $ref: "#/components/schemas/Problem"
-                - $ref: "#/components/schemas/ConstraintViolationProblem"
+                  - $ref: "#/components/schemas/Problem"
+                  - $ref: "#/components/schemas/ConstraintViolationProblem"
         "500":
           description: Internal Server error
           content:
@@ -509,18 +630,18 @@ paths:
                 $ref: "#/components/schemas/Problem"
     post:
       tags:
-      - Administration
+        - Administration
       summary: Create new document type
       description: Creates a new document type in the provided municipality.
       operationId: createDocumentType
       parameters:
-      - name: municipalityId
-        in: path
-        description: Municipality ID
-        required: true
-        schema:
-          type: string
-        example: 2281
+        - name: municipalityId
+          in: path
+          description: Municipality ID
+          required: true
+          schema:
+            type: string
+          example: 2281
       requestBody:
         content:
           application/json:
@@ -541,8 +662,8 @@ paths:
             application/problem+json:
               schema:
                 oneOf:
-                - $ref: "#/components/schemas/Problem"
-                - $ref: "#/components/schemas/ConstraintViolationProblem"
+                  - $ref: "#/components/schemas/Problem"
+                  - $ref: "#/components/schemas/ConstraintViolationProblem"
         "500":
           description: Internal Server error
           content:
@@ -552,40 +673,40 @@ paths:
   /{municipalityId}/documents/{registrationNumber}:
     get:
       tags:
-      - Documents
+        - Documents
       summary: Read document (latest revision).
       operationId: read
       parameters:
-      - name: municipalityId
-        in: path
-        description: Municipality ID
-        required: true
-        schema:
-          type: string
-        example: 2281
-      - name: registrationNumber
-        in: path
-        description: Document registration number
-        required: true
-        schema:
-          type: string
-        example: 2023-2281-1337
-      - name: includeConfidential
-        in: query
-        description: Include confidential records
-        required: false
-        schema:
-          type: boolean
-          default: false
-        example: true
-      - name: includeNonPublic
-        in: query
-        description: "Admin flag: include DRAFT/REVOKED latest revision."
-        required: false
-        schema:
-          type: boolean
-          default: false
-        example: false
+        - name: municipalityId
+          in: path
+          description: Municipality ID
+          required: true
+          schema:
+            type: string
+          example: 2281
+        - name: registrationNumber
+          in: path
+          description: Document registration number
+          required: true
+          schema:
+            type: string
+          example: 2023-2281-1337
+        - name: includeConfidential
+          in: query
+          description: Include confidential records
+          required: false
+          schema:
+            type: boolean
+            default: false
+          example: true
+        - name: includeNonPublic
+          in: query
+          description: "Admin flag: include DRAFT/REVOKED latest revision."
+          required: false
+          schema:
+            type: boolean
+            default: false
+          example: false
       responses:
         "200":
           description: Successful operation
@@ -605,8 +726,8 @@ paths:
             application/problem+json:
               schema:
                 oneOf:
-                - $ref: "#/components/schemas/Problem"
-                - $ref: "#/components/schemas/ConstraintViolationProblem"
+                  - $ref: "#/components/schemas/Problem"
+                  - $ref: "#/components/schemas/ConstraintViolationProblem"
         "500":
           description: Internal Server error
           content:
@@ -615,32 +736,32 @@ paths:
                 $ref: "#/components/schemas/Problem"
     patch:
       tags:
-      - Documents
+        - Documents
       summary: Update document.
       operationId: update
       parameters:
-      - name: municipalityId
-        in: path
-        description: Municipality ID
-        required: true
-        schema:
-          type: string
-        example: 2281
-      - name: registrationNumber
-        in: path
-        description: Document registration number
-        required: true
-        schema:
-          type: string
-        example: 2023-2281-1337
-      - name: includeConfidential
-        in: query
-        description: Include confidential records
-        required: false
-        schema:
-          type: boolean
-          default: false
-        example: true
+        - name: municipalityId
+          in: path
+          description: Municipality ID
+          required: true
+          schema:
+            type: string
+          example: 2281
+        - name: registrationNumber
+          in: path
+          description: Document registration number
+          required: true
+          schema:
+            type: string
+          example: 2023-2281-1337
+        - name: includeConfidential
+          in: query
+          description: Include confidential records
+          required: false
+          schema:
+            type: boolean
+            default: false
+          example: true
       requestBody:
         content:
           application/json:
@@ -666,8 +787,8 @@ paths:
             application/problem+json:
               schema:
                 oneOf:
-                - $ref: "#/components/schemas/Problem"
-                - $ref: "#/components/schemas/ConstraintViolationProblem"
+                  - $ref: "#/components/schemas/Problem"
+                  - $ref: "#/components/schemas/ConstraintViolationProblem"
         "500":
           description: Internal Server error
           content:
@@ -677,24 +798,24 @@ paths:
   /{municipalityId}/documents/{registrationNumber}/confidentiality:
     patch:
       tags:
-      - Documents
+        - Documents
       summary: Update document confidentiality (on all revisions).
       operationId: updateConfidentiality
       parameters:
-      - name: municipalityId
-        in: path
-        description: Municipality ID
-        required: true
-        schema:
-          type: string
-        example: 2281
-      - name: registrationNumber
-        in: path
-        description: Document registration number
-        required: true
-        schema:
-          type: string
-        example: 2023-2281-1337
+        - name: municipalityId
+          in: path
+          description: Municipality ID
+          required: true
+          schema:
+            type: string
+          example: 2281
+        - name: registrationNumber
+          in: path
+          description: Document registration number
+          required: true
+          schema:
+            type: string
+          example: 2023-2281-1337
       requestBody:
         content:
           application/json:
@@ -716,8 +837,8 @@ paths:
             application/problem+json:
               schema:
                 oneOf:
-                - $ref: "#/components/schemas/Problem"
-                - $ref: "#/components/schemas/ConstraintViolationProblem"
+                  - $ref: "#/components/schemas/Problem"
+                  - $ref: "#/components/schemas/ConstraintViolationProblem"
         "500":
           description: Internal Server error
           content:
@@ -727,25 +848,25 @@ paths:
   /{municipalityId}/admin/documenttypes/{type}:
     get:
       tags:
-      - Administration
+        - Administration
       summary: Get document type
       description: Get document type matching provided type and municipality.
       operationId: readDocumentType
       parameters:
-      - name: municipalityId
-        in: path
-        description: Municipality id
-        required: true
-        schema:
-          type: string
-        example: 2281
-      - name: type
-        in: path
-        description: The type to update
-        required: true
-        schema:
-          type: string
-        example: EMPLOYMENT_CERTIFICATE
+        - name: municipalityId
+          in: path
+          description: Municipality id
+          required: true
+          schema:
+            type: string
+          example: 2281
+        - name: type
+          in: path
+          description: The type to update
+          required: true
+          schema:
+            type: string
+          example: EMPLOYMENT_CERTIFICATE
       responses:
         "200":
           description: Successful operation
@@ -759,8 +880,8 @@ paths:
             application/problem+json:
               schema:
                 oneOf:
-                - $ref: "#/components/schemas/Problem"
-                - $ref: "#/components/schemas/ConstraintViolationProblem"
+                  - $ref: "#/components/schemas/Problem"
+                  - $ref: "#/components/schemas/ConstraintViolationProblem"
         "500":
           description: Internal Server error
           content:
@@ -769,26 +890,26 @@ paths:
                 $ref: "#/components/schemas/Problem"
     delete:
       tags:
-      - Administration
+        - Administration
       summary: Delete document type
       description: |
         Deletes an existing document type matching provided type and municipality, but only if the type is not used by any existing document. If type is used then an exception will be returned.
       operationId: deleteDocumentType
       parameters:
-      - name: municipalityId
-        in: path
-        description: Municipality id
-        required: true
-        schema:
-          type: string
-        example: 2281
-      - name: type
-        in: path
-        description: the type to delete
-        required: true
-        schema:
-          type: string
-        example: EMPLOYMENT_CERTIFICATE
+        - name: municipalityId
+          in: path
+          description: Municipality id
+          required: true
+          schema:
+            type: string
+          example: 2281
+        - name: type
+          in: path
+          description: the type to delete
+          required: true
+          schema:
+            type: string
+          example: EMPLOYMENT_CERTIFICATE
       responses:
         "204":
           description: Successful operation
@@ -804,8 +925,8 @@ paths:
             application/problem+json:
               schema:
                 oneOf:
-                - $ref: "#/components/schemas/Problem"
-                - $ref: "#/components/schemas/ConstraintViolationProblem"
+                  - $ref: "#/components/schemas/Problem"
+                  - $ref: "#/components/schemas/ConstraintViolationProblem"
         "500":
           description: Internal Server error
           content:
@@ -814,25 +935,25 @@ paths:
                 $ref: "#/components/schemas/Problem"
     patch:
       tags:
-      - Administration
+        - Administration
       summary: Update document type
       description: Updates an existing document type in the provided municipality.
       operationId: updateDocumentType
       parameters:
-      - name: municipalityId
-        in: path
-        description: Municipality id
-        required: true
-        schema:
-          type: string
-        example: 2281
-      - name: type
-        in: path
-        description: The type to update
-        required: true
-        schema:
-          type: string
-        example: EMPLOYMENT_CERTIFICATE
+        - name: municipalityId
+          in: path
+          description: Municipality id
+          required: true
+          schema:
+            type: string
+          example: 2281
+        - name: type
+          in: path
+          description: The type to update
+          required: true
+          schema:
+            type: string
+          example: EMPLOYMENT_CERTIFICATE
       requestBody:
         content:
           application/json:
@@ -854,8 +975,8 @@ paths:
             application/problem+json:
               schema:
                 oneOf:
-                - $ref: "#/components/schemas/Problem"
-                - $ref: "#/components/schemas/ConstraintViolationProblem"
+                  - $ref: "#/components/schemas/Problem"
+                  - $ref: "#/components/schemas/ConstraintViolationProblem"
         "500":
           description: Internal Server error
           content:
@@ -932,57 +1053,57 @@ paths:
   /{municipalityId}/documents/{registrationNumber}/revisions:
     get:
       tags:
-      - Document revisions
+        - Document revisions
       summary: Read document revisions.
       operationId: readRevisions
       parameters:
-      - name: municipalityId
-        in: path
-        description: Municipality ID
-        required: true
-        schema:
-          type: string
-        example: 2281
-      - name: registrationNumber
-        in: path
-        description: Document registration number
-        required: true
-        schema:
-          type: string
-        example: 2023-2281-1337
-      - name: includeConfidential
-        in: query
-        description: Include confidential records
-        required: false
-        schema:
-          type: boolean
-          default: false
-        example: true
-      - name: page
-        in: query
-        description: Zero-based page index (0..N)
-        required: false
-        schema:
-          type: integer
-          default: 0
-          minimum: 0
-      - name: size
-        in: query
-        description: The size of the page to be returned
-        required: false
-        schema:
-          type: integer
-          default: 20
-          minimum: 1
-      - name: sort
-        in: query
-        description: "Sorting criteria in the format: property,(asc|desc). Default\
-          \ sort order is ascending. Multiple sort criteria are supported."
-        required: false
-        schema:
-          type: array
-          items:
+        - name: municipalityId
+          in: path
+          description: Municipality ID
+          required: true
+          schema:
             type: string
+          example: 2281
+        - name: registrationNumber
+          in: path
+          description: Document registration number
+          required: true
+          schema:
+            type: string
+          example: 2023-2281-1337
+        - name: includeConfidential
+          in: query
+          description: Include confidential records
+          required: false
+          schema:
+            type: boolean
+            default: false
+          example: true
+        - name: page
+          in: query
+          description: Zero-based page index (0..N)
+          required: false
+          schema:
+            type: integer
+            default: 0
+            minimum: 0
+        - name: size
+          in: query
+          description: The size of the page to be returned
+          required: false
+          schema:
+            type: integer
+            default: 20
+            minimum: 1
+        - name: sort
+          in: query
+          description: "Sorting criteria in the format: property,(asc|desc). Default\
+          \ sort order is ascending. Multiple sort criteria are supported."
+          required: false
+          schema:
+            type: array
+            items:
+              type: string
       responses:
         "200":
           description: Successful operation
@@ -996,8 +1117,8 @@ paths:
             application/problem+json:
               schema:
                 oneOf:
-                - $ref: "#/components/schemas/Problem"
-                - $ref: "#/components/schemas/ConstraintViolationProblem"
+                  - $ref: "#/components/schemas/Problem"
+                  - $ref: "#/components/schemas/ConstraintViolationProblem"
         "500":
           description: Internal Server error
           content:
@@ -1007,41 +1128,41 @@ paths:
   /{municipalityId}/documents/{registrationNumber}/revisions/{revision}:
     get:
       tags:
-      - Document revisions
+        - Document revisions
       summary: Read document revision.
       operationId: readRevision
       parameters:
-      - name: municipalityId
-        in: path
-        description: Municipality ID
-        required: true
-        schema:
-          type: string
-        example: 2281
-      - name: registrationNumber
-        in: path
-        description: Document registration number
-        required: true
-        schema:
-          type: string
-        example: 2023-2281-1337
-      - name: revision
-        in: path
-        description: Document revision
-        required: true
-        schema:
-          type: integer
-          format: int32
-          minimum: 0
-        example: 2
-      - name: includeConfidential
-        in: query
-        description: Include confidential records
-        required: false
-        schema:
-          type: boolean
-          default: false
-        example: true
+        - name: municipalityId
+          in: path
+          description: Municipality ID
+          required: true
+          schema:
+            type: string
+          example: 2281
+        - name: registrationNumber
+          in: path
+          description: Document registration number
+          required: true
+          schema:
+            type: string
+          example: 2023-2281-1337
+        - name: revision
+          in: path
+          description: Document revision
+          required: true
+          schema:
+            type: integer
+            format: int32
+            minimum: 0
+          example: 2
+        - name: includeConfidential
+          in: query
+          description: Include confidential records
+          required: false
+          schema:
+            type: boolean
+            default: false
+          example: true
       responses:
         "200":
           description: Successful operation
@@ -1061,8 +1182,8 @@ paths:
             application/problem+json:
               schema:
                 oneOf:
-                - $ref: "#/components/schemas/Problem"
-                - $ref: "#/components/schemas/ConstraintViolationProblem"
+                  - $ref: "#/components/schemas/Problem"
+                  - $ref: "#/components/schemas/ConstraintViolationProblem"
         "500":
           description: Internal Server error
           content:
@@ -1072,74 +1193,74 @@ paths:
   /{municipalityId}/documents/{registrationNumber}/revisions/{revision}/files/{documentDataId}:
     get:
       tags:
-      - Document revisions
+        - Document revisions
       summary: Read document file revision.
       operationId: readFileRevision
       parameters:
-      - name: municipalityId
-        in: path
-        description: Municipality ID
-        required: true
-        schema:
-          type: string
-        example: 2281
-      - name: registrationNumber
-        in: path
-        description: Document registration number
-        required: true
-        schema:
-          type: string
-        example: 2023-2281-1337
-      - name: revision
-        in: path
-        description: Document revision
-        required: true
-        schema:
-          type: integer
-          format: int32
-          minimum: 0
-        example: 2
-      - name: documentDataId
-        in: path
-        description: Document data ID
-        required: true
-        schema:
-          type: string
-        example: 082ba08f-03c7-409f-b8a6-940a1397ba38
-      - name: includeConfidential
-        in: query
-        description: Include confidential records
-        required: false
-        schema:
-          type: boolean
-          default: false
-        example: true
-      - name: accessType
-        in: query
-        description: How this access should be classified in usage statistics.
-        required: false
-        schema:
-          type: string
-          default: DOWNLOAD
-          enum:
-          - DOWNLOAD
-          - VIEW
-        example: DOWNLOAD
-      - name: countStats
-        in: query
-        description: Whether this access should be counted in usage statistics. Set
-          to false for admin previews and test downloads.
-        required: false
-        schema:
-          type: boolean
-          default: true
-        example: true
-      - name: X-Sent-By
-        in: header
-        description: "Identifier of the caller, recorded in usage statistics."
-        required: false
-        schema:
-          type: string
+        - name: municipalityId
+          in: path
+          description: Municipality ID
+          required: true
+          schema:
+            type: string
+          example: 2281
+        - name: registrationNumber
+          in: path
+          description: Document registration number
+          required: true
+          schema:
+            type: string
+          example: 2023-2281-1337
+        - name: revision
+          in: path
+          description: Document revision
+          required: true
+          schema:
+            type: integer
+            format: int32
+            minimum: 0
+          example: 2
+        - name: documentDataId
+          in: path
+          description: Document data ID
+          required: true
+          schema:
+            type: string
+          example: 082ba08f-03c7-409f-b8a6-940a1397ba38
+        - name: includeConfidential
+          in: query
+          description: Include confidential records
+          required: false
+          schema:
+            type: boolean
+            default: false
+          example: true
+        - name: accessType
+          in: query
+          description: How this access should be classified in usage statistics.
+          required: false
+          schema:
+            type: string
+            default: DOWNLOAD
+            enum:
+              - DOWNLOAD
+              - VIEW
+          example: DOWNLOAD
+        - name: countStats
+          in: query
+          description: Whether this access should be counted in usage statistics. Set
+            to false for admin previews and test downloads.
+          required: false
+          schema:
+            type: boolean
+            default: true
+          example: true
+        - name: X-Sent-By
+          in: header
+          description: "Identifier of the caller, recorded in usage statistics."
+          required: false
+          schema:
+            type: string
       responses:
         "200":
           description: Successful operation
@@ -1155,8 +1276,8 @@ paths:
             application/problem+json:
               schema:
                 oneOf:
-                - $ref: "#/components/schemas/Problem"
-                - $ref: "#/components/schemas/ConstraintViolationProblem"
+                  - $ref: "#/components/schemas/Problem"
+                  - $ref: "#/components/schemas/ConstraintViolationProblem"
         "500":
           description: Internal Server error
           content:
@@ -1166,73 +1287,73 @@ paths:
   /{municipalityId}/documents/{registrationNumber}/files/{documentDataId}:
     get:
       tags:
-      - Documents
+        - Documents
       summary: Read document file (latest revision).
       operationId: readFile
       parameters:
-      - name: municipalityId
-        in: path
-        description: Municipality ID
-        required: true
-        schema:
-          type: string
-        example: 2281
-      - name: registrationNumber
-        in: path
-        description: Document registration number
-        required: true
-        schema:
-          type: string
-        example: 2023-2281-1337
-      - name: documentDataId
-        in: path
-        description: Document data ID
-        required: true
-        schema:
-          type: string
-        example: 082ba08f-03c7-409f-b8a6-940a1397ba38
-      - name: includeConfidential
-        in: query
-        description: Include confidential records
-        required: false
-        schema:
-          type: boolean
-          default: false
-        example: true
-      - name: includeNonPublic
-        in: query
-        description: "Admin flag: include DRAFT/REVOKED latest revision."
-        required: false
-        schema:
-          type: boolean
-          default: false
-        example: false
-      - name: accessType
-        in: query
-        description: How this access should be classified in usage statistics.
-        required: false
-        schema:
-          type: string
-          default: DOWNLOAD
-          enum:
-          - DOWNLOAD
-          - VIEW
-        example: DOWNLOAD
-      - name: countStats
-        in: query
-        description: Whether this access should be counted in usage statistics. Set
-          to false for admin previews and test downloads.
-        required: false
-        schema:
-          type: boolean
-          default: true
-        example: true
-      - name: X-Sent-By
-        in: header
-        description: "Identifier of the caller, recorded in usage statistics."
-        required: false
-        schema:
-          type: string
+        - name: municipalityId
+          in: path
+          description: Municipality ID
+          required: true
+          schema:
+            type: string
+          example: 2281
+        - name: registrationNumber
+          in: path
+          description: Document registration number
+          required: true
+          schema:
+            type: string
+          example: 2023-2281-1337
+        - name: documentDataId
+          in: path
+          description: Document data ID
+          required: true
+          schema:
+            type: string
+          example: 082ba08f-03c7-409f-b8a6-940a1397ba38
+        - name: includeConfidential
+          in: query
+          description: Include confidential records
+          required: false
+          schema:
+            type: boolean
+            default: false
+          example: true
+        - name: includeNonPublic
+          in: query
+          description: "Admin flag: include DRAFT/REVOKED latest revision."
+          required: false
+          schema:
+            type: boolean
+            default: false
+          example: false
+        - name: accessType
+          in: query
+          description: How this access should be classified in usage statistics.
+          required: false
+          schema:
+            type: string
+            default: DOWNLOAD
+            enum:
+              - DOWNLOAD
+              - VIEW
+          example: DOWNLOAD
+        - name: countStats
+          in: query
+          description: Whether this access should be counted in usage statistics. Set
+            to false for admin previews and test downloads.
+          required: false
+          schema:
+            type: boolean
+            default: true
+          example: true
+        - name: X-Sent-By
+          in: header
+          description: "Identifier of the caller, recorded in usage statistics."
+          required: false
+          schema:
+            type: string
       responses:
         "200":
           description: Successful operation
@@ -1248,8 +1369,8 @@ paths:
             application/problem+json:
               schema:
                 oneOf:
-                - $ref: "#/components/schemas/Problem"
-                - $ref: "#/components/schemas/ConstraintViolationProblem"
+                  - $ref: "#/components/schemas/Problem"
+                  - $ref: "#/components/schemas/ConstraintViolationProblem"
         "500":
           description: Internal Server error
           content:
@@ -1258,31 +1379,31 @@ paths:
                 $ref: "#/components/schemas/Problem"
     delete:
       tags:
-      - Documents
+        - Documents
       summary: Delete document file.
       operationId: deleteFile
       parameters:
-      - name: municipalityId
-        in: path
-        description: Municipality ID
-        required: true
-        schema:
-          type: string
-        example: 2281
-      - name: registrationNumber
-        in: path
-        description: Document registration number
-        required: true
-        schema:
-          type: string
-        example: 2023-2281-1337
-      - name: documentDataId
-        in: path
-        description: Document data ID
-        required: true
-        schema:
-          type: string
-        example: 082ba08f-03c7-409f-b8a6-940a1397ba38
+        - name: municipalityId
+          in: path
+          description: Municipality ID
+          required: true
+          schema:
+            type: string
+          example: 2281
+        - name: registrationNumber
+          in: path
+          description: Document registration number
+          required: true
+          schema:
+            type: string
+          example: 2023-2281-1337
+        - name: documentDataId
+          in: path
+          description: Document data ID
+          required: true
+          schema:
+            type: string
+          example: 082ba08f-03c7-409f-b8a6-940a1397ba38
       responses:
         "204":
           description: Successful operation
@@ -1298,8 +1419,8 @@ paths:
             application/problem+json:
               schema:
                 oneOf:
-                - $ref: "#/components/schemas/Problem"
-                - $ref: "#/components/schemas/ConstraintViolationProblem"
+                  - $ref: "#/components/schemas/Problem"
+                  - $ref: "#/components/schemas/ConstraintViolationProblem"
         "500":
           description: Internal Server error
           content:
@@ -1309,7 +1430,7 @@ paths:
   /api-docs:
     get:
       tags:
-      - API
+        - API
       summary: OpenAPI
       operationId: getApiDocs
       responses:
@@ -1344,11 +1465,11 @@ components:
       type: object
       description: Document responsibilities update request model.
       properties:
-        changedBy:
+        updatedBy:
           type: string
-          description: Actor that performed this change.
+          description: PersonId of the actor that performed this change.
           examples:
-          - username123
+            - 6c3e4f5a-7b8d-4e9c-a1f2-d3e4b5c6a7f8
           minLength: 1
         responsibilities:
           type: array
@@ -1356,21 +1477,20 @@ components:
             $ref: "#/components/schemas/DocumentResponsibility"
             description: List of document responsibilities.
       required:
-      - changedBy
-      - responsibilities
+        - updatedBy
+        - responsibilities
     DocumentResponsibility:
       type: object
       description: Document responsibility model.
       properties:
-        username:
+        personId:
           type: string
-          description: Username. Case-insensitive; stored lowercased.
+          description: Person ID of the responsible party.
           examples:
-          - username123
-          maxLength: 255
-          minLength: 0
+            - 6b8d4a1c-34e2-4f73-a5f1-b7c2e9a0d8c4
+          minLength: 1
       required:
-      - username
+        - personId
     ConstraintViolationProblem:
       type: object
       properties:
@@ -1423,12 +1543,12 @@ components:
       properties:
         createdBy:
           type: string
-          description: Actor that created this revision
+          description: PersonId of the actor that created this revision.
           examples:
-          - username123
+            - 6c3e4f5a-7b8d-4e9c-a1f2-d3e4b5c6a7f8
           minLength: 1
       required:
-      - createdBy
+        - createdBy
     Confidentiality:
       type: object
       description: Confidentiality model.
@@ -1439,22 +1559,22 @@ components:
             A flag that can be set to alert administrative users handling the information that there are some special privacy policies to follow for the person in question.
             If there are special privacy policies to follow for this record, this flag should be set to 'true', otherwise 'false'.
           examples:
-          - "true"
+            - "true"
         legalCitation:
           type: string
           description: Legal citation
           examples:
-          - 25 kap. 1 § OSL
+            - 25 kap. 1 § OSL
     DocumentCreateRequest:
       type: object
       description: DocumentCreateRequest model.
       properties:
         createdBy:
           type: string
-          description: Actor that created this revision (all modifications will create
-            new revisions)
+          description: PersonId of the actor that created this revision (all modifications
+            will create new revisions).
           examples:
-          - username123
+            - 6c3e4f5a-7b8d-4e9c-a1f2-d3e4b5c6a7f8
           minLength: 1
         confidentiality:
           $ref: "#/components/schemas/Confidentiality"
@@ -1463,12 +1583,19 @@ components:
           type: boolean
           description: Tells if the document is eligible for archiving
           examples:
-          - "false"
+            - "false"
+        title:
+          type: string
+          description: Document title
+          examples:
+            - Employment certificate for John Doe. Maximum 255 characters.
+          maxLength: 255
+          minLength: 0
         description:
           type: string
           description: Document description
           examples:
-          - A brief description of this object. Maximum 8192 characters.
+            - A brief description of this object. Maximum 8192 characters.
           maxLength: 8192
           minLength: 0
         metadataList:
@@ -1476,7 +1603,6 @@ components:
           description: List of DocumentMetadata objects.
           items:
             $ref: "#/components/schemas/DocumentMetadata"
-          minItems: 1
         responsibilities:
           type: array
           description: Document responsibilities.
@@ -1487,25 +1613,25 @@ components:
           description: The type of document (validated against a defined list of document
             types).
           examples:
-          - EMPLOYMENT_CERTIFICATE
+            - EMPLOYMENT_CERTIFICATE
           minLength: 1
         validFrom:
           type: string
           format: date
           description: Start of validity period (inclusive). ISO date (yyyy-MM-dd).
           examples:
-          - 2026-04-15
+            - 2026-04-15
         validTo:
           type: string
           format: date
           description: End of validity period (inclusive). ISO date (yyyy-MM-dd).
           examples:
-          - 2027-04-15
+            - 2027-04-15
       required:
-      - createdBy
-      - description
-      - metadataList
-      - type
+        - createdBy
+        - description
+        - title
+        - type
     DocumentMetadata:
       type: object
       description: DocumentMetadata model
@@ -1514,22 +1640,22 @@ components:
           type: string
           description: Metadata key
           examples:
-          - Some key
+            - Some key
           minLength: 1
         value:
           type: string
           description: Metadata value
           examples:
-          - Some value
+            - Some value
           minLength: 1
       required:
-      - key
-      - value
+        - key
+        - value
     Direction:
       type: string
       enum:
-      - ASC
-      - DESC
+        - ASC
+        - DESC
     DocumentParameters:
       type: object
       properties:
@@ -1539,7 +1665,7 @@ components:
           default: 1
           description: Page number
           examples:
-          - "1"
+            - "1"
           minimum: 1
         limit:
           type: integer
@@ -1547,7 +1673,7 @@ components:
           description: Result size per page. Maximum allowed value is dynamically
             configured
           examples:
-          - "15"
+            - "15"
           minimum: 1
         sortBy:
           type: array
@@ -1555,35 +1681,35 @@ components:
             type: string
             description: The properties to sort on
             examples:
-            - propertyName
+              - propertyName
         sortDirection:
           $ref: "#/components/schemas/Direction"
           description: The sort order direction
           examples:
-          - ASC
+            - ASC
         municipalityId:
           type: string
           description: Municipality identifier
           examples:
-          - "1234"
+            - "1234"
           readOnly: true
         createdBy:
           type: string
-          description: Filter by the user that created the document
+          description: Filter by personId of the actor that created the document.
           examples:
-          - User1
+            - 6c3e4f5a-7b8d-4e9c-a1f2-d3e4b5c6a7f8
         includeConfidential:
           type: boolean
           default: false
           description: Should the search include confidential documents?
           examples:
-          - "true"
+            - "true"
         onlyLatestRevision:
           type: boolean
           default: false
           description: Should the search include only the latest revision of the documents?
           examples:
-          - "true"
+            - "true"
         documentTypes:
           type: array
           description: List of document types
@@ -1607,7 +1733,7 @@ components:
             A null validFrom is treated as valid from the beginning of time; a null
             validTo is treated as valid forever. ISO date (yyyy-MM-dd).
           examples:
-          - 2026-04-15
+            - 2026-04-15
         statuses:
           type: array
           items:
@@ -1616,11 +1742,11 @@ components:
               \ (SCHEDULED, ACTIVE, EXPIRED) - DRAFT and REVOKED are excluded. When\
               \ set explicitly, the list is used as-is."
             enum:
-            - DRAFT
-            - SCHEDULED
-            - ACTIVE
-            - EXPIRED
-            - REVOKED
+              - DRAFT
+              - SCHEDULED
+              - ACTIVE
+              - EXPIRED
+              - REVOKED
     MetaData:
       type: object
       properties:
@@ -1628,7 +1754,7 @@ components:
           type: string
           description: Metadata key
           examples:
-          - Some key
+            - Some key
         matchesAny:
           type: array
           items:
@@ -1647,52 +1773,57 @@ components:
           type: string
           description: ID of the document.
           examples:
-          - 0d64c132-3aea-11ec-8d3d-0242ac130003
+            - 0d64c132-3aea-11ec-8d3d-0242ac130003
         municipalityId:
           type: string
           description: Municipality ID
           examples:
-          - "2281"
+            - "2281"
         registrationNumber:
           type: string
           description: "Registration number on the format [YYYY-nnnn-nnnn]."
           examples:
-          - 2023-2281-1337
+            - 2023-2281-1337
         revision:
           type: integer
           format: int32
           description: Document revision.
           examples:
-          - "2"
+            - "2"
         confidentiality:
           $ref: "#/components/schemas/Confidentiality"
           description: Confidentiality
+        title:
+          type: string
+          description: Document title
+          examples:
+            - Employment certificate for John Doe.
         description:
           type: string
           description: Document description
           examples:
-          - A brief description of this object.
+            - A brief description of this object.
         created:
           type: string
           format: date-time
           description: Timestamp when document revision was created.
           examples:
-          - 2023-08-31T01:30:00.000+02:00
+            - 2023-08-31T01:30:00.000+02:00
         createdBy:
           type: string
-          description: Actor that created this revision.
+          description: PersonId of the actor that created this revision.
           examples:
-          - username123
+            - 6c3e4f5a-7b8d-4e9c-a1f2-d3e4b5c6a7f8
         updatedBy:
           type: string
-          description: Actor that last updated this document.
+          description: PersonId of the actor that last updated this document.
           examples:
-          - username456
+            - 6c3e4f5a-7b8d-4e9c-a1f2-d3e4b5c6a7f8
         archive:
           type: boolean
           description: Tells if the document is eligible for archiving
           examples:
-          - "false"
+            - "false"
         metadataList:
           type: array
           description: List of DocumentMetadata objects.
@@ -1712,30 +1843,30 @@ components:
           type: string
           description: Document type
           examples:
-          - Type for the document.
+            - Type for the document.
         validFrom:
           type: string
           format: date
           description: Start of validity period (inclusive). ISO date (yyyy-MM-dd).
           examples:
-          - 2026-04-15
+            - 2026-04-15
         validTo:
           type: string
           format: date
           description: End of validity period (inclusive). ISO date (yyyy-MM-dd).
           examples:
-          - 2027-04-15
+            - 2027-04-15
         status:
           type: string
           description: Lifecycle status of this revision.
           enum:
-          - DRAFT
-          - SCHEDULED
-          - ACTIVE
-          - EXPIRED
-          - REVOKED
+            - DRAFT
+            - SCHEDULED
+            - ACTIVE
+            - EXPIRED
+            - REVOKED
           examples:
-          - ACTIVE
+            - ACTIVE
       readOnly: true
     DocumentData:
       type: object
@@ -1745,23 +1876,23 @@ components:
           type: string
           description: ID of the document data.
           examples:
-          - 082ba08f-03c7-409f-b8a6-940a1397ba38
+            - 082ba08f-03c7-409f-b8a6-940a1397ba38
         fileName:
           type: string
           description: File name.
           examples:
-          - my-file.pdf
+            - my-file.pdf
         mimeType:
           type: string
           description: The mime type of the file.
           examples:
-          - application/pdf
+            - application/pdf
         fileSizeInBytes:
           type: integer
           format: int64
           description: File size in bytes
           examples:
-          - "5068"
+            - "5068"
       readOnly: true
     PagedDocumentResponse:
       type: object
@@ -1774,6 +1905,57 @@ components:
         _meta:
           $ref: "#/components/schemas/PagingMetaData"
       readOnly: true
+    PagedDocumentMatchResponse:
+      type: object
+      description: "Paged document match response — documents that matched a fulltext\
+        \ search, stripped to the matching files."
+      properties:
+        documents:
+          type: array
+          items:
+            $ref: "#/components/schemas/DocumentMatch"
+        _meta:
+          $ref: "#/components/schemas/PagingMetaData"
+      readOnly: true
+    DocumentMatch:
+      type: object
+      description: Document match — a document that contains one or more files matching
+        a fulltext search.
+      properties:
+        id:
+          type: string
+          description: ID of the matching document.
+          examples:
+            - 082ba08f-03c7-409f-b8a6-940a1397ba38
+        files:
+          type: array
+          items:
+            $ref: "#/components/schemas/FileMatch"
+      readOnly: true
+    FileMatch:
+      type: object
+      description: File match — identifies a file that matched a fulltext search.
+      properties:
+        id:
+          type: string
+          description: ID of the matching file.
+          examples:
+            - 082ba08f-03c7-409f-b8a6-940a1397ba38
+        fileName:
+          type: string
+          description: File name.
+          examples:
+            - my-file.pdf
+        highlights:
+          type: object
+          additionalProperties:
+            type: array
+            items:
+              type: string
+          description: "Highlighted fragments grouped by matched field (e.g. extractedText,\
+            \ title, description, fileName). Matches are wrapped in <em>…</em>. Only\
+            \ fields with matches appear."
+      readOnly: true
     PagingMetaData:
       type: object
       description: PagingMetaData model
@@ -1783,35 +1965,35 @@ components:
           format: int32
           description: Current page
           examples:
-          - "5"
+            - "5"
           readOnly: true
         limit:
           type: integer
           format: int32
           description: Displayed objects per page
           examples:
-          - "20"
+            - "20"
           readOnly: true
         count:
           type: integer
           format: int32
           description: Displayed objects on current page
           examples:
-          - "13"
+            - "13"
           readOnly: true
         totalRecords:
           type: integer
           format: int64
           description: Total amount of hits based on provided search parameters
           examples:
-          - "98"
+            - "98"
           readOnly: true
         totalPages:
           type: integer
           format: int32
           description: Total amount of pages based on provided search parameters
           examples:
-          - "23"
+            - "23"
           readOnly: true
     DocumentTypeCreateRequest:
       type: object
@@ -1820,45 +2002,52 @@ components:
           type: string
           description: Identifier for the document type
           examples:
-          - EMPLOYMENT_CERTIFICATE
+            - EMPLOYMENT_CERTIFICATE
           minLength: 1
         displayName:
           type: string
           description: Display name for the document type
           examples:
-          - Anställningsbevis
+            - Anställningsbevis
           minLength: 1
         createdBy:
           type: string
-          description: Identifier for performing person
+          description: PersonId of the actor that created this document type.
           examples:
-          - username123
+            - 6c3e4f5a-7b8d-4e9c-a1f2-d3e4b5c6a7f8
           minLength: 1
       required:
-      - createdBy
-      - displayName
-      - type
+        - createdBy
+        - displayName
+        - type
     DocumentUpdateRequest:
       type: object
       description: DocumentUpdateRequest model.
       properties:
         updatedBy:
           type: string
-          description: Actor that performed the update.
+          description: PersonId of the actor that performed the update.
           examples:
-          - username123
+            - 6c3e4f5a-7b8d-4e9c-a1f2-d3e4b5c6a7f8
+        title:
+          type: string
+          description: Document title
+          examples:
+            - Employment certificate for John Doe. Maximum 255 characters.
+          maxLength: 255
+          minLength: 0
         description:
           type: string
           description: Document description
           examples:
-          - A brief description of this object. Maximum 8192 characters.
+            - A brief description of this object. Maximum 8192 characters.
           maxLength: 8192
           minLength: 0
         archive:
           type: boolean
           description: Tells if the document is eligible for archiving
           examples:
-          - "false"
+            - "false"
         metadataList:
           type: array
           description: List of DocumentMetadata objects.
@@ -1869,21 +2058,21 @@ components:
           description: The type of document (validated against a defined list of document
             types).
           examples:
-          - EMPLOYMENT_CERTIFICATE
+            - EMPLOYMENT_CERTIFICATE
         validFrom:
           type: string
           format: date
           description: Start of validity period (inclusive). ISO date (yyyy-MM-dd).
             Omit to leave unchanged.
           examples:
-          - 2026-04-15
+            - 2026-04-15
         validTo:
           type: string
           format: date
           description: End of validity period (inclusive). ISO date (yyyy-MM-dd).
             Omit to leave unchanged.
           examples:
-          - 2027-04-15
+            - 2027-04-15
     ConfidentialityUpdateRequest:
       type: object
       description: ConfidentialityUpdateRequest model.
@@ -1895,21 +2084,21 @@ components:
             If there are special privacy policies to follow for this record, this flag should be set to 'true', otherwise 'false'.
             Please note: This will affect all revisions, not just the latest revision.
           examples:
-          - "false"
+            - "false"
         legalCitation:
           type: string
           description: Legal citation
           examples:
-          - 25 kap. 1 § OSL
-        changedBy:
+            - 25 kap. 1 § OSL
+        updatedBy:
           type: string
-          description: Actor that performed this change
+          description: PersonId of the actor that performed this change.
           examples:
-          - username123
+            - 6c3e4f5a-7b8d-4e9c-a1f2-d3e4b5c6a7f8
           minLength: 1
       required:
-      - changedBy
-      - confidential
+        - confidential
+        - updatedBy
     DocumentTypeUpdateRequest:
       type: object
       properties:
@@ -1917,20 +2106,20 @@ components:
           type: string
           description: Display name for the document type
           examples:
-          - Anställningsbevis
+            - Anställningsbevis
         type:
           type: string
           description: Identifier for the document type
           examples:
-          - EMPLOYMENT_CERTIFICATE
+            - EMPLOYMENT_CERTIFICATE
         updatedBy:
           type: string
-          description: Identifier for performing person
+          description: PersonId of the actor that updated this document type.
           examples:
-          - username123
+            - 6c3e4f5a-7b8d-4e9c-a1f2-d3e4b5c6a7f8
           minLength: 1
       required:
-      - updatedBy
+        - updatedBy
     DocumentStatistics:
       type: object
       description: Aggregated usage statistics for a document.
@@ -1939,31 +2128,31 @@ components:
           type: string
           description: Municipality ID.
           examples:
-          - "2281"
+            - "2281"
         registrationNumber:
           type: string
           description: Registration number.
           examples:
-          - 2023-2281-1337
+            - 2023-2281-1337
         from:
           type: string
           format: date-time
           description: Inclusive lower bound of the aggregation window. Null if unbounded.
           examples:
-          - 2026-01-01T00:00:00+01:00
+            - 2026-01-01T00:00:00+01:00
         to:
           type: string
           format: date-time
           description: Exclusive upper bound of the aggregation window. Null if unbounded.
           examples:
-          - 2026-04-17T00:00:00+02:00
+            - 2026-04-17T00:00:00+02:00
         totalAccesses:
           type: integer
           format: int64
           description: Total accesses across all revisions and files within the aggregation
             window.
           examples:
-          - "142"
+            - "142"
         perRevision:
           type: array
           description: Per-revision breakdown.
@@ -1978,25 +2167,25 @@ components:
           type: string
           description: Document data ID.
           examples:
-          - 082ba08f-03c7-409f-b8a6-940a1397ba38
+            - 082ba08f-03c7-409f-b8a6-940a1397ba38
         fileName:
           type: string
           description: File name. May be null if the file no longer exists in any
             revision of the document.
           examples:
-          - report.pdf
+            - report.pdf
         downloads:
           type: integer
           format: int64
           description: "Number of download accesses (Content-Disposition: attachment)."
           examples:
-          - "20"
+            - "20"
         views:
           type: integer
           format: int64
           description: "Number of view accesses (Content-Disposition: inline)."
           examples:
-          - "35"
+            - "35"
       readOnly: true
     RevisionStatistics:
       type: object
@@ -2007,19 +2196,19 @@ components:
           format: int32
           description: Document revision number.
           examples:
-          - "2"
+            - "2"
         downloads:
           type: integer
           format: int64
           description: Total download accesses across all files in this revision.
           examples:
-          - "30"
+            - "30"
         views:
           type: integer
           format: int64
           description: Total view accesses across all files in this revision.
           examples:
-          - "50"
+            - "50"
         perFile:
           type: array
           description: Per-file breakdown.
@@ -2034,15 +2223,15 @@ components:
           type: string
           description: Identifier for the document type
           examples:
-          - EMPLOYMENT_CERTIFICATE
+            - EMPLOYMENT_CERTIFICATE
           minLength: 1
         displayName:
           type: string
           description: Display name for the document type
           examples:
-          - Anställningsbevis
+            - Anställningsbevis
           minLength: 1
       required:
-      - displayName
-      - type
+        - displayName
+        - type
   securitySchemes: {}

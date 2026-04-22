@@ -4,7 +4,6 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.jdbc.Sql;
-import se.sundsvall.dept44.test.AbstractAppTest;
 import se.sundsvall.dept44.test.annotation.wiremock.WireMockAppTestSuite;
 import se.sundsvall.document.Application;
 import se.sundsvall.document.integration.db.DocumentTypeRepository;
@@ -27,7 +26,7 @@ import static org.springframework.http.HttpStatus.OK;
 	"/db/scripts/truncate.sql",
 	"/db/scripts/testdata-it.sql"
 })
-class DocumentTypeIT extends AbstractAppTest {
+class DocumentTypeIT extends AbstractDocumentAppTest {
 
 	private static final String PATH = "/%s/admin/documenttypes";
 	private static final String REQUEST_FILE = "request.json";
@@ -73,7 +72,7 @@ class DocumentTypeIT extends AbstractAppTest {
 		assertThat(repository.existsByMunicipalityIdAndType("2262", "MISSPELLED")).isFalse();
 		assertThat(repository.findByMunicipalityIdAndType("2262", "CONFIDENTIALITY_AGREEMENT")).isPresent().hasValueSatisfying(entity -> {
 			assertThat(entity.getDisplayName()).isEqualTo("Sekretessavtal");
-			assertThat(entity.getLastUpdatedBy()).isEqualTo("abc123");
+			assertThat(entity.getLastUpdatedBy()).isEqualTo("b0000000-0000-0000-0000-000000000def");
 			assertThat(entity.getType()).isEqualTo("CONFIDENTIALITY_AGREEMENT");
 		});
 	}

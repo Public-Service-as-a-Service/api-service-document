@@ -25,7 +25,7 @@ class DocumentTypeCreateRequestTest {
 
 	@Test
 	void testBuilderMethods() {
-		final var createdBy = "createdBy";
+		final var createdBy = "b0000000-0000-0000-0000-0000000000c1";
 		final var displayName = "displayName";
 		final var type = "type";
 

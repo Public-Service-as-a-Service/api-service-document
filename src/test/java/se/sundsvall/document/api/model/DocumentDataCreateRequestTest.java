@@ -26,7 +26,7 @@ class DocumentDataCreateRequestTest {
 	@Test
 	void testBuilderMethods() {
 
-		final var createdBy = "user";
+		final var createdBy = "b0000000-0000-0000-0000-000000000099";
 
 		final var bean = DocumentDataCreateRequest.create()
 			.withCreatedBy(createdBy);

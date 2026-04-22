@@ -37,7 +37,7 @@ class DocumentParametersTest {
 	void testBuilderMethods() {
 
 		var municipalityId = "2281";
-		var createdBy = "User1";
+		var createdBy = "a0000001-0000-0000-0000-000000000001";
 		var includeConfidential = true;
 		var onlyLatestRevision = true;
 		var documentTypes = List.of("type1", "type2");
@@ -46,7 +46,7 @@ class DocumentParametersTest {
 				.withKey("key1")
 				.withMatchesAny(List.of("value1", "value2"))
 				.withMatchesAll(List.of("value1", "value2")));
-		var responsibilities = List.of(DocumentResponsibility.create().withUsername(createdBy));
+		var responsibilities = List.of(DocumentResponsibility.create().withPersonId("6b8d4a1c-34e2-4f73-a5f1-b7c2e9a0d8c4"));
 		var validOn = LocalDate.of(2026, 4, 15);
 		var statuses = List.of(DocumentStatus.ACTIVE, DocumentStatus.SCHEDULED);
 

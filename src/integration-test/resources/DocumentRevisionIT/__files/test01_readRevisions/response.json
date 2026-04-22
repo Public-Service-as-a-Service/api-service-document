@@ -2,12 +2,13 @@
 	"documents": [
 		{
 			"municipalityId": "2281",
-			"createdBy": "User1",
+			"createdBy": "a0000001-0000-0000-0000-000000000001",
 			"registrationNumber": "2023-2281-123",
 			"created": "2023-06-28T12:01:00+02:00",
 			"confidentiality": {
 				"confidential": false
 			},
+			"title": "Document 1",
 			"description": "Document 1",
 			"archive": false,
 			"id": "159c10bf-1b32-471b-b2d3-c4b4b13ea152",
@@ -42,12 +43,13 @@
 		},
 		{
 			"municipalityId": "2281",
-			"createdBy": "User3",
+			"createdBy": "a0000003-0000-0000-0000-000000000003",
 			"registrationNumber": "2023-2281-123",
 			"created": "2023-06-28T12:03:00+02:00",
 			"confidentiality": {
 				"confidential": false
 			},
+			"title": "Document 1",
 			"description": "Document 1",
 			"archive": true,
 			"id": "612dc8d0-e6b7-426c-abcc-c9b49ae1e7e2",
@@ -86,12 +88,13 @@
 		},
 		{
 			"municipalityId": "2281",
-			"createdBy": "User2",
+			"createdBy": "a0000002-0000-0000-0000-000000000002",
 			"registrationNumber": "2023-2281-123",
 			"created": "2023-06-28T12:02:00+02:00",
 			"confidentiality": {
 				"confidential": false
 			},
+			"title": "Document 1",
 			"description": "Document 1",
 			"archive": false,
 			"id": "8efd63a3-b525-4581-8b0b-9759f381a5a5",

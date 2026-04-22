@@ -1,7 +1,6 @@
 package se.sundsvall.document.service.storage;
 
 import java.net.URI;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -13,7 +12,6 @@ import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.S3Configuration;
 
 @Configuration
-@ConditionalOnProperty(name = "document.storage.backend", havingValue = "s3")
 @EnableConfigurationProperties(S3StorageProperties.class)
 public class S3StorageConfiguration {
 
@@ -28,11 +26,12 @@ public class S3StorageConfiguration {
 				.pathStyleAccessEnabled(properties.pathStyleAccess())
 				.build());
 
-		if (properties.endpoint() != null) {
+		if (properties.endpoint() != null && !properties.endpoint().isBlank()) {
 			builder.endpointOverride(URI.create(properties.endpoint()));
 		}
 
-		if (properties.accessKey() != null && properties.secretKey() != null) {
+		if (properties.accessKey() != null && !properties.accessKey().isBlank()
+			&& properties.secretKey() != null && !properties.secretKey().isBlank()) {
 			builder.credentialsProvider(StaticCredentialsProvider.create(
 				AwsBasicCredentials.create(properties.accessKey(), properties.secretKey())));
 		} else {

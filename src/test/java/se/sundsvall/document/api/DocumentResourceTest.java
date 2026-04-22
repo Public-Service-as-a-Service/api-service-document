@@ -780,6 +780,62 @@ class DocumentResourceTest {
 	}
 
 	@Test
+	void putWithFilesToDeleteOnly_routesToAddOrReplaceFiles() {
+
+		// Pure-delete flow through the PUT endpoint: no uploaded files, only filesToDelete in the
+		// JSON part. Must still hit the single add/replace/delete entrypoint so the revision only
+		// bumps once.
+		final var registrationNumber = "2023-1337";
+		final var fileIdToDelete = randomUUID().toString();
+		final var documentDataCreateRequest = DocumentDataCreateRequest.create()
+			.withCreatedBy("b0000000-0000-0000-0000-000000000099")
+			.withFilesToDelete(List.of(fileIdToDelete));
+		final var multipartBodyBuilder = new MultipartBodyBuilder();
+		multipartBodyBuilder.part("document", documentDataCreateRequest);
+
+		when(documentFileServiceMock.addOrReplaceFiles(any(), any(), any(), any())).thenReturn(Document.create());
+
+		// Act
+		webTestClient.put()
+			.uri("/2281/documents/" + registrationNumber + "/files")
+			.contentType(MULTIPART_FORM_DATA)
+			.body(fromMultipartData(multipartBodyBuilder.build()))
+			.exchange()
+			.expectStatus().isNoContent();
+
+		// Assert
+		verify(documentFileServiceMock).addOrReplaceFiles(eq(registrationNumber), eq(documentDataCreateRequest), ArgumentMatchers.<DocumentFiles>any(), eq("2281"));
+	}
+
+	@Test
+	void putWithAddAndDelete_combinedIntoSingleServiceCall() {
+
+		// Both a new file AND a filesToDelete — the resource should forward the whole changeset in
+		// one service call (one revision bump).
+		final var registrationNumber = "2023-1337";
+		final var fileIdToDelete = randomUUID().toString();
+		final var documentDataCreateRequest = DocumentDataCreateRequest.create()
+			.withCreatedBy("b0000000-0000-0000-0000-000000000099")
+			.withFilesToDelete(List.of(fileIdToDelete));
+		final var multipartBodyBuilder = new MultipartBodyBuilder();
+		multipartBodyBuilder.part("documentFiles", "new-content").filename("replacement.txt").contentType(TEXT_PLAIN);
+		multipartBodyBuilder.part("document", documentDataCreateRequest);
+
+		when(documentFileServiceMock.addOrReplaceFiles(any(), any(), any(), any())).thenReturn(Document.create());
+
+		// Act
+		webTestClient.put()
+			.uri("/2281/documents/" + registrationNumber + "/files")
+			.contentType(MULTIPART_FORM_DATA)
+			.body(fromMultipartData(multipartBodyBuilder.build()))
+			.exchange()
+			.expectStatus().isNoContent();
+
+		// Assert
+		verify(documentFileServiceMock).addOrReplaceFiles(eq(registrationNumber), eq(documentDataCreateRequest), ArgumentMatchers.<DocumentFiles>any(), eq("2281"));
+	}
+
+	@Test
 	void deleteFile() {
 
 		// Arrange

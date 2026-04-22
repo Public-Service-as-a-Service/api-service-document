@@ -27,12 +27,15 @@ class DocumentDataCreateRequestTest {
 	void testBuilderMethods() {
 
 		final var createdBy = "b0000000-0000-0000-0000-000000000099";
+		final var filesToDelete = java.util.List.of("082ba08f-03c7-409f-b8a6-940a1397ba38");
 
 		final var bean = DocumentDataCreateRequest.create()
-			.withCreatedBy(createdBy);
+			.withCreatedBy(createdBy)
+			.withFilesToDelete(filesToDelete);
 
 		assertThat(bean).isNotNull().hasNoNullFieldsOrProperties();
 		assertThat(bean.getCreatedBy()).isEqualTo(createdBy);
+		assertThat(bean.getFilesToDelete()).isEqualTo(filesToDelete);
 	}
 
 	@Test

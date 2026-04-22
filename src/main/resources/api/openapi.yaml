@@ -73,10 +73,11 @@ paths:
     put:
       tags:
         - Documents
-      summary: Add document file data (or replace existing if filename already exists
-        on the document object). Accepts either a single file via 'documentFile' (deprecated)
-        or multiple files via 'documentFiles' — in both cases the operation produces
-        exactly one new revision.
+      summary: "Add, replace, and/or delete document files — one revision bump for\
+        \ the whole changeset. Uploads go via 'documentFile' (deprecated, single) or\
+        \ 'documentFiles' (batch); existing files are replaced by filename match. Deletions\
+        \ are opt-in via 'document.filesToDelete' (list of data IDs from the current\
+        \ revision). At least one add/replace or delete must be supplied."
       operationId: addOrReplaceFile
       parameters:
         - name: municipalityId
@@ -1555,6 +1556,15 @@ components:
           examples:
             - 6c3e4f5a-7b8d-4e9c-a1f2-d3e4b5c6a7f8
           minLength: 1
+        filesToDelete:
+          type: array
+          items:
+            type: string
+            description: "Document data IDs (from the current revision) to drop in\
+              \ the new revision. Combined with any uploaded files to produce a\
+              \ single revision bump. Unknown IDs → 404."
+            examples:
+              - 082ba08f-03c7-409f-b8a6-940a1397ba38
       required:
         - createdBy
     Confidentiality:

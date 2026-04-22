@@ -277,7 +277,7 @@ class DocumentResource {
 		APPLICATION_JSON_VALUE
 	})
 	@Operation(
-		summary = "Add document file data (or replace existing if filename already exists on the document object). Accepts either a single file via 'documentFile' (deprecated) or multiple files via 'documentFiles' — in both cases the operation produces exactly one new revision.",
+		summary = "Add, replace, and/or delete document files — one revision bump for the whole changeset. Uploads go via 'documentFile' (deprecated, single) or 'documentFiles' (batch); existing files are replaced by filename match. Deletions are opt-in via 'document.filesToDelete' (list of data IDs from the current revision). At least one add/replace or delete must be supplied.",
 		responses = {
 			@ApiResponse(responseCode = "204", description = "Successful operation", useReturnTypeSchema = true),
 			@ApiResponse(responseCode = "404", description = "Not found", content = @Content(mediaType = APPLICATION_PROBLEM_JSON_VALUE, schema = @Schema(implementation = Problem.class)))
@@ -293,23 +293,32 @@ class DocumentResource {
 		final var documentDataCreateRequest = objectMapper.readValue(documentDataString, DocumentDataCreateRequest.class);
 		validate(documentDataCreateRequest);
 
-		final var files = resolveFiles(documentFile, documentFiles);
-		validate(files);
+		final var hasDeletes = documentDataCreateRequest.getFilesToDelete() != null && !documentDataCreateRequest.getFilesToDelete().isEmpty();
+		final var files = resolveFiles(documentFile, documentFiles, hasDeletes);
+		// Only validate file-level constraints (content type, duplicate filenames) when new files
+		// are actually supplied. A pure-delete request has no files to validate.
+		if (files.getFiles() != null && !files.getFiles().isEmpty()) {
+			validate(files);
+		}
 
 		documentFileService.addOrReplaceFiles(registrationNumber, documentDataCreateRequest, files, municipalityId);
 
 		return noContent().build();
 	}
 
-	private static DocumentFiles resolveFiles(final MultipartFile documentFile, final List<MultipartFile> documentFiles) {
+	private static DocumentFiles resolveFiles(final MultipartFile documentFile, final List<MultipartFile> documentFiles, final boolean hasDeletes) {
 		final var hasSingular = documentFile != null && !documentFile.isEmpty();
 		final var hasBatch = documentFiles != null && !documentFiles.isEmpty();
 
-		if (hasSingular == hasBatch) {
-			throw Problem.valueOf(BAD_REQUEST, "Provide exactly one of 'documentFile' (deprecated) or 'documentFiles'.");
+		if (hasSingular && hasBatch) {
+			throw Problem.valueOf(BAD_REQUEST, "Provide at most one of 'documentFile' (deprecated) or 'documentFiles'.");
+		}
+		if (!hasSingular && !hasBatch && !hasDeletes) {
+			throw Problem.valueOf(BAD_REQUEST, "Provide at least one of 'documentFile' (deprecated), 'documentFiles', or 'document.filesToDelete'.");
 		}
 
-		return DocumentFiles.create().withFiles(hasBatch ? documentFiles : List.of(documentFile));
+		final var resolved = hasBatch ? documentFiles : (hasSingular ? List.of(documentFile) : List.<MultipartFile>of());
+		return DocumentFiles.create().withFiles(resolved);
 	}
 
 	@DeleteMapping(path = "/{registrationNumber}/files/{documentDataId}", produces = {

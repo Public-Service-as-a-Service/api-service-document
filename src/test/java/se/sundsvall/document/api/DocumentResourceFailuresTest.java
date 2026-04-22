@@ -789,6 +789,34 @@ class DocumentResourceFailuresTest {
 	}
 
 	@Test
+	void putFilesWithNeitherUploadsNorDeletes_returns400() {
+
+		// Arrange — no 'documentFile', no 'documentFiles', no 'filesToDelete'. Purely a no-op
+		// request; should be rejected before any service call.
+		final var registrationNumber = "2023-1337";
+		final var documentDataCreateRequest = DocumentDataCreateRequest.create()
+			.withCreatedBy("b0000000-0000-0000-0000-000000000099");
+		final var multipartBodyBuilder = new MultipartBodyBuilder();
+		multipartBodyBuilder.part("document", documentDataCreateRequest);
+
+		// Act
+		final var response = webTestClient.put()
+			.uri("/2281/documents/" + registrationNumber + "/files")
+			.contentType(MULTIPART_FORM_DATA)
+			.body(fromMultipartData(multipartBodyBuilder.build()))
+			.exchange()
+			.expectStatus().isBadRequest()
+			.expectHeader().contentType(APPLICATION_PROBLEM_JSON)
+			.expectBody(Problem.class)
+			.returnResult()
+			.getResponseBody();
+
+		// Assert
+		assertThat(response).isNotNull();
+		assertThat(response.getDetail()).contains("at least one of 'documentFile'");
+	}
+
+	@Test
 	void addFileWithBlankCreatedBy() {
 
 		// Arrange

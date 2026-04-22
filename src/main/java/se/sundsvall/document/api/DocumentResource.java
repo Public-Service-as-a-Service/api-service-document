@@ -53,7 +53,10 @@ import se.sundsvall.document.api.model.PagedDocumentResponse;
 import se.sundsvall.document.api.validation.DocumentTypeValidator;
 import se.sundsvall.document.api.validation.ValidContentType;
 import se.sundsvall.document.service.DocumentFileService;
+import se.sundsvall.document.service.DocumentResponsibilityService;
+import se.sundsvall.document.service.DocumentSearchService;
 import se.sundsvall.document.service.DocumentService;
+import se.sundsvall.document.service.DocumentStatusService;
 import se.sundsvall.document.service.statistics.AccessContext;
 import tools.jackson.databind.ObjectMapper;
 
@@ -70,9 +73,9 @@ import static org.springframework.http.ResponseEntity.noContent;
 import static org.springframework.http.ResponseEntity.ok;
 import static org.springframework.web.util.UriComponentsBuilder.fromPath;
 import static se.sundsvall.document.api.Constants.DOCUMENTS_BASE_PATH;
-import static se.sundsvall.document.service.Constants.SEARCH_BY_PARAMETERS_DOCUMENTATION;
-import static se.sundsvall.document.service.Constants.SEARCH_DOCUMENTATION;
-import static se.sundsvall.document.service.Constants.SEARCH_FILE_MATCHES_DOCUMENTATION;
+import static se.sundsvall.document.api.Constants.SEARCH_BY_PARAMETERS_DOCUMENTATION;
+import static se.sundsvall.document.api.Constants.SEARCH_DOCUMENTATION;
+import static se.sundsvall.document.api.Constants.SEARCH_FILE_MATCHES_DOCUMENTATION;
 
 @RestController
 @Validated
@@ -86,12 +89,26 @@ class DocumentResource {
 
 	private final DocumentService documentService;
 	private final DocumentFileService documentFileService;
+	private final DocumentSearchService documentSearchService;
+	private final DocumentStatusService documentStatusService;
+	private final DocumentResponsibilityService documentResponsibilityService;
 	private final DocumentTypeValidator documentTypeValidator;
 	private final ObjectMapper objectMapper;
 
-	DocumentResource(final DocumentService documentService, final DocumentFileService documentFileService, final ObjectMapper objectMapper, final DocumentTypeValidator documentTypeValidator) {
+	DocumentResource(
+		final DocumentService documentService,
+		final DocumentFileService documentFileService,
+		final DocumentSearchService documentSearchService,
+		final DocumentStatusService documentStatusService,
+		final DocumentResponsibilityService documentResponsibilityService,
+		final ObjectMapper objectMapper,
+		final DocumentTypeValidator documentTypeValidator) {
+
 		this.documentService = documentService;
 		this.documentFileService = documentFileService;
+		this.documentSearchService = documentSearchService;
+		this.documentStatusService = documentStatusService;
+		this.documentResponsibilityService = documentResponsibilityService;
 		this.objectMapper = objectMapper;
 		this.documentTypeValidator = documentTypeValidator;
 	}
@@ -155,7 +172,7 @@ class DocumentResource {
 		@RequestParam("updatedBy") @NotBlank @ValidUuid final String updatedBy,
 		@Parameter(description = "Revision to transition. Defaults to the latest revision.", example = "5") @RequestParam(name = "revision", required = false) @Min(1) final Integer revision) {
 
-		return ok(documentService.publish(registrationNumber, updatedBy, municipalityId, revision));
+		return ok(documentStatusService.publish(registrationNumber, updatedBy, municipalityId, revision));
 	}
 
 	@PostMapping(path = "/{registrationNumber}/revoke", produces = APPLICATION_JSON_VALUE)
@@ -166,7 +183,7 @@ class DocumentResource {
 		@RequestParam("updatedBy") @NotBlank @ValidUuid final String updatedBy,
 		@Parameter(description = "Revision to transition. Defaults to the latest revision.", example = "5") @RequestParam(name = "revision", required = false) @Min(1) final Integer revision) {
 
-		return ok(documentService.revoke(registrationNumber, updatedBy, municipalityId, revision));
+		return ok(documentStatusService.revoke(registrationNumber, updatedBy, municipalityId, revision));
 	}
 
 	@PostMapping(path = "/{registrationNumber}/unrevoke", produces = APPLICATION_JSON_VALUE)
@@ -177,7 +194,7 @@ class DocumentResource {
 		@RequestParam("updatedBy") @NotBlank @ValidUuid final String updatedBy,
 		@Parameter(description = "Revision to transition. Defaults to the latest revision.", example = "5") @RequestParam(name = "revision", required = false) @Min(1) final Integer revision) {
 
-		return ok(documentService.unrevoke(registrationNumber, updatedBy, municipalityId, revision));
+		return ok(documentStatusService.unrevoke(registrationNumber, updatedBy, municipalityId, revision));
 	}
 
 	@PatchMapping(path = "/{registrationNumber}/confidentiality", produces = {
@@ -192,7 +209,7 @@ class DocumentResource {
 		@PathVariable @Parameter(name = "registrationNumber", description = "Document registration number", example = "2023-2281-1337") final String registrationNumber,
 		@NotNull @Valid @RequestBody final ConfidentialityUpdateRequest body) {
 
-		documentService.updateConfidentiality(registrationNumber, body, municipalityId);
+		documentStatusService.updateConfidentiality(registrationNumber, body, municipalityId);
 		return noContent().build();
 	}
 
@@ -210,7 +227,7 @@ class DocumentResource {
 		@PathVariable @Parameter(name = "registrationNumber", description = "Document registration number", example = "2023-2281-1337") final String registrationNumber,
 		@NotNull @Valid @RequestBody final DocumentResponsibilitiesUpdateRequest body) {
 
-		documentService.updateResponsibilities(registrationNumber, body, municipalityId);
+		documentResponsibilityService.updateResponsibilities(registrationNumber, body, municipalityId);
 		return noContent().build();
 	}
 
@@ -324,7 +341,7 @@ class DocumentResource {
 		@Parameter(name = "onlyLatestRevision", description = "Only perform search against the latest document revision", example = "true") @RequestParam(name = "onlyLatestRevision", defaultValue = "false") final boolean onlyLatestRevision,
 		@ParameterObject final Pageable pageable) {
 
-		return ok(documentService.search(query, includeConfidential, onlyLatestRevision, pageable, municipalityId));
+		return ok(documentSearchService.search(query, includeConfidential, onlyLatestRevision, pageable, municipalityId));
 	}
 
 	@GetMapping(path = "/file-matches", produces = {
@@ -341,7 +358,7 @@ class DocumentResource {
 		@Parameter(name = "onlyLatestRevision", description = "Only perform search against the latest document revision", example = "true") @RequestParam(name = "onlyLatestRevision", defaultValue = "false") final boolean onlyLatestRevision,
 		@ParameterObject final Pageable pageable) {
 
-		return ok(documentService.searchFileMatches(query, includeConfidential, onlyLatestRevision, pageable, municipalityId));
+		return ok(documentSearchService.searchFileMatches(query, includeConfidential, onlyLatestRevision, pageable, municipalityId));
 	}
 
 	@PostMapping(path = "/filter", produces = {
@@ -355,7 +372,7 @@ class DocumentResource {
 
 		final var decoratedRequest = documentParameters.withMunicipalityId(municipalityId);
 
-		return ok(documentService.searchByParameters(decoratedRequest));
+		return ok(documentSearchService.searchByParameters(decoratedRequest));
 	}
 
 	private <T> void validate(final T t) {

@@ -21,7 +21,10 @@ import se.sundsvall.document.api.model.DocumentDataCreateRequest;
 import se.sundsvall.document.api.model.DocumentMetadata;
 import se.sundsvall.document.api.model.DocumentUpdateRequest;
 import se.sundsvall.document.api.validation.DocumentTypeValidator;
+import se.sundsvall.document.service.DocumentResponsibilityService;
+import se.sundsvall.document.service.DocumentSearchService;
 import se.sundsvall.document.service.DocumentService;
+import se.sundsvall.document.service.DocumentStatusService;
 
 import static org.apache.commons.lang3.StringUtils.repeat;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -46,6 +49,15 @@ class DocumentResourceFailuresTest {
 
 	@MockitoBean
 	private DocumentService documentServiceMock;
+
+	@MockitoBean
+	private DocumentSearchService documentSearchServiceMock;
+
+	@MockitoBean
+	private DocumentStatusService documentStatusServiceMock;
+
+	@MockitoBean
+	private DocumentResponsibilityService documentResponsibilityServiceMock;
 
 	@MockitoBean
 	private DocumentTypeValidator validationUtilityMock;

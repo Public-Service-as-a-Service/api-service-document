@@ -220,3 +220,46 @@ VALUES
     -- onlyLatestRevision regression case: rev1=ACTIVE + rev2=DRAFT for same regNum
     ('d0000001-0000-0000-0000-000000000010', 1, '2025-01-01 00:00:00.000', 'a0000000-0000-0000-0000-0000000000bb', '2025-2998-0008', false, null, false, 'Multi-rev: rev 1 active', 'Multi-rev: rev 1 active', 'c0000000-0000-4000-8000-000000000001', '2998', '2025-01-01', '2027-12-31', 'ACTIVE'),
     ('d0000001-0000-0000-0000-000000000011', 2, '2025-02-01 00:00:00.000', 'a0000000-0000-0000-0000-0000000000bb', '2025-2998-0008', false, null, false, 'Multi-rev: rev 2 draft', 'Multi-rev: rev 2 draft', 'c0000000-0000-4000-8000-000000000001', '2998', '2025-01-01', '2027-12-31', 'DRAFT');
+
+
+-- Document types + documents used exclusively by DocumentStatisticsOverviewIT (municipality 2283).
+-- Isolated: no other IT references this municipality. Exercises status/confidentiality/type/year/
+-- revision/without-files dimensions of the stats aggregation.
+--
+-- Scope model:
+--   USER_A first-revisions: doc-1, doc-2, doc-3            (createdBy of rev 1 = USER_A)
+--   USER_B first-revisions: doc-4, doc-5, doc-6, doc-7     (createdBy of rev 1 = USER_B)
+-- doc-6 has a second revision authored by USER_A — it stays in USER_B's scope because the
+-- stats service filters on the first revision's creator.
+INSERT INTO document_type (id, created, last_updated, created_by, display_name, last_updated_by, municipality_id, `type`)
+VALUES ('22830000-0000-4000-8000-000000000001', '2024-10-25 14:00:00.000', null, 'a2283001-0000-0000-0000-000000000001', 'Type X', null, '2283', 'STATS_TYPE_X'),
+       ('22830000-0000-4000-8000-000000000002', '2024-10-25 14:00:00.000', null, 'a2283001-0000-0000-0000-000000000001', 'Type Y', null, '2283', 'STATS_TYPE_Y'),
+       ('22830000-0000-4000-8000-000000000003', '2024-10-25 14:00:00.000', null, 'a2283001-0000-0000-0000-000000000001', 'Type Z', null, '2283', 'STATS_TYPE_Z');
+
+INSERT INTO document (id, revision, created, created_by, registration_number, confidential, legal_citation, archive,
+                      title, description, document_type_id, municipality_id, valid_from, valid_to, status)
+VALUES
+    -- doc-1: USER_A, STATS_TYPE_X, public, ACTIVE, valid until 2028
+    ('22831111-0000-0000-0000-000000000001', 1, '2024-03-01 00:00:00.000', 'a2283001-0000-0000-0000-000000000001', '2024-2283-1', false, null, false, 'Stats doc 1', 'Stats doc 1', '22830000-0000-4000-8000-000000000001', '2283', '2024-03-01', '2028-12-31', 'ACTIVE'),
+    -- doc-2: USER_A, STATS_TYPE_X, public, DRAFT, no validity, no files
+    ('22831111-0000-0000-0000-000000000002', 1, '2024-05-01 00:00:00.000', 'a2283001-0000-0000-0000-000000000001', '2024-2283-2', false, null, false, 'Stats doc 2', 'Stats doc 2', '22830000-0000-4000-8000-000000000001', '2283', null, null, 'DRAFT'),
+    -- doc-3: USER_A, STATS_TYPE_Y, CONFIDENTIAL, ACTIVE, validTo well inside the 30-day expiring-soon window (relative to CLAUDE.md's 2026-04-23 target)
+    ('22831111-0000-0000-0000-000000000003', 1, '2024-07-01 00:00:00.000', 'a2283001-0000-0000-0000-000000000001', '2024-2283-3', true, 'Law §1', false, 'Stats doc 3', 'Stats doc 3', '22830000-0000-4000-8000-000000000002', '2283', '2024-07-01', '2026-05-05', 'ACTIVE'),
+    -- doc-4: USER_B, STATS_TYPE_Y, public, EXPIRED
+    ('22831111-0000-0000-0000-000000000004', 1, '2025-01-05 00:00:00.000', 'a2283002-0000-0000-0000-000000000002', '2025-2283-1', false, null, false, 'Stats doc 4', 'Stats doc 4', '22830000-0000-4000-8000-000000000002', '2283', '2024-01-01', '2024-12-31', 'EXPIRED'),
+    -- doc-5: USER_B, STATS_TYPE_X, public, SCHEDULED, no files
+    ('22831111-0000-0000-0000-000000000005', 1, '2025-02-05 00:00:00.000', 'a2283002-0000-0000-0000-000000000002', '2025-2283-2', false, null, false, 'Stats doc 5', 'Stats doc 5', '22830000-0000-4000-8000-000000000001', '2283', '2027-01-01', '2028-12-31', 'SCHEDULED'),
+    -- doc-6: USER_B (rev 1), STATS_TYPE_X, public, ACTIVE — then USER_A writes rev 2.
+    ('22831111-0000-0000-0000-000000000006', 1, '2025-03-05 00:00:00.000', 'a2283002-0000-0000-0000-000000000002', '2025-2283-3', false, null, false, 'Stats doc 6', 'Stats doc 6', '22830000-0000-4000-8000-000000000001', '2283', '2025-03-05', '2028-12-31', 'ACTIVE'),
+    ('22831111-0000-0000-0000-000000000007', 2, '2025-04-05 00:00:00.000', 'a2283001-0000-0000-0000-000000000001', '2025-2283-3', false, null, false, 'Stats doc 6', 'Stats doc 6', '22830000-0000-4000-8000-000000000001', '2283', '2025-03-05', '2028-12-31', 'ACTIVE'),
+    -- doc-7: USER_B, STATS_TYPE_Z, CONFIDENTIAL, REVOKED, no files
+    ('22831111-0000-0000-0000-000000000008', 1, '2025-05-05 00:00:00.000', 'a2283002-0000-0000-0000-000000000002', '2025-2283-4', true, 'Law §2', false, 'Stats doc 7', 'Stats doc 7', '22830000-0000-4000-8000-000000000003', '2283', '2025-05-05', '2028-12-31', 'REVOKED');
+
+-- Files attached to docs 1, 3, 4, 6 (both revisions). Storage locators are synthetic; no MinIO
+-- seeding is required because the stats endpoint never streams bytes.
+INSERT INTO document_data (id, document_id, storage_locator, file_name, file_size_in_bytes, mime_type)
+VALUES ('22832222-0000-0000-0000-000000000001', '22831111-0000-0000-0000-000000000001', '22833333-0000-0000-0000-000000000001', 'stats1.pdf', 1024, 'application/pdf'),
+       ('22832222-0000-0000-0000-000000000003', '22831111-0000-0000-0000-000000000003', '22833333-0000-0000-0000-000000000003', 'stats3.pdf', 1024, 'application/pdf'),
+       ('22832222-0000-0000-0000-000000000004', '22831111-0000-0000-0000-000000000004', '22833333-0000-0000-0000-000000000004', 'stats4.pdf', 1024, 'application/pdf'),
+       ('22832222-0000-0000-0000-000000000006', '22831111-0000-0000-0000-000000000006', '22833333-0000-0000-0000-000000000006', 'stats6.pdf', 1024, 'application/pdf'),
+       ('22832222-0000-0000-0000-000000000007', '22831111-0000-0000-0000-000000000007', '22833333-0000-0000-0000-000000000007', 'stats6-rev2.pdf', 1024, 'application/pdf');

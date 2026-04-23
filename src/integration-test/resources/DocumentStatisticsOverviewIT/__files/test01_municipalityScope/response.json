@@ -1,0 +1,52 @@
+{
+	"municipalityId": "2283",
+	"scope": "MUNICIPALITY",
+	"generatedAt": "${json-unit.any-string}",
+	"totalDocuments": 7,
+	"byStatus": {
+		"DRAFT": 1,
+		"SCHEDULED": 1,
+		"ACTIVE": 3,
+		"EXPIRED": 1,
+		"REVOKED": 1
+	},
+	"byConfidentiality": {
+		"confidential": 2,
+		"nonConfidential": 5
+	},
+	"byDocumentType": [
+		{
+			"type": "STATS_TYPE_X",
+			"count": 4
+		},
+		{
+			"type": "STATS_TYPE_Y",
+			"count": 2
+		},
+		{
+			"type": "STATS_TYPE_Z",
+			"count": 1
+		}
+	],
+	"byRegistrationYear": [
+		{
+			"year": 2024,
+			"count": 3
+		},
+		{
+			"year": 2025,
+			"count": 4
+		}
+	],
+	"revisionDistribution": {
+		"single": 6,
+		"two": 1,
+		"threeOrMore": 0,
+		"maxRevision": 2
+	},
+	"documentsWithoutFiles": 3,
+	"expiringSoon": {
+		"withinDays": 30,
+		"count": "${json-unit.any-number}"
+	}
+}

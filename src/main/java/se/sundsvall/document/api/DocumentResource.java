@@ -47,6 +47,7 @@ import se.sundsvall.document.api.model.DocumentDataCreateRequest;
 import se.sundsvall.document.api.model.DocumentFiles;
 import se.sundsvall.document.api.model.DocumentParameters;
 import se.sundsvall.document.api.model.DocumentResponsibilitiesUpdateRequest;
+import se.sundsvall.document.api.model.DocumentStatisticsOverview;
 import se.sundsvall.document.api.model.DocumentStatus;
 import se.sundsvall.document.api.model.DocumentUpdateRequest;
 import se.sundsvall.document.api.model.PagedDocumentMatchResponse;
@@ -59,6 +60,7 @@ import se.sundsvall.document.service.DocumentSearchService;
 import se.sundsvall.document.service.DocumentService;
 import se.sundsvall.document.service.DocumentStatusService;
 import se.sundsvall.document.service.statistics.AccessContext;
+import se.sundsvall.document.service.statistics.overview.DocumentStatisticsOverviewService;
 import tools.jackson.databind.ObjectMapper;
 
 import static jakarta.validation.Validation.buildDefaultValidatorFactory;
@@ -93,6 +95,7 @@ class DocumentResource {
 	private final DocumentSearchService documentSearchService;
 	private final DocumentStatusService documentStatusService;
 	private final DocumentResponsibilityService documentResponsibilityService;
+	private final DocumentStatisticsOverviewService documentStatisticsOverviewService;
 	private final DocumentTypeValidator documentTypeValidator;
 	private final ObjectMapper objectMapper;
 
@@ -102,6 +105,7 @@ class DocumentResource {
 		final DocumentSearchService documentSearchService,
 		final DocumentStatusService documentStatusService,
 		final DocumentResponsibilityService documentResponsibilityService,
+		final DocumentStatisticsOverviewService documentStatisticsOverviewService,
 		final ObjectMapper objectMapper,
 		final DocumentTypeValidator documentTypeValidator) {
 
@@ -110,6 +114,7 @@ class DocumentResource {
 		this.documentSearchService = documentSearchService;
 		this.documentStatusService = documentStatusService;
 		this.documentResponsibilityService = documentResponsibilityService;
+		this.documentStatisticsOverviewService = documentStatisticsOverviewService;
 		this.objectMapper = objectMapper;
 		this.documentTypeValidator = documentTypeValidator;
 	}
@@ -389,6 +394,23 @@ class DocumentResource {
 		final var decoratedRequest = documentParameters.withMunicipalityId(municipalityId);
 
 		return ok(documentSearchService.searchByParameters(decoratedRequest));
+	}
+
+	@GetMapping(path = "/statistics", produces = APPLICATION_JSON_VALUE)
+	@Operation(summary = "Document statistics overview.",
+		description = "Aggregated counts across the document corpus (totals, status breakdown, confidentiality split, "
+			+ "per-type / per-year counts, revision distribution, documents without files, and a fixed 30-day expiring-soon window). "
+			+ "Pass 'createdBy' to scope to documents originally created by that user; omit for municipality-wide totals.",
+		responses = {
+			@ApiResponse(responseCode = "200", description = "Successful operation", useReturnTypeSchema = true)
+		})
+	ResponseEntity<DocumentStatisticsOverview> statistics(
+		@PathVariable @Parameter(name = "municipalityId", description = "Municipality ID", example = "2281") @ValidMunicipalityId final String municipalityId,
+		@Parameter(name = "createdBy",
+			description = "personId of the user to scope the aggregation to. Omit for municipality-wide totals.",
+			example = "6c3e4f5a-7b8d-4e9c-a1f2-d3e4b5c6a7f8") @RequestParam(name = "createdBy", required = false) @ValidUuid(nullable = true) final String createdBy) {
+
+		return ok(documentStatisticsOverviewService.getOverview(municipalityId, createdBy));
 	}
 
 	private <T> void validate(final T t) {

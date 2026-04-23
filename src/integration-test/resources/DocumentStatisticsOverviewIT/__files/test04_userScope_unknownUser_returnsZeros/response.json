@@ -1,0 +1,31 @@
+{
+	"municipalityId": "2283",
+	"scope": "USER",
+	"createdBy": "aa000000-0000-0000-0000-000000000000",
+	"generatedAt": "${json-unit.any-string}",
+	"totalDocuments": 0,
+	"byStatus": {
+		"DRAFT": 0,
+		"SCHEDULED": 0,
+		"ACTIVE": 0,
+		"EXPIRED": 0,
+		"REVOKED": 0
+	},
+	"byConfidentiality": {
+		"confidential": 0,
+		"nonConfidential": 0
+	},
+	"byDocumentType": [],
+	"byRegistrationYear": [],
+	"revisionDistribution": {
+		"single": 0,
+		"two": 0,
+		"threeOrMore": 0,
+		"maxRevision": 0
+	},
+	"documentsWithoutFiles": 0,
+	"expiringSoon": {
+		"withinDays": 30,
+		"count": 0
+	}
+}

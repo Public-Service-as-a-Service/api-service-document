@@ -1,0 +1,28 @@
+{
+  "name": "seed-testdata",
+  "version": "0.1.0",
+  "description": "CLI that seeds api-service-document with realistic test data (document types + documents with generated PDFs + publish).",
+  "type": "module",
+  "private": true,
+  "bin": {
+    "seed-testdata": "dist/index.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "dev": "tsc --watch",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@faker-js/faker": "^8.4.1",
+    "pdfkit": "^0.15.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.14.0",
+    "@types/pdfkit": "^0.13.4",
+    "typescript": "^5.5.4"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

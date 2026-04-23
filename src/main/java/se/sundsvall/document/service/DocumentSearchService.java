@@ -1,6 +1,8 @@
 package se.sundsvall.document.service;
 
 import co.elastic.clients.elasticsearch._types.FieldValue;
+import co.elastic.clients.elasticsearch._types.query_dsl.Operator;
+import co.elastic.clients.elasticsearch._types.query_dsl.Query;
 import co.elastic.clients.elasticsearch._types.query_dsl.TextQueryType;
 import java.util.Comparator;
 import java.util.List;
@@ -38,7 +40,7 @@ import static se.sundsvall.document.service.mapper.DocumentSearchMapper.toPagedD
  * <ul>
  * <li>{@link #search} — Elasticsearch full-text with hydrated {@code PagedDocumentResponse}.</li>
  * <li>{@link #searchFileMatches} — Elasticsearch full-text returning a stripped response of only
- * matching files per document. Supports 1–N OR'd phrase queries.</li>
+ * matching files per document. Supports 1–N OR'd text queries (phrase + fuzzy per query).</li>
  * <li>{@link #searchByParameters} — SQL-based parameterized filter via {@link DocumentRepository}.</li>
  * </ul>
  */
@@ -47,6 +49,24 @@ import static se.sundsvall.document.service.mapper.DocumentSearchMapper.toPagedD
 public class DocumentSearchService {
 
 	private static final Logger LOGGER = LoggerFactory.getLogger(DocumentSearchService.class);
+
+	// All text-ish fields a phrase match runs against. Phrase match requires adjacent tokens in the
+	// listed order.
+	private static final List<String> PHRASE_FIELDS = List.of(
+		"title", "extractedText", "description", "fileName", "mimeType",
+		"registrationNumber", "createdBy", "metadataKeys", "metadataValues");
+
+	// Fields the fuzzy/AND branch searches across. registrationNumber and mimeType are intentionally
+	// excluded here: fuzziness=AUTO permits 1–2 character edits, which on identifier-shaped values
+	// produces noise (e.g. "DOC-2025-0001" would match "DOC-2025-0002", "application/pdf" would
+	// match "application/pd…"). Exact matches on those fields are still caught by the phrase branch.
+	// extractedText stays in with a reduced boost so OCR'd body text can still match but doesn't
+	// drown out hits in the higher-signal fields (title, description, createdBy).
+	private static final List<String> FUZZY_FIELDS = List.of(
+		"title", "description", "fileName", "createdBy",
+		"metadataKeys", "metadataValues", "extractedText^0.5");
+
+	private static final float PHRASE_BOOST = 3.0f;
 
 	private final DocumentRepository documentRepository;
 	private final DocumentResponseHydrator responseHydrator;
@@ -135,29 +155,21 @@ public class DocumentSearchService {
 		// callers other than HTTP (e.g. future batch jobs, tests) deserve the same safety.
 		final var effectiveQueries = queries == null ? List.<String>of()
 			: queries.stream().filter(Objects::nonNull).filter(s -> !s.isBlank()).toList();
-		final var phraseMatching = !effectiveQueries.isEmpty();
+		final var textSearchEnabled = !effectiveQueries.isEmpty();
 
-		LOGGER.debug("ES search (municipalityId='{}', queries={}, phraseMatching={}, includeConfidential={}, statuses={}, documentTypes={}, page={}, size={})",
-			municipalityId, effectiveQueries, phraseMatching, includeConfidential, effectiveStatuses, effectiveDocumentTypes,
+		LOGGER.debug("ES search (municipalityId='{}', queries={}, textSearchEnabled={}, includeConfidential={}, statuses={}, documentTypes={}, page={}, size={})",
+			municipalityId, effectiveQueries, textSearchEnabled, includeConfidential, effectiveStatuses, effectiveDocumentTypes,
 			pageable.getPageNumber(), pageable.getPageSize());
 
 		final var esQuery = NativeQuery.builder()
 			.withQuery(q -> q.bool(b -> {
-				if (phraseMatching) {
-					// Phrase match: each query must appear as adjacent tokens in at least one of the
-					// listed fields. No wildcard support — callers type the phrase they want and it's
-					// matched literally (modulo the standard analyzer). With multiple queries, the
-					// results are OR'd together (nested bool with minimum_should_match=1): a hit only
-					// needs to match any one supplied query. A single-query list collapses to the same
-					// single-phrase behaviour the endpoint had before.
-					b.must(m -> m.bool(bb -> {
-						effectiveQueries.forEach(single -> bb.should(s -> s.multiMatch(mm -> mm
-							.query(single)
-							.type(TextQueryType.Phrase)
-							.fields("title", "extractedText", "description", "fileName", "mimeType",
-								"registrationNumber", "createdBy", "metadataKeys", "metadataValues"))));
-						bb.minimumShouldMatch("1");
-						return bb;
+				if (textSearchEnabled) {
+					// Multiple queries are OR'd (minimum_should_match=1); each is expanded to a
+					// phrase-OR-fuzzy bool — see buildPerQueryMatcher.
+					b.must(m -> m.bool(orBool -> {
+						effectiveQueries.forEach(single -> orBool.should(buildPerQueryMatcher(single)));
+						orBool.minimumShouldMatch("1");
+						return orBool;
 					}));
 				}
 				b.filter(f -> f.term(t -> t.field("municipalityId").value(municipalityId)));
@@ -185,6 +197,26 @@ public class DocumentSearchService {
 		LOGGER.debug("ES search returned {} file hit(s) (totalHits={}, municipalityId='{}')",
 			hits.getSearchHits().size(), hits.getTotalHits(), municipalityId);
 		return hits;
+	}
+
+	// A bool that OR's two clauses for a single user-supplied query string:
+	// 1) phrase multi_match (adjacent tokens, boosted) — exact phrases rank highest.
+	// 2) best_fields multi_match with operator=AND and fuzziness=AUTO — all terms must be present
+	// in the best-scoring field but order is free, and 1–2 character typos per term are tolerated.
+	private static Query buildPerQueryMatcher(String query) {
+		return Query.of(q -> q.bool(b -> b
+			.should(s -> s.multiMatch(mm -> mm
+				.query(query)
+				.type(TextQueryType.Phrase)
+				.boost(PHRASE_BOOST)
+				.fields(PHRASE_FIELDS)))
+			.should(s -> s.multiMatch(mm -> mm
+				.query(query)
+				.type(TextQueryType.BestFields)
+				.operator(Operator.And)
+				.fuzziness("AUTO")
+				.fields(FUZZY_FIELDS)))
+			.minimumShouldMatch("1")));
 	}
 
 	private static HighlightQuery buildHighlightQuery() {

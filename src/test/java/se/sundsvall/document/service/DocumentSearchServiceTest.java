@@ -1,5 +1,6 @@
 package se.sundsvall.document.service;
 
+import co.elastic.clients.elasticsearch._types.query_dsl.Operator;
 import co.elastic.clients.elasticsearch._types.query_dsl.TextQueryType;
 import java.util.List;
 import java.util.Map;
@@ -206,7 +207,7 @@ class DocumentSearchServiceTest {
 	}
 
 	@Test
-	void searchFileMatches_multipleQueriesProduceOrOfPhraseClausesInEsQuery() {
+	void searchFileMatches_multipleQueriesProduceOrOfPhrasePlusFuzzyClausesInEsQuery() {
 		// Arrange
 		final var pageRequest = PageRequest.of(0, 10);
 		final var queryCaptor = ArgumentCaptor.forClass(Query.class);
@@ -218,17 +219,72 @@ class DocumentSearchServiceTest {
 		// Act
 		documentSearchService.searchFileMatches(List.of("alpha", "beta", "gamma"), false, false, null, null, pageRequest, MUNICIPALITY_ID);
 
-		// Assert — walk the captured NativeQuery tree: outer bool must → inner bool (the OR) with
-		// three should(multiMatch(phrase)) clauses and minimum_should_match=1.
+		// Assert — walk the captured NativeQuery tree: outer bool must → OR-bool (one should per
+		// query) → per-query bool (phrase OR fuzzy, min_should_match=1).
 		final var captured = (NativeQuery) queryCaptor.getValue();
 		final var outerBool = captured.getQuery().bool();
 		assertThat(outerBool.must()).hasSize(1);
-		final var innerBool = outerBool.must().get(0).bool();
-		assertThat(innerBool.minimumShouldMatch()).isEqualTo("1");
-		assertThat(innerBool.should()).hasSize(3)
-			.extracting(c -> c.multiMatch().query())
-			.containsExactly("alpha", "beta", "gamma");
-		assertThat(innerBool.should().get(0).multiMatch().type()).isEqualTo(TextQueryType.Phrase);
+		final var orBool = outerBool.must().get(0).bool();
+		assertThat(orBool.minimumShouldMatch()).isEqualTo("1");
+		assertThat(orBool.should()).hasSize(3);
+
+		for (var i = 0; i < 3; i++) {
+			final var expectedQuery = List.of("alpha", "beta", "gamma").get(i);
+			final var perQueryBool = orBool.should().get(i).bool();
+			assertThat(perQueryBool.minimumShouldMatch()).isEqualTo("1");
+			assertThat(perQueryBool.should()).hasSize(2)
+				.extracting(c -> c.multiMatch().query())
+				.containsOnly(expectedQuery);
+			// Exactly one of the two should-clauses is a phrase, the other is a fuzzy best_fields AND.
+			final var types = perQueryBool.should().stream()
+				.map(c -> c.multiMatch().type())
+				.toList();
+			assertThat(types).containsExactlyInAnyOrder(TextQueryType.Phrase, TextQueryType.BestFields);
+		}
+	}
+
+	@Test
+	void searchFileMatches_singleQueryHasPhraseAndFuzzyClausesWithCorrectFields() {
+		// Arrange — verifies the per-query bool: phrase branch covers all fields and is boosted,
+		// fuzzy branch uses best_fields + AND + AUTO fuzziness and excludes identifier-shaped
+		// fields (registrationNumber, mimeType).
+		final var pageRequest = PageRequest.of(0, 10);
+		final var queryCaptor = ArgumentCaptor.forClass(Query.class);
+		lenient().when(statusPolicyMock.effectivePublishedStatuses(any())).thenReturn(List.of(DocumentStatus.ACTIVE));
+		when(elasticsearchOperationsMock.search(queryCaptor.capture(), eq(DocumentIndexEntity.class))).thenReturn(searchHitsMock);
+		when(searchHitsMock.getSearchHits()).thenReturn(List.of());
+		when(searchHitsMock.getTotalHits()).thenReturn(0L);
+
+		// Act
+		documentSearchService.searchFileMatches(List.of("Jeppe Jepsson"), false, false, null, null, pageRequest, MUNICIPALITY_ID);
+
+		// Assert
+		final var captured = (NativeQuery) queryCaptor.getValue();
+		final var perQueryBool = captured.getQuery().bool().must().get(0).bool().should().get(0).bool();
+
+		final var phraseClause = perQueryBool.should().stream()
+			.map(c -> c.multiMatch())
+			.filter(mm -> mm.type() == TextQueryType.Phrase)
+			.findFirst().orElseThrow();
+		final var fuzzyClause = perQueryBool.should().stream()
+			.map(c -> c.multiMatch())
+			.filter(mm -> mm.type() == TextQueryType.BestFields)
+			.findFirst().orElseThrow();
+
+		// Phrase branch: all fields, boosted above 1, exact phrase.
+		assertThat(phraseClause.query()).isEqualTo("Jeppe Jepsson");
+		assertThat(phraseClause.boost()).isGreaterThan(1.0f);
+		assertThat(phraseClause.fields()).contains(
+			"title", "extractedText", "description", "fileName", "mimeType",
+			"registrationNumber", "createdBy", "metadataKeys", "metadataValues");
+
+		// Fuzzy branch: AND + AUTO, and crucially neither registrationNumber nor mimeType is
+		// present (edit-distance matches on identifier-shaped values produce noise).
+		assertThat(fuzzyClause.query()).isEqualTo("Jeppe Jepsson");
+		assertThat(fuzzyClause.operator()).isEqualTo(Operator.And);
+		assertThat(fuzzyClause.fuzziness()).isEqualTo("AUTO");
+		assertThat(fuzzyClause.fields()).noneMatch(f -> f.startsWith("registrationNumber") || f.startsWith("mimeType"));
+		assertThat(fuzzyClause.fields()).anyMatch(f -> f.startsWith("createdBy"));
 	}
 
 	@Test

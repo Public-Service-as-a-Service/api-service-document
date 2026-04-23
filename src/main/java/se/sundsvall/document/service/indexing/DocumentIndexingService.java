@@ -125,6 +125,8 @@ public class DocumentIndexingService {
 			.setMetadataKeys(metadataKeys)
 			.setMetadataValues(metadataValues)
 			.setExtractedText(data.getExtractedText())
-			.setExtractionStatus(data.getExtractionStatus());
+			.setExtractionStatus(data.getExtractionStatus())
+			.setPageCount(data.getPageCount())
+			.setPageOffsets(data.getPageOffsets());
 	}
 }

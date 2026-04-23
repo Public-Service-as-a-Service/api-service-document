@@ -1,0 +1,45 @@
+{
+	"documents": [
+		{
+			"id": "dddd0000-0000-0000-0000-000000001111",
+			"registrationNumber": "2026-2281-0001",
+			"revision": 1,
+			"files": [
+				{
+					"id": "eeee0000-0000-0000-0000-000000001111",
+					"fileName": "paged.pdf",
+					"pageCount": 2,
+					"extractionStatus": "SUCCESS",
+					"confidential": false,
+					"score": "${json-unit.any-number}",
+					"highlights": {
+						"extractedText": [
+							"Router <em>bandwidth</em> spec. Total <em>bandwidth</em> per node."
+						]
+					},
+					"matches": [
+						{
+							"field": "extractedText",
+							"start": 7,
+							"end": 16,
+							"page": 1
+						},
+						{
+							"field": "extractedText",
+							"start": 29,
+							"end": 38,
+							"page": 2
+						}
+					]
+				}
+			]
+		}
+	],
+	"_meta": {
+		"page": 0,
+		"limit": 20,
+		"count": 1,
+		"totalRecords": 1,
+		"totalPages": 1
+	}
+}

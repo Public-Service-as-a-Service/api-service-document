@@ -9,6 +9,10 @@ document:
   # Disable ES wiring in the junit profile — WebTestClient tests mock DocumentService etc.
   search:
     enabled: false
+  # Disable the reindex scheduler so its 5-minute cron never fires during unit tests and
+  # competes with DocumentDataRepository-mocked flows.
+  reindex-job:
+    enabled: false
 spring:
   cache:
     type: none

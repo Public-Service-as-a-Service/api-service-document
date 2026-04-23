@@ -67,18 +67,18 @@ node dist/index.js --count 50 --seed 42 --created-by 6c3e4f5a-7b8d-4e9c-a1f2-d3e
 
 ### Flags
 
-| Flag | Default | Notes |
-|------|---------|-------|
-| `--count N` | **required** | Number of documents to create in this run. |
-| `--municipality 2281` | `2281` | Target municipality. Must be a valid Swedish municipality code. |
-| `--base-url URL` | `http://localhost:8080` | Base URL of the REST API, no trailing slash. |
-| `--publish-rate 0.0–1.0` | `0.8` | Probability each created doc gets published. `1.0` = all, `0.0` = all stay `DRAFT`. |
-| `--files-per-doc N` or `MIN-MAX` | `1` | Files per document. Range samples uniformly per doc. Each extra file bumps the revision. |
-| `--pdf-pages N` or `MIN-MAX` | `1-5` | Pages per generated PDF. Larger values produce bigger files (~1 KB per page). |
-| `--with-validity-rate 0.0–1.0` | `0.3` | Probability a doc gets `validFrom`/`validTo`. Of those, ~70% become `ACTIVE` on publish (past `validFrom`, far-future `validTo`) and ~30% become `SCHEDULED` (future `validFrom`). `EXPIRED` can't be produced through the API — the service rejects publishing a past `validTo`. |
-| `--created-by UUID` | randomly generated | `createdBy` value used on all create calls. Pin a value to simulate "one user's documents". |
-| `--seed N` | current time | Seed the faker RNG for reproducible output. |
-| `--help` | — | Print usage and exit. |
+|               Flag               |         Default         |                                                                                                                                       Notes                                                                                                                                       |
+|----------------------------------|-------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `--count N`                      | **required**            | Number of documents to create in this run.                                                                                                                                                                                                                                        |
+| `--municipality 2281`            | `2281`                  | Target municipality. Must be a valid Swedish municipality code.                                                                                                                                                                                                                   |
+| `--base-url URL`                 | `http://localhost:8080` | Base URL of the REST API, no trailing slash.                                                                                                                                                                                                                                      |
+| `--publish-rate 0.0–1.0`         | `0.8`                   | Probability each created doc gets published. `1.0` = all, `0.0` = all stay `DRAFT`.                                                                                                                                                                                               |
+| `--files-per-doc N` or `MIN-MAX` | `1`                     | Files per document. Range samples uniformly per doc. Each extra file bumps the revision.                                                                                                                                                                                          |
+| `--pdf-pages N` or `MIN-MAX`     | `1-5`                   | Pages per generated PDF. Larger values produce bigger files (~1 KB per page).                                                                                                                                                                                                     |
+| `--with-validity-rate 0.0–1.0`   | `0.3`                   | Probability a doc gets `validFrom`/`validTo`. Of those, ~70% become `ACTIVE` on publish (past `validFrom`, far-future `validTo`) and ~30% become `SCHEDULED` (future `validFrom`). `EXPIRED` can't be produced through the API — the service rejects publishing a past `validTo`. |
+| `--created-by UUID`              | randomly generated      | `createdBy` value used on all create calls. Pin a value to simulate "one user's documents".                                                                                                                                                                                       |
+| `--seed N`                       | current time            | Seed the faker RNG for reproducible output.                                                                                                                                                                                                                                       |
+| `--help`                         | —                       | Print usage and exit.                                                                                                                                                                                                                                                             |
 
 ### Idempotency
 
@@ -98,3 +98,4 @@ src/
 ├── doctypes.ts   # idempotent doctype upsert
 └── seed.ts       # main loop: create → add files → publish
 ```
+

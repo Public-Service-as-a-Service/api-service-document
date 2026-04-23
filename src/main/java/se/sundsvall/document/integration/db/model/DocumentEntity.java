@@ -40,6 +40,7 @@ import static org.hibernate.annotations.TimeZoneStorageType.NORMALIZE;
 	@Index(name = "ix_municipality_id", columnList = "municipality_id"),
 	@Index(name = "ix_confidential", columnList = "confidential"),
 	@Index(name = "ix_status", columnList = "status"),
+	@Index(name = "ix_municipality_id_valid_to", columnList = "municipality_id, valid_to"),
 })
 @EntityListeners(DocumentEntityListener.class)
 public class DocumentEntity {
@@ -62,7 +63,7 @@ public class DocumentEntity {
 	@JoinColumn(name = "document_type_id", referencedColumnName = "id", foreignKey = @ForeignKey(name = "fk_document_document_type"), nullable = false)
 	private DocumentTypeEntity type;
 
-	@Column(name = "title", nullable = false, length = 255)
+	@Column(name = "title", nullable = false)
 	private String title;
 
 	@Column(name = "description", nullable = false, columnDefinition = "varchar(8192)")

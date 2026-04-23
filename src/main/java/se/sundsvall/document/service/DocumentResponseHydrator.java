@@ -46,7 +46,7 @@ public class DocumentResponseHydrator {
 
 		final var documents = response.getDocuments();
 		final var responsibilitiesByRegistrationNumber = documentResponsibilityRepository.findByMunicipalityIdAndRegistrationNumberIn(
-			documents.get(0).getMunicipalityId(),
+			documents.getFirst().getMunicipalityId(),
 			documents.stream()
 				.map(Document::getRegistrationNumber)
 				.distinct()

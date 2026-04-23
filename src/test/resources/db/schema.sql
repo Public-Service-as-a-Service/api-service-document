@@ -99,6 +99,9 @@ create index ix_confidential
 create index ix_status
     on document (status);
 
+create index ix_municipality_id_valid_to
+    on document (municipality_id, valid_to);
+
 alter table if exists document
     add constraint uq_revision_and_registration_number unique (revision, registration_number);
 

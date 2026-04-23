@@ -7,7 +7,7 @@ info:
     url: https://opensource.org/licenses/MIT
   version: "3.1"
 servers:
-- url: http://localhost:51761
+- url: http://localhost:59987
   description: Generated server url
 tags:
 - name: Document revisions
@@ -1591,10 +1591,10 @@ components:
             $ref: "#/components/schemas/Violation"
         title:
           type: string
-        detail:
-          type: string
         causeAsProblem:
           $ref: "#/components/schemas/ThrowableProblem"
+        detail:
+          type: string
         instance:
           type: string
           format: uri
@@ -2481,6 +2481,73 @@ components:
           description: "Highlighted fragments grouped by matched field (e.g. extractedText,\
             \ title, description, fileName). Matches are wrapped in <em>…</em>. Only\
             \ fields with matches appear."
+        pageCount:
+          type: integer
+          format: int32
+          description: Total page count for the file. Populated for PDF and PPTX;
+            null for formats without pages or files not yet reprocessed by the page-extraction
+            backfill.
+          examples:
+          - "42"
+        matches:
+          type: array
+          items:
+            $ref: "#/components/schemas/Match"
+            description: Exact char-offset match locations inside the file's extracted
+              text. Only emitted for the extractedText field. Empty list when the
+              query matched no text content (e.g. title-only match) or when extraction
+              failed.
+        extractionStatus:
+          type: string
+          description: Status of text extraction for this file — determines whether
+            matches/highlights on extractedText are available.
+          enum:
+          - SUCCESS
+          - FAILED
+          - UNSUPPORTED
+          - PENDING_REINDEX
+        score:
+          type: number
+          format: float
+          description: Relevance score assigned by the search engine. Higher is more
+            relevant.
+          examples:
+          - "7.42"
+        confidential:
+          type: boolean
+          description: Confidentiality flag for the parent document revision.
+          examples:
+          - "false"
+      readOnly: true
+    Match:
+      type: object
+      description: A match location inside a file's extracted text. Offsets reference
+        the Tika-extracted text stream (not the rendered document).
+      properties:
+        field:
+          type: string
+          description: Field the match occurred in.
+          examples:
+          - extractedText
+        start:
+          type: integer
+          format: int32
+          description: "Start offset (inclusive, 0-based) into the extracted text."
+          examples:
+          - "1523"
+        end:
+          type: integer
+          format: int32
+          description: End offset (exclusive) into the extracted text.
+          examples:
+          - "1531"
+        page:
+          type: integer
+          format: int32
+          description: 1-based page number the match falls on (PDF/PPTX only; null
+            for formats without pages).
+          examples:
+          - "12"
       readOnly: true
     PagedDocumentMatchResponse:
       type: object

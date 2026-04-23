@@ -3,6 +3,15 @@ document:
     # Daily reconciliation: promote SCHEDULED → ACTIVE when validFrom is reached, and
     # ACTIVE/SCHEDULED → EXPIRED when validTo has passed. Distributed lock via ShedLock.
     cron: "0 5 0 * * *"
+  reindex-job:
+    # Backfill scheduler for document_data rows with missing extracted_text (V1_11 legacy) or
+    # missing page_count/page_offsets for paged MIME types (V1_15). Distributed lock via ShedLock.
+    # Disable by setting `enabled: false` — useful during the initial rollout to observe manually
+    # before letting it run autonomously. `batch-size` caps rows per run so a single tick can't
+    # hold the lock beyond the 10-minute lease.
+    enabled: true
+    cron: "0 */5 * * * *"
+    batch-size: 50
   storage:
     # File content is stored in an S3-compatible object store (Garage in production,
     # MinIO in the IT suite). Endpoint/bucket/credentials must be provided via env.

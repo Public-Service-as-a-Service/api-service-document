@@ -29,6 +29,7 @@ import se.sundsvall.document.integration.db.model.DocumentEntity;
 import se.sundsvall.document.integration.db.model.DocumentResponsibilityEntity;
 import se.sundsvall.document.integration.db.model.DocumentTypeEntity;
 import se.sundsvall.document.integration.elasticsearch.DocumentIndexEntity;
+import se.sundsvall.document.service.extraction.ExtractionStatus;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.tuple;
@@ -187,6 +188,38 @@ class DocumentSearchServiceTest {
 		assertThat(result.getDocuments()).hasSize(2);
 		assertThat(result.getDocuments().get(0).getFiles().get(0).getHighlights()).isEqualTo(highlightsForA);
 		assertThat(result.getDocuments().get(1).getFiles().get(0).getHighlights()).isEqualTo(highlightsForB);
+	}
+
+	@Test
+	void searchFileMatches_populatesFileMatchEnrichmentFieldsEndToEnd() {
+		// Covers the fields the mapper has to lift off each hit: score (from SearchHit),
+		// extractionStatus / confidential / pageCount (from DocumentIndexEntity), and the
+		// server-computed matches list with per-match page resolution.
+		final var pageRequest = PageRequest.of(0, 10);
+		final var extractedText = "Router bandwidth spec.\nTotal bandwidth per node.";
+		final var page2Offset = extractedText.indexOf("\nTotal") + 1;
+		final var hit = enrichedHit("doc-1", "reg-1", 1, "file-1", "alpha.pdf",
+			extractedText, List.of(0, page2Offset), 2, ExtractionStatus.SUCCESS, true, 7.42f);
+		lenient().when(statusPolicyMock.effectivePublishedStatuses(any())).thenReturn(PUBLISHED_STATUSES);
+		when(elasticsearchOperationsMock.search(any(Query.class), eq(DocumentIndexEntity.class))).thenReturn(searchHitsMock);
+		when(searchHitsMock.getSearchHits()).thenReturn(List.of(hit));
+		when(searchHitsMock.getTotalHits()).thenReturn(1L);
+
+		final var result = documentSearchService.searchFileMatches(List.of("bandwidth"), false, false, null, null, pageRequest, MUNICIPALITY_ID);
+
+		final var fileMatch = result.getDocuments().get(0).getFiles().get(0);
+		assertThat(fileMatch.getPageCount()).isEqualTo(2);
+		assertThat(fileMatch.getExtractionStatus()).isEqualTo(ExtractionStatus.SUCCESS);
+		assertThat(fileMatch.getConfidential()).isTrue();
+		assertThat(fileMatch.getScore()).isEqualTo(7.42f);
+		// Two "bandwidth" occurrences — one on each page.
+		assertThat(fileMatch.getMatches()).hasSize(2);
+		assertThat(fileMatch.getMatches())
+			.extracting("field", "page")
+			.containsExactly(tuple("extractedText", 1), tuple("extractedText", 2));
+		// Offsets must reference the original extractedText — verify the slice matches the query.
+		assertThat(extractedText.substring(fileMatch.getMatches().get(0).getStart(), fileMatch.getMatches().get(0).getEnd()))
+			.isEqualTo("bandwidth");
 	}
 
 	@Test
@@ -494,6 +527,26 @@ class DocumentSearchServiceTest {
 	private static SearchHit<DocumentIndexEntity> fileHitWithHighlights(String documentId, String registrationNumber, int revision, String fileId, String fileName, Map<String, List<String>> highlights) {
 		final var hit = fileHit(documentId, registrationNumber, revision, fileId, fileName);
 		when(hit.getHighlightFields()).thenReturn(highlights);
+		return hit;
+	}
+
+	@SuppressWarnings("unchecked")
+	private static SearchHit<DocumentIndexEntity> enrichedHit(String documentId, String registrationNumber, int revision, String fileId, String fileName,
+		String extractedText, List<Integer> pageOffsets, int pageCount, ExtractionStatus extractionStatus, boolean confidential, float score) {
+		final var entity = new DocumentIndexEntity();
+		entity.setId(fileId);
+		entity.setDocumentId(documentId);
+		entity.setRegistrationNumber(registrationNumber);
+		entity.setRevision(revision);
+		entity.setFileName(fileName);
+		entity.setExtractedText(extractedText);
+		entity.setPageOffsets(pageOffsets);
+		entity.setPageCount(pageCount);
+		entity.setExtractionStatus(extractionStatus);
+		entity.setConfidential(confidential);
+		final var hit = (SearchHit<DocumentIndexEntity>) mock(SearchHit.class);
+		when(hit.getContent()).thenReturn(entity);
+		when(hit.getScore()).thenReturn(score);
 		return hit;
 	}
 }

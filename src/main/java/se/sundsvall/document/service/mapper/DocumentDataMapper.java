@@ -57,17 +57,23 @@ public final class DocumentDataMapper {
 
 		final String extractedText;
 		final ExtractionStatus extractionStatus;
+		final Integer pageCount;
+		final List<Integer> pageOffsets;
 		if (dedup.isPresent()) {
 			extractedText = dedup.get().getExtractedText();
 			extractionStatus = dedup.get().getExtractionStatus();
+			pageCount = dedup.get().getPageCount();
+			pageOffsets = dedup.get().getPageOffsets();
 			LOGGER.debug("Text-extraction dedup hit (fileName='{}', contentHash='{}', size={}B) — reused from existing record",
 				multipartFile.getOriginalFilename(), putResult.sha256(), multipartFile.getSize());
 		} else {
-			LOGGER.debug("Text-extraction dedup miss (fileName='{}', contentHash='{}', size={}B) — running Tika",
+			LOGGER.debug("Text-extraction dedup miss (fileName='{}', contentHash='{}', size={}B) — running extractor",
 				multipartFile.getOriginalFilename(), putResult.sha256(), multipartFile.getSize());
 			final var extraction = runExtraction(multipartFile, textExtractor);
 			extractedText = extraction.text();
 			extractionStatus = extraction.status();
+			pageCount = extraction.pageCount();
+			pageOffsets = extraction.pageOffsets();
 		}
 
 		return DocumentDataEntity.create()
@@ -77,7 +83,9 @@ public final class DocumentDataMapper {
 			.withFileSizeInBytes(multipartFile.getSize())
 			.withContentHash(putResult.sha256())
 			.withExtractedText(extractedText)
-			.withExtractionStatus(extractionStatus);
+			.withExtractionStatus(extractionStatus)
+			.withPageCount(pageCount)
+			.withPageOffsets(pageOffsets);
 	}
 
 	public static DocumentDataEntity copyDocumentDataEntity(DocumentDataEntity documentDataEntity, BinaryStore binaryStore) {
@@ -86,8 +94,8 @@ public final class DocumentDataMapper {
 		}
 		final var sourceRef = StorageRef.s3(documentDataEntity.getStorageLocator());
 		final var newRef = binaryStore.copy(sourceRef);
-		// Copy-on-write preserves the bytes → the content hash, extracted text and extraction status
-		// are identical on the new revision. Don't re-run Tika.
+		// Copy-on-write preserves the bytes → the content hash, extracted text, extraction status
+		// and page breakdown are identical on the new revision. Don't re-run extraction.
 		return DocumentDataEntity.create()
 			.withMimeType(documentDataEntity.getMimeType())
 			.withFileName(documentDataEntity.getFileName())
@@ -95,7 +103,9 @@ public final class DocumentDataMapper {
 			.withStorageLocator(newRef.locator())
 			.withContentHash(documentDataEntity.getContentHash())
 			.withExtractedText(documentDataEntity.getExtractedText())
-			.withExtractionStatus(documentDataEntity.getExtractionStatus());
+			.withExtractionStatus(documentDataEntity.getExtractionStatus())
+			.withPageCount(documentDataEntity.getPageCount())
+			.withPageOffsets(documentDataEntity.getPageOffsets());
 	}
 
 	public static List<DocumentDataEntity> copyDocumentDataEntities(List<DocumentDataEntity> documentDataEntityList, BinaryStore binaryStore) {

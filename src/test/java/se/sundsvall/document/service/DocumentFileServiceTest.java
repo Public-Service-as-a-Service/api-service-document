@@ -35,6 +35,8 @@ import se.sundsvall.document.integration.db.model.DocumentEntity;
 import se.sundsvall.document.integration.db.model.DocumentMetadataEmbeddable;
 import se.sundsvall.document.integration.db.model.DocumentTypeEntity;
 import se.sundsvall.document.service.extraction.TextExtractor;
+import se.sundsvall.document.service.statistics.AccessContext;
+import se.sundsvall.document.service.statistics.DocumentAccessedEvent;
 import se.sundsvall.document.service.storage.BinaryStore;
 import se.sundsvall.document.service.storage.PutResult;
 import se.sundsvall.document.service.storage.StorageRef;
@@ -54,6 +56,7 @@ import static org.mockito.ArgumentMatchers.anyMap;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
@@ -138,7 +141,7 @@ class DocumentFileServiceTest {
 		when(documentRepositoryMock.findTopByMunicipalityIdAndRegistrationNumberAndConfidentialityConfidentialInOrderByRevisionDesc(MUNICIPALITY_ID, REGISTRATION_NUMBER, PUBLIC.getValue())).thenReturn(Optional.of(documentEntity));
 		when(httpServletResponseMock.getOutputStream()).thenReturn(servletOutputStreamMock);
 
-		documentFileService.readFile(REGISTRATION_NUMBER, DOCUMENT_DATA_ID, includeConfidential, true, httpServletResponseMock, MUNICIPALITY_ID);
+		documentFileService.readFile(REGISTRATION_NUMBER, DOCUMENT_DATA_ID, includeConfidential, true, AccessContext.defaultContext(), httpServletResponseMock, MUNICIPALITY_ID);
 
 		verify(documentRepositoryMock).findTopByMunicipalityIdAndRegistrationNumberAndConfidentialityConfidentialInOrderByRevisionDesc(MUNICIPALITY_ID, REGISTRATION_NUMBER, PUBLIC.getValue());
 		verify(httpServletResponseMock).addHeader(CONTENT_TYPE, MIME_TYPE);
@@ -146,6 +149,31 @@ class DocumentFileServiceTest {
 		verify(httpServletResponseMock).setContentLength((int) FILE_SIZE_IN_BYTES);
 		verify(httpServletResponseMock).getOutputStream();
 		verify(binaryStoreMock).streamTo(eq(StorageRef.s3(STORAGE_LOCATOR)), any(OutputStream.class));
+	}
+
+	@Test
+	void readFile_publishesAccessEvent_whenCountStatsTrue() throws IOException {
+
+		final var documentEntity = createDocumentEntity();
+		when(documentRepositoryMock.findTopByMunicipalityIdAndRegistrationNumberAndConfidentialityConfidentialInOrderByRevisionDesc(MUNICIPALITY_ID, REGISTRATION_NUMBER, PUBLIC.getValue())).thenReturn(Optional.of(documentEntity));
+		when(httpServletResponseMock.getOutputStream()).thenReturn(servletOutputStreamMock);
+
+		documentFileService.readFile(REGISTRATION_NUMBER, DOCUMENT_DATA_ID, false, true, AccessContext.defaultContext(), httpServletResponseMock, MUNICIPALITY_ID);
+
+		verify(applicationEventPublisherMock).publishEvent(any(DocumentAccessedEvent.class));
+	}
+
+	@Test
+	void readFile_skipsAccessEvent_whenCountStatsFalse() throws IOException {
+
+		final var documentEntity = createDocumentEntity();
+		when(documentRepositoryMock.findTopByMunicipalityIdAndRegistrationNumberAndConfidentialityConfidentialInOrderByRevisionDesc(MUNICIPALITY_ID, REGISTRATION_NUMBER, PUBLIC.getValue())).thenReturn(Optional.of(documentEntity));
+		when(httpServletResponseMock.getOutputStream()).thenReturn(servletOutputStreamMock);
+		final var skipContext = new AccessContext(false, se.sundsvall.document.api.model.DocumentAccessType.DOWNLOAD, "admin");
+
+		documentFileService.readFile(REGISTRATION_NUMBER, DOCUMENT_DATA_ID, false, true, skipContext, httpServletResponseMock, MUNICIPALITY_ID);
+
+		verify(applicationEventPublisherMock, never()).publishEvent(any(DocumentAccessedEvent.class));
 	}
 
 	@Test
@@ -160,7 +188,7 @@ class DocumentFileServiceTest {
 
 		final var dispositionCaptor = ArgumentCaptor.forClass(String.class);
 
-		documentFileService.readFile(REGISTRATION_NUMBER, DOCUMENT_DATA_ID, includeConfidential, true, httpServletResponseMock, MUNICIPALITY_ID);
+		documentFileService.readFile(REGISTRATION_NUMBER, DOCUMENT_DATA_ID, includeConfidential, true, AccessContext.defaultContext(), httpServletResponseMock, MUNICIPALITY_ID);
 
 		verify(httpServletResponseMock).addHeader(eq(CONTENT_DISPOSITION), dispositionCaptor.capture());
 		assertThat(dispositionCaptor.getValue())
@@ -175,7 +203,7 @@ class DocumentFileServiceTest {
 
 		when(documentRepositoryMock.findTopByMunicipalityIdAndRegistrationNumberAndConfidentialityConfidentialInOrderByRevisionDesc(MUNICIPALITY_ID, REGISTRATION_NUMBER, PUBLIC.getValue())).thenReturn(empty());
 
-		final var exception = assertThrows(ThrowableProblem.class, () -> documentFileService.readFile(REGISTRATION_NUMBER, DOCUMENT_DATA_ID, includeConfidential, true, httpServletResponseMock, MUNICIPALITY_ID));
+		final var exception = assertThrows(ThrowableProblem.class, () -> documentFileService.readFile(REGISTRATION_NUMBER, DOCUMENT_DATA_ID, includeConfidential, true, AccessContext.defaultContext(), httpServletResponseMock, MUNICIPALITY_ID));
 
 		assertThat(exception).isNotNull();
 		assertThat(exception.getMessage()).isEqualTo("Not Found: No document with registrationNumber: '2023-2281-4' could be found!");
@@ -194,7 +222,7 @@ class DocumentFileServiceTest {
 
 		when(documentRepositoryMock.findTopByMunicipalityIdAndRegistrationNumberAndConfidentialityConfidentialInOrderByRevisionDesc(MUNICIPALITY_ID, REGISTRATION_NUMBER, PUBLIC.getValue())).thenReturn(Optional.of(documentEntity));
 
-		final var exception = assertThrows(ThrowableProblem.class, () -> documentFileService.readFile(REGISTRATION_NUMBER, DOCUMENT_DATA_ID, includeConfidential, true, httpServletResponseMock, MUNICIPALITY_ID));
+		final var exception = assertThrows(ThrowableProblem.class, () -> documentFileService.readFile(REGISTRATION_NUMBER, DOCUMENT_DATA_ID, includeConfidential, true, AccessContext.defaultContext(), httpServletResponseMock, MUNICIPALITY_ID));
 
 		assertThat(exception).isNotNull();
 		assertThat(exception.getMessage()).isEqualTo("Not Found: No document file content with ID: '" + DOCUMENT_DATA_ID + "' could be found!");
@@ -211,7 +239,7 @@ class DocumentFileServiceTest {
 
 		when(documentRepositoryMock.findTopByMunicipalityIdAndRegistrationNumberAndConfidentialityConfidentialInOrderByRevisionDesc(MUNICIPALITY_ID, REGISTRATION_NUMBER, PUBLIC.getValue())).thenReturn(Optional.of(documentEntity));
 
-		final var exception = assertThrows(ThrowableProblem.class, () -> documentFileService.readFile(REGISTRATION_NUMBER, DOCUMENT_DATA_ID, includeConfidential, true, httpServletResponseMock, MUNICIPALITY_ID));
+		final var exception = assertThrows(ThrowableProblem.class, () -> documentFileService.readFile(REGISTRATION_NUMBER, DOCUMENT_DATA_ID, includeConfidential, true, AccessContext.defaultContext(), httpServletResponseMock, MUNICIPALITY_ID));
 
 		assertThat(exception).isNotNull();
 		assertThat(exception.getMessage()).isEqualTo("Not Found: No document file for registrationNumber: '2023-2281-4' could be found!");
@@ -231,7 +259,7 @@ class DocumentFileServiceTest {
 		doThrow(new IOException("An error occured during byte array copy"))
 			.when(binaryStoreMock).streamTo(any(StorageRef.class), any(OutputStream.class));
 
-		final var exception = assertThrows(ThrowableProblem.class, () -> documentFileService.readFile(REGISTRATION_NUMBER, DOCUMENT_DATA_ID, includeConfidential, true, httpServletResponseMock, MUNICIPALITY_ID));
+		final var exception = assertThrows(ThrowableProblem.class, () -> documentFileService.readFile(REGISTRATION_NUMBER, DOCUMENT_DATA_ID, includeConfidential, true, AccessContext.defaultContext(), httpServletResponseMock, MUNICIPALITY_ID));
 
 		assertThat(exception).isNotNull();
 		assertThat(exception.getMessage()).isEqualTo("Internal Server Error: Could not read file content for document data with ID: '" + DOCUMENT_DATA_ID + "'!");
@@ -253,7 +281,7 @@ class DocumentFileServiceTest {
 		when(documentRepositoryMock.findByMunicipalityIdAndRegistrationNumberAndRevisionAndConfidentialityConfidentialIn(MUNICIPALITY_ID, REGISTRATION_NUMBER, REVISION, PUBLIC.getValue())).thenReturn(Optional.of(documentEntity));
 		when(httpServletResponseMock.getOutputStream()).thenReturn(servletOutputStreamMock);
 
-		documentFileService.readFile(REGISTRATION_NUMBER, REVISION, DOCUMENT_DATA_ID, includeConfidential, httpServletResponseMock, MUNICIPALITY_ID);
+		documentFileService.readFile(REGISTRATION_NUMBER, REVISION, DOCUMENT_DATA_ID, includeConfidential, AccessContext.defaultContext(), httpServletResponseMock, MUNICIPALITY_ID);
 
 		verify(documentRepositoryMock).findByMunicipalityIdAndRegistrationNumberAndRevisionAndConfidentialityConfidentialIn(MUNICIPALITY_ID, REGISTRATION_NUMBER, REVISION, PUBLIC.getValue());
 		verify(httpServletResponseMock).addHeader(CONTENT_TYPE, MIME_TYPE);
@@ -270,7 +298,7 @@ class DocumentFileServiceTest {
 
 		when(documentRepositoryMock.findByMunicipalityIdAndRegistrationNumberAndRevisionAndConfidentialityConfidentialIn(MUNICIPALITY_ID, REGISTRATION_NUMBER, REVISION, PUBLIC.getValue())).thenReturn(empty());
 
-		final var exception = assertThrows(ThrowableProblem.class, () -> documentFileService.readFile(REGISTRATION_NUMBER, REVISION, DOCUMENT_DATA_ID, includeConfidential, httpServletResponseMock, MUNICIPALITY_ID));
+		final var exception = assertThrows(ThrowableProblem.class, () -> documentFileService.readFile(REGISTRATION_NUMBER, REVISION, DOCUMENT_DATA_ID, includeConfidential, AccessContext.defaultContext(), httpServletResponseMock, MUNICIPALITY_ID));
 
 		assertThat(exception).isNotNull();
 		assertThat(exception.getMessage()).isEqualTo("Not Found: No document with registrationNumber: '2023-2281-4' and revision: '1' could be found!");
@@ -287,7 +315,7 @@ class DocumentFileServiceTest {
 
 		when(documentRepositoryMock.findByMunicipalityIdAndRegistrationNumberAndRevisionAndConfidentialityConfidentialIn(MUNICIPALITY_ID, REGISTRATION_NUMBER, REVISION, PUBLIC.getValue())).thenReturn(Optional.of(documentEntity));
 
-		final var exception = assertThrows(ThrowableProblem.class, () -> documentFileService.readFile(REGISTRATION_NUMBER, REVISION, DOCUMENT_DATA_ID, includeConfidential, httpServletResponseMock, MUNICIPALITY_ID));
+		final var exception = assertThrows(ThrowableProblem.class, () -> documentFileService.readFile(REGISTRATION_NUMBER, REVISION, DOCUMENT_DATA_ID, includeConfidential, AccessContext.defaultContext(), httpServletResponseMock, MUNICIPALITY_ID));
 
 		assertThat(exception).isNotNull();
 		assertThat(exception.getMessage()).isEqualTo("Not Found: No document file content with registrationNumber: '2023-2281-4' and revision: '1' could be found!");
@@ -306,7 +334,7 @@ class DocumentFileServiceTest {
 
 		when(documentRepositoryMock.findByMunicipalityIdAndRegistrationNumberAndRevisionAndConfidentialityConfidentialIn(MUNICIPALITY_ID, REGISTRATION_NUMBER, REVISION, PUBLIC.getValue())).thenReturn(Optional.of(documentEntity));
 
-		final var exception = assertThrows(ThrowableProblem.class, () -> documentFileService.readFile(REGISTRATION_NUMBER, REVISION, DOCUMENT_DATA_ID, includeConfidential, httpServletResponseMock, MUNICIPALITY_ID));
+		final var exception = assertThrows(ThrowableProblem.class, () -> documentFileService.readFile(REGISTRATION_NUMBER, REVISION, DOCUMENT_DATA_ID, includeConfidential, AccessContext.defaultContext(), httpServletResponseMock, MUNICIPALITY_ID));
 
 		assertThat(exception).isNotNull();
 		assertThat(exception.getMessage()).isEqualTo("Not Found: No document file content with ID: '" + DOCUMENT_DATA_ID + "' could be found!");
@@ -452,6 +480,97 @@ class DocumentFileServiceTest {
 				"image.png",
 				"image2.png",
 				"readme.txt");
+	}
+
+	@Test
+	void addAndDeleteInSameRequestBumpsRevisionOnce() throws IOException {
+
+		// Arrange — current revision has one file (DOCUMENT_DATA_ID). Request adds a new file
+		// and deletes the existing one in a single PUT.
+		final var existingEntity = createDocumentEntity();
+		final var newFile = new File("src/test/resources/files/image2.png");
+		final var multipart = (MultipartFile) new MockMultipartFile("file", newFile.getName(), "image/png", toByteArray(new FileInputStream(newFile)));
+		final var request = DocumentDataCreateRequest.create()
+			.withCreatedBy("changedUser")
+			.withFilesToDelete(List.of(DOCUMENT_DATA_ID));
+
+		when(documentRepositoryMock.findTopByMunicipalityIdAndRegistrationNumberAndConfidentialityConfidentialInOrderByRevisionDesc(MUNICIPALITY_ID, REGISTRATION_NUMBER, CONFIDENTIAL_AND_PUBLIC.getValue())).thenReturn(Optional.of(existingEntity));
+		when(binaryStoreMock.put(any(InputStream.class), anyLong(), anyString(), anyMap())).thenReturn(new PutResult(StorageRef.s3(randomUUID().toString()), "hash"));
+		when(textExtractorMock.extract(any(InputStream.class), anyString(), anyLong())).thenReturn(TextExtractor.ExtractedText.unsupported("image/png"));
+		when(binaryStoreMock.copy(any(StorageRef.class))).thenAnswer(invocation -> StorageRef.s3(randomUUID().toString()));
+		when(documentRepositoryMock.save(any(DocumentEntity.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+		// Act
+		final var result = documentFileService.addOrReplaceFiles(REGISTRATION_NUMBER, request, DocumentFiles.create().withFiles(List.of(multipart)), MUNICIPALITY_ID);
+
+		// Assert — exactly one revision bump, resulting file list = just the added file (old one deleted).
+		assertThat(result).isNotNull();
+		verify(documentRepositoryMock, org.mockito.Mockito.times(1)).save(documentEntityCaptor.capture());
+
+		final var captured = documentEntityCaptor.getValue();
+		assertThat(captured.getRevision()).isEqualTo(existingEntity.getRevision() + 1);
+		assertThat(captured.getDocumentData())
+			.hasSize(1)
+			.extracting(DocumentDataEntity::getFileName)
+			.containsExactly("image2.png");
+	}
+
+	@Test
+	void pureDeleteViaPutBumpsRevisionOnce() {
+
+		// Arrange — no new files, just filesToDelete.
+		final var existingEntity = createDocumentEntity();
+		final var request = DocumentDataCreateRequest.create()
+			.withCreatedBy("changedUser")
+			.withFilesToDelete(List.of(DOCUMENT_DATA_ID));
+
+		when(documentRepositoryMock.findTopByMunicipalityIdAndRegistrationNumberAndConfidentialityConfidentialInOrderByRevisionDesc(MUNICIPALITY_ID, REGISTRATION_NUMBER, CONFIDENTIAL_AND_PUBLIC.getValue())).thenReturn(Optional.of(existingEntity));
+		// copyDocumentEntity copies ALL files via S3 even though we override withDocumentData to the
+		// filtered set — pre-existing behaviour the delete path also hits. Mock accordingly.
+		when(binaryStoreMock.copy(any(StorageRef.class))).thenAnswer(invocation -> StorageRef.s3(randomUUID().toString()));
+		when(documentRepositoryMock.save(any(DocumentEntity.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+		// Act
+		documentFileService.addOrReplaceFiles(REGISTRATION_NUMBER, request, DocumentFiles.create().withFiles(List.of()), MUNICIPALITY_ID);
+
+		// Assert
+		verify(documentRepositoryMock).save(documentEntityCaptor.capture());
+		final var captured = documentEntityCaptor.getValue();
+		assertThat(captured.getRevision()).isEqualTo(existingEntity.getRevision() + 1);
+		assertThat(captured.getDocumentData()).isEmpty();
+		// No new files were uploaded → no S3 put.
+		org.mockito.Mockito.verify(binaryStoreMock, org.mockito.Mockito.never()).put(any(InputStream.class), anyLong(), anyString(), anyMap());
+	}
+
+	@Test
+	void addOrReplaceFilesWithUnknownFilesToDelete_throwsNotFound() {
+		final var existingEntity = createDocumentEntity();
+		final var unknownId = "00000000-0000-0000-0000-000000000001";
+		final var request = DocumentDataCreateRequest.create()
+			.withCreatedBy("changedUser")
+			.withFilesToDelete(List.of(unknownId));
+
+		when(documentRepositoryMock.findTopByMunicipalityIdAndRegistrationNumberAndConfidentialityConfidentialInOrderByRevisionDesc(MUNICIPALITY_ID, REGISTRATION_NUMBER, CONFIDENTIAL_AND_PUBLIC.getValue())).thenReturn(Optional.of(existingEntity));
+
+		final var ex = assertThrows(ThrowableProblem.class, () -> documentFileService.addOrReplaceFiles(REGISTRATION_NUMBER, request, DocumentFiles.create().withFiles(List.of()), MUNICIPALITY_ID));
+
+		assertThat(ex.getMessage()).isEqualTo("Not Found: No document file content with ID: '" + unknownId + "' could be found!");
+		// Must bail before saving.
+		verify(documentRepositoryMock, org.mockito.Mockito.never()).save(any(DocumentEntity.class));
+	}
+
+	@Test
+	void addOrReplaceFilesWithNothingToDo_throwsBadRequest() {
+		// Neither new files nor filesToDelete → request is a no-op and should be rejected.
+		final var existingEntity = createDocumentEntity();
+		final var request = DocumentDataCreateRequest.create().withCreatedBy("changedUser");
+
+		when(documentRepositoryMock.findTopByMunicipalityIdAndRegistrationNumberAndConfidentialityConfidentialInOrderByRevisionDesc(MUNICIPALITY_ID, REGISTRATION_NUMBER, CONFIDENTIAL_AND_PUBLIC.getValue())).thenReturn(Optional.of(existingEntity));
+
+		final var ex = assertThrows(ThrowableProblem.class, () -> documentFileService.addOrReplaceFiles(REGISTRATION_NUMBER, request, DocumentFiles.create().withFiles(List.of()), MUNICIPALITY_ID));
+
+		assertThat(ex.getMessage()).contains("At least one file add/replace or delete is required");
+		verify(documentRepositoryMock, org.mockito.Mockito.never()).save(any(DocumentEntity.class));
 	}
 
 	@Test

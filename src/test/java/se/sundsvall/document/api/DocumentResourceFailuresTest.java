@@ -21,7 +21,10 @@ import se.sundsvall.document.api.model.DocumentDataCreateRequest;
 import se.sundsvall.document.api.model.DocumentMetadata;
 import se.sundsvall.document.api.model.DocumentUpdateRequest;
 import se.sundsvall.document.api.validation.DocumentTypeValidator;
+import se.sundsvall.document.service.DocumentResponsibilityService;
+import se.sundsvall.document.service.DocumentSearchService;
 import se.sundsvall.document.service.DocumentService;
+import se.sundsvall.document.service.DocumentStatusService;
 
 import static org.apache.commons.lang3.StringUtils.repeat;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -46,6 +49,15 @@ class DocumentResourceFailuresTest {
 
 	@MockitoBean
 	private DocumentService documentServiceMock;
+
+	@MockitoBean
+	private DocumentSearchService documentSearchServiceMock;
+
+	@MockitoBean
+	private DocumentStatusService documentStatusServiceMock;
+
+	@MockitoBean
+	private DocumentResponsibilityService documentResponsibilityServiceMock;
 
 	@MockitoBean
 	private DocumentTypeValidator validationUtilityMock;
@@ -664,11 +676,64 @@ class DocumentResourceFailuresTest {
 			.returnResult()
 			.getResponseBody();
 
+		// Assert — container element validation reports against the element, hence the list-index suffix.
+		assertThat(response).isNotNull();
+		assertThat(response.getViolations())
+			.extracting(Violation::message)
+			.containsExactly("must not be blank");
+
+		verifyNoInteractions(documentServiceMock);
+	}
+
+	@Test
+	void searchFileMatchesWithTooManyQueries() {
+
+		// Act — 11 queries, cap is 10.
+		final var response = webTestClient.get()
+			.uri(uriBuilder -> {
+				uriBuilder.path("/2281/documents/file-matches");
+				for (int i = 0; i < 11; i++) {
+					uriBuilder.queryParam("query", "q" + i);
+				}
+				return uriBuilder.build();
+			})
+			.exchange()
+			.expectStatus().isBadRequest()
+			.expectHeader().contentType(APPLICATION_PROBLEM_JSON)
+			.expectBody(ConstraintViolationProblem.class)
+			.returnResult()
+			.getResponseBody();
+
 		// Assert
 		assertThat(response).isNotNull();
 		assertThat(response.getViolations())
-			.extracting(Violation::field, Violation::message)
-			.containsExactlyInAnyOrder(tuple("searchFileMatches.query", "must not be blank"));
+			.extracting(Violation::message)
+			.containsExactly("size must be between 1 and 10");
+
+		verifyNoInteractions(documentServiceMock);
+	}
+
+	@Test
+	void searchFileMatchesWithOneBlankAmongMultipleQueries() {
+
+		// Act
+		final var response = webTestClient.get()
+			.uri(uriBuilder -> uriBuilder.path("/2281/documents/file-matches")
+				.queryParam("query", "alpha")
+				.queryParam("query", " ")
+				.build())
+			.exchange()
+			.expectStatus().isBadRequest()
+			.expectHeader().contentType(APPLICATION_PROBLEM_JSON)
+			.expectBody(ConstraintViolationProblem.class)
+			.returnResult()
+			.getResponseBody();
+
+		// Assert — only the blank element violates @NotBlank.
+		assertThat(response).isNotNull();
+		assertThat(response.getViolations())
+			.extracting(Violation::message)
+			.containsExactly("must not be blank");
 
 		verifyNoInteractions(documentServiceMock);
 	}
@@ -721,6 +786,34 @@ class DocumentResourceFailuresTest {
 			.containsExactlyInAnyOrder(tuple("deleteFile.documentDataId", "not a valid UUID"));
 
 		verifyNoInteractions(documentServiceMock);
+	}
+
+	@Test
+	void putFilesWithNeitherUploadsNorDeletes_returns400() {
+
+		// Arrange — no 'documentFile', no 'documentFiles', no 'filesToDelete'. Purely a no-op
+		// request; should be rejected before any service call.
+		final var registrationNumber = "2023-1337";
+		final var documentDataCreateRequest = DocumentDataCreateRequest.create()
+			.withCreatedBy("b0000000-0000-0000-0000-000000000099");
+		final var multipartBodyBuilder = new MultipartBodyBuilder();
+		multipartBodyBuilder.part("document", documentDataCreateRequest);
+
+		// Act
+		final var response = webTestClient.put()
+			.uri("/2281/documents/" + registrationNumber + "/files")
+			.contentType(MULTIPART_FORM_DATA)
+			.body(fromMultipartData(multipartBodyBuilder.build()))
+			.exchange()
+			.expectStatus().isBadRequest()
+			.expectHeader().contentType(APPLICATION_PROBLEM_JSON)
+			.expectBody(Problem.class)
+			.returnResult()
+			.getResponseBody();
+
+		// Assert
+		assertThat(response).isNotNull();
+		assertThat(response.getDetail()).contains("at least one of 'documentFile'");
 	}
 
 	@Test

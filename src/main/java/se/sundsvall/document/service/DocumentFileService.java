@@ -6,6 +6,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import org.apache.commons.lang3.Strings;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -26,11 +27,17 @@ import se.sundsvall.document.integration.db.model.DocumentEntity;
 import se.sundsvall.document.service.extraction.TextExtractor;
 import se.sundsvall.document.service.indexing.DocumentIndexingEvent;
 import se.sundsvall.document.service.mapper.DocumentDataMapper;
+import se.sundsvall.document.service.statistics.AccessContext;
+import se.sundsvall.document.service.statistics.DocumentAccessedEvent;
 import se.sundsvall.document.service.storage.BinaryStore;
 import se.sundsvall.document.service.storage.StorageRef;
 
+import static java.time.OffsetDateTime.now;
+import static java.time.ZoneId.systemDefault;
+import static java.time.temporal.ChronoUnit.MILLIS;
 import static org.springframework.http.HttpHeaders.CONTENT_DISPOSITION;
 import static org.springframework.http.HttpHeaders.CONTENT_TYPE;
+import static org.springframework.http.HttpStatus.BAD_REQUEST;
 import static org.springframework.http.HttpStatus.INTERNAL_SERVER_ERROR;
 import static org.springframework.http.HttpStatus.NOT_FOUND;
 import static org.springframework.util.CollectionUtils.isEmpty;
@@ -78,7 +85,7 @@ public class DocumentFileService {
 		this.applicationEventPublisher = applicationEventPublisher;
 	}
 
-	public void readFile(String registrationNumber, String documentDataId, boolean includeConfidential, boolean includeNonPublic, HttpServletResponse response, String municipalityId) {
+	public void readFile(String registrationNumber, String documentDataId, boolean includeConfidential, boolean includeNonPublic, AccessContext accessContext, HttpServletResponse response, String municipalityId) {
 
 		final var documentEntity = findLatestRevisionForRead(municipalityId, registrationNumber, includeConfidential, includeNonPublic);
 		reconcileStatusIfStale(documentEntity);
@@ -93,9 +100,10 @@ public class DocumentFileService {
 			.orElseThrow(() -> Problem.valueOf(NOT_FOUND, ERROR_DOCUMENT_FILE_BY_ID_NOT_FOUND.formatted(documentDataId)));
 
 		addFileContentToResponse(documentDataEntity, response);
+		publishAccessEvent(documentEntity, documentDataId, accessContext);
 	}
 
-	public void readFile(String registrationNumber, int revision, String documentDataId, boolean includeConfidential, HttpServletResponse response, String municipalityId) {
+	public void readFile(String registrationNumber, int revision, String documentDataId, boolean includeConfidential, AccessContext accessContext, HttpServletResponse response, String municipalityId) {
 
 		final var documentEntity = documentRepository.findByMunicipalityIdAndRegistrationNumberAndRevisionAndConfidentialityConfidentialIn(municipalityId, registrationNumber, revision, toInclusionFilter(includeConfidential))
 			.orElseThrow(() -> Problem.valueOf(NOT_FOUND, ERROR_DOCUMENT_BY_REGISTRATION_NUMBER_AND_REVISION_NOT_FOUND.formatted(registrationNumber, revision)));
@@ -110,6 +118,7 @@ public class DocumentFileService {
 			.orElseThrow(() -> Problem.valueOf(NOT_FOUND, ERROR_DOCUMENT_FILE_BY_ID_NOT_FOUND.formatted(documentDataId)));
 
 		addFileContentToResponse(documentDataEntity, response);
+		publishAccessEvent(documentEntity, documentDataId, accessContext);
 	}
 
 	public Document addOrReplaceFile(String registrationNumber, DocumentDataCreateRequest documentDataCreateRequest, MultipartFile documentFile, String municipalityId) {
@@ -121,21 +130,58 @@ public class DocumentFileService {
 		final var documentEntity = documentRepository.findTopByMunicipalityIdAndRegistrationNumberAndConfidentialityConfidentialInOrderByRevisionDesc(municipalityId, registrationNumber, CONFIDENTIAL_AND_PUBLIC.getValue())
 			.orElseThrow(() -> Problem.valueOf(NOT_FOUND, ERROR_DOCUMENT_BY_REGISTRATION_NUMBER_NOT_FOUND.formatted(registrationNumber)));
 
+		final var filesToDelete = documentDataCreateRequest.getFilesToDelete() == null ? Set.<String>of()
+			: Set.copyOf(documentDataCreateRequest.getFilesToDelete());
 		final var newDocumentDataEntities = toDocumentDataEntities(documentFiles, binaryStore, textExtractor, documentDataRepository, municipalityId);
+		final var addedOrReplacedCount = newDocumentDataEntities == null ? 0 : newDocumentDataEntities.size();
+
+		if (filesToDelete.isEmpty() && addedOrReplacedCount == 0) {
+			throw Problem.valueOf(BAD_REQUEST, "At least one file add/replace or delete is required.");
+		}
+
+		// Validate every ID in filesToDelete exists on the current revision. Missing IDs → 404, same
+		// as the standalone DELETE endpoint. The check is done up front so we don't even start the
+		// S3 copy side-effects when the request is malformed.
+		final var currentFileIds = Optional.ofNullable(documentEntity.getDocumentData()).orElse(List.of()).stream()
+			.map(DocumentDataEntity::getId)
+			.collect(java.util.stream.Collectors.toSet());
+		filesToDelete.stream()
+			.filter(id -> !currentFileIds.contains(id))
+			.findFirst()
+			.ifPresent(missingId -> {
+				throw Problem.valueOf(NOT_FOUND, ERROR_DOCUMENT_FILE_BY_ID_NOT_FOUND.formatted(missingId));
+			});
+
+		// copyDocumentEntity initially copies ALL files to S3; we override withDocumentData to the
+		// filtered-and-copied list so deleted files aren't carried into the new revision. (The
+		// full-copy here produces S3 orphans for deleted files — pre-existing behaviour also seen
+		// in the single-file DELETE path; kept as-is for this change.)
+		final var retainedAndCopied = Optional.ofNullable(documentEntity.getDocumentData()).orElse(List.of()).stream()
+			.filter(d -> !filesToDelete.contains(d.getId()))
+			.map(d -> DocumentDataMapper.copyDocumentDataEntity(d, binaryStore))
+			.collect(java.util.stream.Collectors.toCollection(ArrayList::new));
 
 		final var newDocumentEntity = copyDocumentEntity(documentEntity, binaryStore)
 			.withRevision(documentEntity.getRevision() + 1)
-			.withCreatedBy(documentDataCreateRequest.getCreatedBy());
+			.withCreatedBy(documentDataCreateRequest.getCreatedBy())
+			.withDocumentData(retainedAndCopied);
 
-		newDocumentDataEntities.forEach(entity -> addOrReplaceDocumentDataEntity(newDocumentEntity, entity));
+		Optional.ofNullable(newDocumentDataEntities).orElse(List.of())
+			.forEach(entity -> addOrReplaceDocumentDataEntity(newDocumentEntity, entity));
 
 		final var saved = documentRepository.save(newDocumentEntity);
-		LOGGER.info("Revision bumped by file add/replace (registrationNumber='{}', {}→{}, addedOrReplaced={}, totalFiles={}, createdBy='{}')",
+		LOGGER.info("Revision bumped by file change (registrationNumber='{}', {}→{}, addedOrReplaced={}, deleted={}, totalFiles={}, createdBy='{}')",
 			registrationNumber, documentEntity.getRevision(), saved.getRevision(),
-			newDocumentDataEntities != null ? newDocumentDataEntities.size() : 0,
+			addedOrReplacedCount, filesToDelete.size(),
 			saved.getDocumentData() != null ? saved.getDocumentData().size() : 0,
 			documentDataCreateRequest.getCreatedBy());
-		applicationEventPublisher.publishEvent(DocumentIndexingEvent.reindex(saved.getId()));
+		// With deletions we have to remove those files' ES docs (they referenced the old revision);
+		// reindex rebuilds the new revision's entries. Without deletions, plain reindex is enough.
+		if (filesToDelete.isEmpty()) {
+			applicationEventPublisher.publishEvent(DocumentIndexingEvent.reindex(saved.getId()));
+		} else {
+			applicationEventPublisher.publishEvent(DocumentIndexingEvent.reindexAfterDelete(saved.getId(), List.copyOf(filesToDelete)));
+		}
 		return toDocumentWithResponsibilities(saved);
 	}
 
@@ -196,6 +242,21 @@ public class DocumentFileService {
 		if (!response.isCommitted()) {
 			response.reset();
 		}
+	}
+
+	private void publishAccessEvent(DocumentEntity documentEntity, String documentDataId, AccessContext accessContext) {
+		if (accessContext == null || !accessContext.countStats()) {
+			return;
+		}
+		applicationEventPublisher.publishEvent(new DocumentAccessedEvent(
+			documentEntity.getMunicipalityId(),
+			documentEntity.getId(),
+			documentEntity.getRegistrationNumber(),
+			documentEntity.getRevision(),
+			documentDataId,
+			accessContext.accessType(),
+			accessContext.sentBy(),
+			now(systemDefault()).truncatedTo(MILLIS)));
 	}
 
 	private void addOrReplaceDocumentDataEntity(DocumentEntity documentEntity, DocumentDataEntity documentDataEntity) {

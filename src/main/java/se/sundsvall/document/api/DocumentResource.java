@@ -15,6 +15,7 @@ import jakarta.validation.ValidatorFactory;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
 import java.util.List;
 import java.util.Set;
 import org.springdoc.core.annotations.ParameterObject;
@@ -28,6 +29,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RequestPart;
@@ -39,18 +41,26 @@ import se.sundsvall.dept44.problem.Problem;
 import se.sundsvall.dept44.problem.violations.ConstraintViolationProblem;
 import se.sundsvall.document.api.model.ConfidentialityUpdateRequest;
 import se.sundsvall.document.api.model.Document;
+import se.sundsvall.document.api.model.DocumentAccessType;
 import se.sundsvall.document.api.model.DocumentCreateRequest;
 import se.sundsvall.document.api.model.DocumentDataCreateRequest;
 import se.sundsvall.document.api.model.DocumentFiles;
 import se.sundsvall.document.api.model.DocumentParameters;
 import se.sundsvall.document.api.model.DocumentResponsibilitiesUpdateRequest;
+import se.sundsvall.document.api.model.DocumentStatisticsOverview;
+import se.sundsvall.document.api.model.DocumentStatus;
 import se.sundsvall.document.api.model.DocumentUpdateRequest;
 import se.sundsvall.document.api.model.PagedDocumentMatchResponse;
 import se.sundsvall.document.api.model.PagedDocumentResponse;
 import se.sundsvall.document.api.validation.DocumentTypeValidator;
 import se.sundsvall.document.api.validation.ValidContentType;
 import se.sundsvall.document.service.DocumentFileService;
+import se.sundsvall.document.service.DocumentResponsibilityService;
+import se.sundsvall.document.service.DocumentSearchService;
 import se.sundsvall.document.service.DocumentService;
+import se.sundsvall.document.service.DocumentStatusService;
+import se.sundsvall.document.service.statistics.AccessContext;
+import se.sundsvall.document.service.statistics.overview.DocumentStatisticsOverviewService;
 import tools.jackson.databind.ObjectMapper;
 
 import static jakarta.validation.Validation.buildDefaultValidatorFactory;
@@ -66,9 +76,9 @@ import static org.springframework.http.ResponseEntity.noContent;
 import static org.springframework.http.ResponseEntity.ok;
 import static org.springframework.web.util.UriComponentsBuilder.fromPath;
 import static se.sundsvall.document.api.Constants.DOCUMENTS_BASE_PATH;
-import static se.sundsvall.document.service.Constants.SEARCH_BY_PARAMETERS_DOCUMENTATION;
-import static se.sundsvall.document.service.Constants.SEARCH_DOCUMENTATION;
-import static se.sundsvall.document.service.Constants.SEARCH_FILE_MATCHES_DOCUMENTATION;
+import static se.sundsvall.document.api.Constants.SEARCH_BY_PARAMETERS_DOCUMENTATION;
+import static se.sundsvall.document.api.Constants.SEARCH_DOCUMENTATION;
+import static se.sundsvall.document.api.Constants.SEARCH_FILE_MATCHES_DOCUMENTATION;
 
 @RestController
 @Validated
@@ -82,12 +92,29 @@ class DocumentResource {
 
 	private final DocumentService documentService;
 	private final DocumentFileService documentFileService;
+	private final DocumentSearchService documentSearchService;
+	private final DocumentStatusService documentStatusService;
+	private final DocumentResponsibilityService documentResponsibilityService;
+	private final DocumentStatisticsOverviewService documentStatisticsOverviewService;
 	private final DocumentTypeValidator documentTypeValidator;
 	private final ObjectMapper objectMapper;
 
-	DocumentResource(final DocumentService documentService, final DocumentFileService documentFileService, final ObjectMapper objectMapper, final DocumentTypeValidator documentTypeValidator) {
+	DocumentResource(
+		final DocumentService documentService,
+		final DocumentFileService documentFileService,
+		final DocumentSearchService documentSearchService,
+		final DocumentStatusService documentStatusService,
+		final DocumentResponsibilityService documentResponsibilityService,
+		final DocumentStatisticsOverviewService documentStatisticsOverviewService,
+		final ObjectMapper objectMapper,
+		final DocumentTypeValidator documentTypeValidator) {
+
 		this.documentService = documentService;
 		this.documentFileService = documentFileService;
+		this.documentSearchService = documentSearchService;
+		this.documentStatusService = documentStatusService;
+		this.documentResponsibilityService = documentResponsibilityService;
+		this.documentStatisticsOverviewService = documentStatisticsOverviewService;
 		this.objectMapper = objectMapper;
 		this.documentTypeValidator = documentTypeValidator;
 	}
@@ -151,7 +178,7 @@ class DocumentResource {
 		@RequestParam("updatedBy") @NotBlank @ValidUuid final String updatedBy,
 		@Parameter(description = "Revision to transition. Defaults to the latest revision.", example = "5") @RequestParam(name = "revision", required = false) @Min(1) final Integer revision) {
 
-		return ok(documentService.publish(registrationNumber, updatedBy, municipalityId, revision));
+		return ok(documentStatusService.publish(registrationNumber, updatedBy, municipalityId, revision));
 	}
 
 	@PostMapping(path = "/{registrationNumber}/revoke", produces = APPLICATION_JSON_VALUE)
@@ -162,7 +189,7 @@ class DocumentResource {
 		@RequestParam("updatedBy") @NotBlank @ValidUuid final String updatedBy,
 		@Parameter(description = "Revision to transition. Defaults to the latest revision.", example = "5") @RequestParam(name = "revision", required = false) @Min(1) final Integer revision) {
 
-		return ok(documentService.revoke(registrationNumber, updatedBy, municipalityId, revision));
+		return ok(documentStatusService.revoke(registrationNumber, updatedBy, municipalityId, revision));
 	}
 
 	@PostMapping(path = "/{registrationNumber}/unrevoke", produces = APPLICATION_JSON_VALUE)
@@ -173,7 +200,7 @@ class DocumentResource {
 		@RequestParam("updatedBy") @NotBlank @ValidUuid final String updatedBy,
 		@Parameter(description = "Revision to transition. Defaults to the latest revision.", example = "5") @RequestParam(name = "revision", required = false) @Min(1) final Integer revision) {
 
-		return ok(documentService.unrevoke(registrationNumber, updatedBy, municipalityId, revision));
+		return ok(documentStatusService.unrevoke(registrationNumber, updatedBy, municipalityId, revision));
 	}
 
 	@PatchMapping(path = "/{registrationNumber}/confidentiality", produces = {
@@ -188,7 +215,7 @@ class DocumentResource {
 		@PathVariable @Parameter(name = "registrationNumber", description = "Document registration number", example = "2023-2281-1337") final String registrationNumber,
 		@NotNull @Valid @RequestBody final ConfidentialityUpdateRequest body) {
 
-		documentService.updateConfidentiality(registrationNumber, body, municipalityId);
+		documentStatusService.updateConfidentiality(registrationNumber, body, municipalityId);
 		return noContent().build();
 	}
 
@@ -206,7 +233,7 @@ class DocumentResource {
 		@PathVariable @Parameter(name = "registrationNumber", description = "Document registration number", example = "2023-2281-1337") final String registrationNumber,
 		@NotNull @Valid @RequestBody final DocumentResponsibilitiesUpdateRequest body) {
 
-		documentService.updateResponsibilities(registrationNumber, body, municipalityId);
+		documentResponsibilityService.updateResponsibilities(registrationNumber, body, municipalityId);
 		return noContent().build();
 	}
 
@@ -239,9 +266,14 @@ class DocumentResource {
 		@PathVariable @Parameter(name = "registrationNumber", description = "Document registration number", example = "2023-2281-1337") final String registrationNumber,
 		@PathVariable @Parameter(name = "documentDataId", description = "Document data ID", example = "082ba08f-03c7-409f-b8a6-940a1397ba38") @ValidUuid final String documentDataId,
 		@Parameter(name = "includeConfidential", description = "Include confidential records", example = "true") @RequestParam(name = "includeConfidential", defaultValue = "false") final boolean includeConfidential,
-		@Parameter(name = "includeNonPublic", description = "Admin flag: include DRAFT/REVOKED latest revision.", example = "false") @RequestParam(name = "includeNonPublic", defaultValue = "false") final boolean includeNonPublic) {
+		@Parameter(name = "includeNonPublic", description = "Admin flag: include DRAFT/REVOKED latest revision.", example = "false") @RequestParam(name = "includeNonPublic", defaultValue = "false") final boolean includeNonPublic,
+		@Parameter(name = "accessType", description = "How this access should be classified in usage statistics.", example = "DOWNLOAD") @RequestParam(name = "accessType", defaultValue = "DOWNLOAD") final DocumentAccessType accessType,
+		@Parameter(name = "countStats", description = "Whether this access should be counted in usage statistics. Set to false for admin previews and test downloads.", example = "true") @RequestParam(name = "countStats",
+			defaultValue = "true") final boolean countStats,
+		@Parameter(name = "X-Sent-By", description = "Identifier of the caller, recorded in usage statistics.", in = io.swagger.v3.oas.annotations.enums.ParameterIn.HEADER) @RequestHeader(value = "X-Sent-By", required = false) final String sentBy) {
 
-		documentFileService.readFile(registrationNumber, documentDataId, includeConfidential, includeNonPublic, response, municipalityId);
+		documentFileService.readFile(registrationNumber, documentDataId, includeConfidential, includeNonPublic,
+			new AccessContext(countStats, accessType, sentBy), response, municipalityId);
 		return ok().build();
 	}
 
@@ -251,7 +283,7 @@ class DocumentResource {
 		APPLICATION_JSON_VALUE
 	})
 	@Operation(
-		summary = "Add document file data (or replace existing if filename already exists on the document object). Accepts either a single file via 'documentFile' (deprecated) or multiple files via 'documentFiles' — in both cases the operation produces exactly one new revision.",
+		summary = "Add, replace, and/or delete document files — one revision bump for the whole changeset. Uploads go via 'documentFile' (deprecated, single) or 'documentFiles' (batch); existing files are replaced by filename match. Deletions are opt-in via 'document.filesToDelete' (list of data IDs from the current revision). At least one add/replace or delete must be supplied.",
 		responses = {
 			@ApiResponse(responseCode = "204", description = "Successful operation", useReturnTypeSchema = true),
 			@ApiResponse(responseCode = "404", description = "Not found", content = @Content(mediaType = APPLICATION_PROBLEM_JSON_VALUE, schema = @Schema(implementation = Problem.class)))
@@ -267,23 +299,32 @@ class DocumentResource {
 		final var documentDataCreateRequest = objectMapper.readValue(documentDataString, DocumentDataCreateRequest.class);
 		validate(documentDataCreateRequest);
 
-		final var files = resolveFiles(documentFile, documentFiles);
-		validate(files);
+		final var hasDeletes = documentDataCreateRequest.getFilesToDelete() != null && !documentDataCreateRequest.getFilesToDelete().isEmpty();
+		final var files = resolveFiles(documentFile, documentFiles, hasDeletes);
+		// Only validate file-level constraints (content type, duplicate filenames) when new files
+		// are actually supplied. A pure-delete request has no files to validate.
+		if (files.getFiles() != null && !files.getFiles().isEmpty()) {
+			validate(files);
+		}
 
 		documentFileService.addOrReplaceFiles(registrationNumber, documentDataCreateRequest, files, municipalityId);
 
 		return noContent().build();
 	}
 
-	private static DocumentFiles resolveFiles(final MultipartFile documentFile, final List<MultipartFile> documentFiles) {
+	private static DocumentFiles resolveFiles(final MultipartFile documentFile, final List<MultipartFile> documentFiles, final boolean hasDeletes) {
 		final var hasSingular = documentFile != null && !documentFile.isEmpty();
 		final var hasBatch = documentFiles != null && !documentFiles.isEmpty();
 
-		if (hasSingular == hasBatch) {
-			throw Problem.valueOf(BAD_REQUEST, "Provide exactly one of 'documentFile' (deprecated) or 'documentFiles'.");
+		if (hasSingular && hasBatch) {
+			throw Problem.valueOf(BAD_REQUEST, "Provide at most one of 'documentFile' (deprecated) or 'documentFiles'.");
+		}
+		if (!hasSingular && !hasBatch && !hasDeletes) {
+			throw Problem.valueOf(BAD_REQUEST, "Provide at least one of 'documentFile' (deprecated), 'documentFiles', or 'document.filesToDelete'.");
 		}
 
-		return DocumentFiles.create().withFiles(hasBatch ? documentFiles : List.of(documentFile));
+		final var resolved = hasBatch ? documentFiles : (hasSingular ? List.of(documentFile) : List.<MultipartFile>of());
+		return DocumentFiles.create().withFiles(resolved);
 	}
 
 	@DeleteMapping(path = "/{registrationNumber}/files/{documentDataId}", produces = {
@@ -315,7 +356,7 @@ class DocumentResource {
 		@Parameter(name = "onlyLatestRevision", description = "Only perform search against the latest document revision", example = "true") @RequestParam(name = "onlyLatestRevision", defaultValue = "false") final boolean onlyLatestRevision,
 		@ParameterObject final Pageable pageable) {
 
-		return ok(documentService.search(query, includeConfidential, onlyLatestRevision, pageable, municipalityId));
+		return ok(documentSearchService.search(query, includeConfidential, onlyLatestRevision, pageable, municipalityId));
 	}
 
 	@GetMapping(path = "/file-matches", produces = {
@@ -326,12 +367,19 @@ class DocumentResource {
 	})
 	ResponseEntity<PagedDocumentMatchResponse> searchFileMatches(
 		@PathVariable @Parameter(name = "municipalityId", description = "Municipality ID", example = "2281") @ValidMunicipalityId final String municipalityId,
-		@Parameter(name = "query", description = "Search query.", example = "hello") @RequestParam(value = "query") @NotBlank final String query,
+		@Parameter(name = "query", description = "One or more search queries. Repeat the parameter (?query=a&query=b) to OR them together.", example = "hello") @RequestParam(value = "query") @NotNull @Size(min = 1,
+			max = 10) final List<@NotBlank String> query,
 		@Parameter(name = "includeConfidential", description = "Include confidential records", example = "true") @RequestParam(name = "includeConfidential", defaultValue = "false") final boolean includeConfidential,
 		@Parameter(name = "onlyLatestRevision", description = "Only perform search against the latest document revision", example = "true") @RequestParam(name = "onlyLatestRevision", defaultValue = "false") final boolean onlyLatestRevision,
+		@Parameter(name = "statuses",
+			description = "Lifecycle statuses to include. If omitted, every status is searched (including DRAFT and REVOKED). Supplying a list narrows the search to exactly those statuses. Repeat the parameter for multiple values.") @RequestParam(
+				name = "statuses",
+				required = false) final List<DocumentStatus> statuses,
+		@Parameter(name = "documentTypes", description = "Document types to include. If omitted, no document-type filter is applied. Repeat the parameter for multiple values.") @RequestParam(name = "documentTypes",
+			required = false) final List<@NotBlank String> documentTypes,
 		@ParameterObject final Pageable pageable) {
 
-		return ok(documentService.searchFileMatches(query, includeConfidential, onlyLatestRevision, pageable, municipalityId));
+		return ok(documentSearchService.searchFileMatches(query, includeConfidential, onlyLatestRevision, statuses, documentTypes, pageable, municipalityId));
 	}
 
 	@PostMapping(path = "/filter", produces = {
@@ -345,7 +393,24 @@ class DocumentResource {
 
 		final var decoratedRequest = documentParameters.withMunicipalityId(municipalityId);
 
-		return ok(documentService.searchByParameters(decoratedRequest));
+		return ok(documentSearchService.searchByParameters(decoratedRequest));
+	}
+
+	@GetMapping(path = "/statistics", produces = APPLICATION_JSON_VALUE)
+	@Operation(summary = "Document statistics overview.",
+		description = "Aggregated counts across the document corpus (totals, status breakdown, confidentiality split, "
+			+ "per-type / per-year counts, revision distribution, documents without files, and a fixed 30-day expiring-soon window). "
+			+ "Pass 'createdBy' to scope to documents originally created by that user; omit for municipality-wide totals.",
+		responses = {
+			@ApiResponse(responseCode = "200", description = "Successful operation", useReturnTypeSchema = true)
+		})
+	ResponseEntity<DocumentStatisticsOverview> statistics(
+		@PathVariable @Parameter(name = "municipalityId", description = "Municipality ID", example = "2281") @ValidMunicipalityId final String municipalityId,
+		@Parameter(name = "createdBy",
+			description = "personId of the user to scope the aggregation to. Omit for municipality-wide totals.",
+			example = "6c3e4f5a-7b8d-4e9c-a1f2-d3e4b5c6a7f8") @RequestParam(name = "createdBy", required = false) @ValidUuid(nullable = true) final String createdBy) {
+
+		return ok(documentStatisticsOverviewService.getOverview(municipalityId, createdBy));
 	}
 
 	private <T> void validate(final T t) {

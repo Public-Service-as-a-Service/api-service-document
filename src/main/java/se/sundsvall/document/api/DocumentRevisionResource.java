@@ -14,6 +14,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -22,9 +23,11 @@ import se.sundsvall.dept44.common.validators.annotation.ValidUuid;
 import se.sundsvall.dept44.problem.Problem;
 import se.sundsvall.dept44.problem.violations.ConstraintViolationProblem;
 import se.sundsvall.document.api.model.Document;
+import se.sundsvall.document.api.model.DocumentAccessType;
 import se.sundsvall.document.api.model.PagedDocumentResponse;
 import se.sundsvall.document.service.DocumentFileService;
 import se.sundsvall.document.service.DocumentService;
+import se.sundsvall.document.service.statistics.AccessContext;
 
 import static org.springframework.http.MediaType.APPLICATION_JSON_VALUE;
 import static org.springframework.http.MediaType.APPLICATION_PROBLEM_JSON_VALUE;
@@ -96,9 +99,14 @@ public class DocumentRevisionResource {
 		@Parameter(name = "registrationNumber", description = "Document registration number", example = "2023-2281-1337") @PathVariable("registrationNumber") final String registrationNumber,
 		@Parameter(name = "revision", description = "Document revision", example = "2") @Min(0) @PathVariable("revision") final int revision,
 		@Parameter(name = "documentDataId", description = "Document data ID", example = "082ba08f-03c7-409f-b8a6-940a1397ba38") @PathVariable("documentDataId") @ValidUuid final String documentDataId,
-		@Parameter(name = "includeConfidential", description = "Include confidential records", example = "true") @RequestParam(name = "includeConfidential", defaultValue = "false") final boolean includeConfidential) {
+		@Parameter(name = "includeConfidential", description = "Include confidential records", example = "true") @RequestParam(name = "includeConfidential", defaultValue = "false") final boolean includeConfidential,
+		@Parameter(name = "accessType", description = "How this access should be classified in usage statistics.", example = "DOWNLOAD") @RequestParam(name = "accessType", defaultValue = "DOWNLOAD") final DocumentAccessType accessType,
+		@Parameter(name = "countStats", description = "Whether this access should be counted in usage statistics. Set to false for admin previews and test downloads.", example = "true") @RequestParam(name = "countStats",
+			defaultValue = "true") final boolean countStats,
+		@Parameter(name = "X-Sent-By", description = "Identifier of the caller, recorded in usage statistics.", in = io.swagger.v3.oas.annotations.enums.ParameterIn.HEADER) @RequestHeader(value = "X-Sent-By", required = false) final String sentBy) {
 
-		documentFileService.readFile(registrationNumber, revision, documentDataId, includeConfidential, response, municipalityId);
+		documentFileService.readFile(registrationNumber, revision, documentDataId, includeConfidential,
+			new AccessContext(countStats, accessType, sentBy), response, municipalityId);
 		return ok().build();
 	}
 }

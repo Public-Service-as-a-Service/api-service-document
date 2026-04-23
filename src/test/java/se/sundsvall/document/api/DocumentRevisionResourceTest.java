@@ -169,7 +169,7 @@ class DocumentRevisionResourceTest {
 			.isEmpty();
 
 		// Assert
-		verify(documentFileServiceMock).readFile(eq(registrationNumber), eq(revision), eq(documentDataId), eq(false), any(HttpServletResponse.class), eq("2281"));
+		verify(documentFileServiceMock).readFile(eq(registrationNumber), eq(revision), eq(documentDataId), eq(false), any(se.sundsvall.document.service.statistics.AccessContext.class), any(HttpServletResponse.class), eq("2281"));
 	}
 
 	@Test
@@ -192,6 +192,6 @@ class DocumentRevisionResourceTest {
 			.isEmpty();
 
 		// Assert
-		verify(documentFileServiceMock).readFile(eq(registrationNumber), eq(revision), eq(documentDataId), eq(includeConfidential), any(HttpServletResponse.class), eq("2281"));
+		verify(documentFileServiceMock).readFile(eq(registrationNumber), eq(revision), eq(documentDataId), eq(includeConfidential), any(se.sundsvall.document.service.statistics.AccessContext.class), any(HttpServletResponse.class), eq("2281"));
 	}
 }

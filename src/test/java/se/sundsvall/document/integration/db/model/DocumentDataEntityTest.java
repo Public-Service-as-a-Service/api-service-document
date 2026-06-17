@@ -1,5 +1,6 @@
 package se.sundsvall.document.integration.db.model;
 
+import java.util.List;
 import org.junit.jupiter.api.Test;
 import se.sundsvall.document.service.extraction.ExtractionStatus;
 
@@ -36,6 +37,9 @@ class DocumentDataEntityTest {
 		final var contentHash = "abc123";
 		final var extractedText = "extracted text content";
 		final var extractionStatus = ExtractionStatus.SUCCESS;
+		final var pageCount = 3;
+		final var pageOffsets = List.of(0, 1234, 5678);
+		final var documentId = randomUUID().toString();
 
 		final var bean = DocumentDataEntity.create()
 			.withFileName(fileName)
@@ -45,7 +49,10 @@ class DocumentDataEntityTest {
 			.withStorageLocator(storageLocator)
 			.withContentHash(contentHash)
 			.withExtractedText(extractedText)
-			.withExtractionStatus(extractionStatus);
+			.withExtractionStatus(extractionStatus)
+			.withPageCount(pageCount)
+			.withPageOffsets(pageOffsets);
+		bean.setDocumentId(documentId);
 
 		assertThat(bean).isNotNull().hasNoNullFieldsOrProperties();
 		assertThat(bean.getFileName()).isEqualTo(fileName);
@@ -56,6 +63,9 @@ class DocumentDataEntityTest {
 		assertThat(bean.getContentHash()).isEqualTo(contentHash);
 		assertThat(bean.getExtractedText()).isEqualTo(extractedText);
 		assertThat(bean.getExtractionStatus()).isEqualTo(extractionStatus);
+		assertThat(bean.getPageCount()).isEqualTo(pageCount);
+		assertThat(bean.getPageOffsets()).isEqualTo(pageOffsets);
+		assertThat(bean.getDocumentId()).isEqualTo(documentId);
 	}
 
 	@Test

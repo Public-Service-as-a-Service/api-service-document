@@ -84,6 +84,15 @@ public class DocumentIndexEntity {
 	@Field(type = FieldType.Keyword)
 	private ExtractionStatus extractionStatus;
 
+	@Field(type = FieldType.Integer)
+	private Integer pageCount;
+
+	// Char offsets into extractedText where each page begins. Indexed as an Integer array; we don't
+	// query against it — it's carried purely so DocumentSearchMapper can resolve a match offset
+	// back to a page number without round-tripping to the DB.
+	@Field(type = FieldType.Integer, index = false)
+	private List<Integer> pageOffsets;
+
 	public String getId() {
 		return id;
 	}
@@ -252,6 +261,24 @@ public class DocumentIndexEntity {
 
 	public DocumentIndexEntity setExtractionStatus(ExtractionStatus extractionStatus) {
 		this.extractionStatus = extractionStatus;
+		return this;
+	}
+
+	public Integer getPageCount() {
+		return pageCount;
+	}
+
+	public DocumentIndexEntity setPageCount(Integer pageCount) {
+		this.pageCount = pageCount;
+		return this;
+	}
+
+	public List<Integer> getPageOffsets() {
+		return pageOffsets;
+	}
+
+	public DocumentIndexEntity setPageOffsets(List<Integer> pageOffsets) {
+		this.pageOffsets = pageOffsets;
 		return this;
 	}
 }

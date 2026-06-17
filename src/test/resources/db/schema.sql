@@ -33,6 +33,7 @@ create table document_access_log (
 ) engine=InnoDB;
 
 create table document_data (
+                               page_count integer,
                                file_size_in_bytes bigint default 0,
                                content_hash varchar(64),
                                document_id varchar(255) not null,
@@ -40,6 +41,7 @@ create table document_data (
                                file_name varchar(255),
                                id varchar(255) not null,
                                mime_type varchar(255),
+                               page_offsets LONGTEXT,
                                storage_locator varchar(255) not null,
                                extraction_status enum ('FAILED','PENDING_REINDEX','SUCCESS','UNSUPPORTED') not null,
                                primary key (id)

@@ -103,7 +103,13 @@ public class DocumentSearchService {
 		// is "no status filter at all" — i.e. search every status including DRAFT and REVOKED.
 		// Supplying a list narrows the search to exactly those statuses.
 		final var hits = runFulltextSearch(queries, includeConfidential, statuses, documentTypes, municipalityId, pageable);
-		return toPagedDocumentMatchResponse(hits, pageable, onlyLatestRevision);
+		// Queries are threaded into the mapper so it can compute exact char-offset matches inside
+		// extractedText per hit. Tokenization uses BreakIterator (Unicode word-segmentation)
+		// mirroring ES's StandardAnalyzer — see DocumentSearchMapper.tokenizeQueries. Fuzzy and
+		// synonym matches that ES counted as hits won't be located here; they're rare in practice
+		// (fuzziness is typo-tolerant, not semantic) and can be upgraded to _mtermvectors later
+		// without breaking the response shape.
+		return toPagedDocumentMatchResponse(hits, queries, pageable, onlyLatestRevision);
 	}
 
 	public PagedDocumentResponse searchByParameters(final DocumentParameters parameters) {

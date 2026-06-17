@@ -3,6 +3,13 @@ integration:
     enabled: true
     logKeyUuid: 00000000-0000-0000-0000-000000000000
     url: http://localhost:${wiremock.server.port:}/api-eventlog
+document:
+  # Disable the reindex scheduler during integration tests. The 5-minute cron would otherwise
+  # fire mid-suite for slow runs, process test-seeded PENDING_REINDEX rows, and mutate state
+  # the test hasn't yet asserted on. Individual ITs that exercise the scheduler invoke it
+  # directly rather than relying on the cron.
+  reindex-job:
+    enabled: false
 spring:
   datasource:
     driver-class-name: org.testcontainers.jdbc.ContainerDatabaseDriver
